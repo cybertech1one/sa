@@ -400,6 +400,12 @@
                 </svg>
                 PDF Report
               </button>
+<button id="excelReportBtn" class="ml-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-md shadow-md hover:from-green-700 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all flex items-center">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+  Excel Report
+</button>
             </div>
           </div>
         </div>
@@ -944,653 +950,1837 @@
   </div>
   
   <script>
-    /**
-     * ENHANCED SECURITY PATTERNS
-     * Comprehensive threat detection for Excel files
-     */
-    const securityPatterns = {
-      vbaMacros: {
-        patterns: [
-          { regex: /AutoOpen|Auto_Open|Workbook_Open|Document_Open/gi, severity: "critical", description: "Auto-executing macro" },
-          { regex: /CreateObject\s*\(\s*["']WScript\.Shell["']/gi, severity: "critical", description: "Shell access via WScript" },
-          { regex: /Shell\s*\(/gi, severity: "critical", description: "Shell command execution" },
-          { regex: /ActiveX|CreateObject|GetObject/gi, severity: "high", description: "Object creation/ActiveX usage" },
-          { regex: /\.Run\s*\(/gi, severity: "critical", description: "Running external commands" },
-          { regex: /\.SaveAs/gi, severity: "high", description: "File saving operations" },
-          { regex: /Chr\s*\(\s*\d+\s*\)/gi, severity: "medium", description: "Character code conversion (possible obfuscation)" },
-          { regex: /Chr\$\s*\(\s*\d+\s*\)/gi, severity: "medium", description: "Character code conversion (possible obfuscation)" },
-          { regex: /XMLHTTP|WinHttp|ServerXMLHTTP/gi, severity: "high", description: "Web requests in macro" },
-          { regex: /\.Open\s+["'][^"']+\.exe["']|\.Open\s+["'][^"']+\.dll["']/gi, severity: "critical", description: "Opening executable files" },
-          { regex: /Base64Decode|Base64Encode|EncodeBase64|DecodeBase64/gi, severity: "high", description: "Base64 encoding (possible obfuscation)" },
-          { regex: /PowerShell/gi, severity: "critical", description: "PowerShell execution" },
-          { regex: /RegRead|RegWrite|SaveSetting|GetSetting/gi, severity: "high", description: "Registry/settings manipulation" },
-          { regex: /FileSystemObject|OpenTextFile|Scripting\.Dictionary/gi, severity: "high", description: "File system operations" },
-          { regex: /\.CreateTextFile/gi, severity: "high", description: "Creating files on disk" },
-          { regex: /Document\.Write/gi, severity: "medium", description: "Document manipulation" },
-          { regex: /EntireNetwork|NetworkDrivesPass/gi, severity: "high", description: "Network enumeration" },
-          { regex: /IsBadReadPtr|IsBadWritePtr|IsBadCodePtr/gi, severity: "critical", description: "Memory manipulation" },
-          { regex: /\.DownloadFile|\.DownloadString/gi, severity: "critical", description: "Downloading files from internet" },
-          { regex: /URLDownloadToFile|HTTPDownloadFile|DownloadFile/gi, severity: "critical", description: "File download function" },
-          { regex: /CallWindowProc|CallByName/gi, severity: "high", description: "Dynamic code execution" },
-          { regex: /Application\.OnTime/gi, severity: "high", description: "Scheduled code execution" },
-          { regex: /ExecuteExcel4Macro/gi, severity: "critical", description: "Excel 4.0 macro execution" },
-          { regex: /\.(Execute|Eval|ExecuteStatement)/gi, severity: "critical", description: "Dynamic code evaluation" },
-          { regex: /ShellExecute|WinExec|CreateProcess/gi, severity: "critical", description: "Process execution" },
-          { regex: /StrReverse|Mid\$|Left\$|Right\$/gi, severity: "medium", description: "String manipulation (possible obfuscation)" },
-          { regex: /\bc:/i, severity: "high", description: "Hardcoded file path (C: drive)" },
-          { regex: /\.RegisterXLL/gi, severity: "critical", description: "XLL add-in registration" },
-          { regex: /ESENTUTL|CERTUTIL|BITSADMIN|WMIC/gi, severity: "critical", description: "System utility commands" },
-          { regex: /TempVBFile|VBTemp|ScriptControl/gi, severity: "critical", description: "Dynamic VB script execution" },
-          { regex: /\.Hide|\.Visible\s*=\s*False/gi, severity: "medium", description: "Hidden object/window" },
-          { regex: /iex\s*\(|Invoke-Expression|Invoke-Command|Invoke-Item/gi, severity: "critical", description: "PowerShell Invoke expressions" },
-          { regex: /VBA\.(CreateObject|GetObject)/gi, severity: "high", description: "VBA object creation" },
-          { regex: /Environ\s*\(["']TEMP["']\)/gi, severity: "medium", description: "Accessing temp directory" },
-          { regex: /FollowHyperlink|Hyperlinks\.Add/gi, severity: "high", description: "Hyperlink navigation" },
-          { regex: /ThisWorkbook\.FollowHyperlink/gi, severity: "high", description: "Hyperlink navigation" },
-          { regex: /\.CommandText|\.CommandType/gi, severity: "high", description: "Database command execution" },
-          { regex: /Sub\s+AutoClose|Sub\s+Auto_Close|Sub\s+Document_Close|Sub\s+Workbook_BeforeClose/gi, severity: "high", description: "Execution on document close" },
-          { regex: /\b(ByVal|ByRef)\s+ProcessId\s+As\s+Long|\bProcess(\s|\()|\bProcesses\b/gi, severity: "high", description: "Process manipulation" },
-          { regex: /WriteBinaryData|WriteText|BinaryWrite/gi, severity: "high", description: "Binary data writing" },
-          { regex: /\.OutputDebugString|\.CreateThread/gi, severity: "high", description: "Low-level Windows API" },
-          { regex: /SysAllocString|SysFreeString|SysAllocStringByteLen/gi, severity: "high", description: "Memory allocation functions" },
-          { regex: /AddCode|\.CodeModule/gi, severity: "critical", description: "Dynamic code modification" }
-        ],
-        description: "Detection of potentially malicious VBA macro code in the document."
-      },
+   /**
+ * ADVANCED EXCEL THREAT DETECTION SYSTEM
+ * Comprehensive security pattern detection for Excel-based threats
+ * v2.0 - Enhanced for detecting sophisticated attack vectors
+ */
+const enhancedSecurityPatterns = {
+  vbaMacros: {
+    patterns: [
+      // Original patterns
+      { regex: /AutoOpen|Auto_Open|Workbook_Open|Document_Open/gi, severity: "critical", description: "Auto-executing macro" },
+      { regex: /CreateObject\s*\(\s*["']WScript\.Shell["']/gi, severity: "critical", description: "Shell access via WScript" },
+      { regex: /Shell\s*\(/gi, severity: "critical", description: "Shell command execution" },
+      { regex: /ActiveX|CreateObject|GetObject/gi, severity: "high", description: "Object creation/ActiveX usage" },
+      { regex: /\.Run\s*\(/gi, severity: "critical", description: "Running external commands" },
       
-      xlmMacros: {
-        patterns: [
-          { regex: /=EXEC\(/gi, severity: "critical", description: "Excel 4.0 macro function for code execution" },
-          { regex: /=CALL\(/gi, severity: "critical", description: "Excel 4.0 function call to external library" },
-          { regex: /=REGISTER\(/gi, severity: "critical", description: "Excel 4.0 function to register DLL" },
-          { regex: /=FORMULA\(/gi, severity: "high", description: "Dynamic formula insertion" },
-          { regex: /=RUN\(/gi, severity: "critical", description: "Running commands or applications" },
-          { regex: /=APP\.RUN/gi, severity: "critical", description: "Application execution" },
-          { regex: /=SYSTEM\(/gi, severity: "critical", description: "System command execution" },
-          { regex: /=HALT\(/gi, severity: "medium", description: "Execution control function" },
-          { regex: /=ALERT\(/gi, severity: "medium", description: "Dialog display function" },
-          { regex: /=FILES\(/gi, severity: "high", description: "File operations" },
-          { regex: /=FOPEN\(/gi, severity: "high", description: "File open operation" },
-          { regex: /=FWRITE\(/gi, severity: "high", description: "File write operation" },
-          { regex: /=FREAD\(/gi, severity: "high", description: "File read operation" },
-          { regex: /=OPEN\(/gi, severity: "high", description: "Open file operation" },
-          { regex: /=WORKSPACE\(/gi, severity: "medium", description: "Excel environment modification" },
-          { regex: /=OPTIONS\(/gi, severity: "medium", description: "Excel options modification" },
-          { regex: /=GET\.WORKSPACE\(/gi, severity: "medium", description: "Workspace information gathering" },
-          { regex: /=CHAR\(/gi, severity: "medium", description: "Character manipulation (possible obfuscation)" },
-          { regex: /=CODE\(/gi, severity: "medium", description: "Character code conversion (possible obfuscation)" },
-          { regex: /=CONCATENATE\(/gi, severity: "medium", description: "String concatenation (possible obfuscation)" },
-          { regex: /=SEARCH\(/gi, severity: "low", description: "String searching function" },
-          { regex: /=MID\(/gi, severity: "medium", description: "String extraction (possible obfuscation)" },
-          { regex: /=LEFT\(/gi, severity: "medium", description: "String extraction (possible obfuscation)" },
-          { regex: /=RIGHT\(/gi, severity: "medium", description: "String extraction (possible obfuscation)" },
-          { regex: /=WHILE\(/gi, severity: "medium", description: "Looping construct" },
-          { regex: /=GOTO\(/gi, severity: "medium", description: "Flow control operation" },
-          { regex: /=DIRECTORY\(/gi, severity: "high", description: "Directory operations" },
-          { regex: /=NOW\(/gi, severity: "low", description: "Time-based function (potential trigger)" },
-          { regex: /=ERROR\(/gi, severity: "medium", description: "Error handling function" },
-          { regex: /=EVALUATE\(/gi, severity: "critical", description: "Dynamic expression evaluation" }
-        ],
-        description: "Detection of Excel 4.0/XLM macros, which are often used in malware."
-      },
+      // Enhanced patterns
+      { regex: /CreateObject\s*\(\s*["'](Scripting\.FileSystemObject|ADODB\.Stream|ADODB\.Connection|MSXML2\.ServerXMLHTTP|Microsoft\.XMLHTTP|WinHttp\.WinHttpRequest)["']/gi, severity: "critical", description: "High-risk object creation" },
+      { regex: /VirtualAlloc|VirtualProtect|WriteProcessMemory|RtlMoveMemory|memcpy|RtlCopyMemory/gi, severity: "critical", description: "Memory manipulation (potential shellcode)" },
+      { regex: /URLDownloadToFile(A|W)|URLDownloadToCacheFile(A|W)|DownloadFile/gi, severity: "critical", description: "File download from internet" },
+      { regex: /SetTimer|SetWindowsHookEx|SetWinEventHook/gi, severity: "critical", description: "Process/window hooking" },
+      { regex: /EnumProcesses|Process32First|Process32Next|CreateToolhelp32Snapshot/gi, severity: "high", description: "Process enumeration" },
+      { regex: /NtUnmapViewOfSection|ZwUnmapViewOfSection|NtWriteVirtualMemory/gi, severity: "critical", description: "Advanced memory manipulation" },
+      { regex: /GdiSetBatchLimit|CreateDIBSection|SetBitmapBits/gi, severity: "high", description: "GDI exploitation technique" },
+      { regex: /HeapCreate|HeapAlloc|HeapFree/gi, severity: "high", description: "Heap manipulation" },
+      { regex: /\.(RegisterProtocol|RegisterPrefixHandler|RegisterTypeURI)/gi, severity: "high", description: "Protocol handler registration" },
+      { regex: /\.EnableBrowserEmulation/gi, severity: "medium", description: "Browser emulation" },
+      { regex: /\.PrivateProfileString|GetProfileString/gi, severity: "medium", description: "INI file operations" },
+      { regex: /AddCode|\.CodeModule\.AddFromString|\.CodeModule\.AddFromFile/gi, severity: "critical", description: "Dynamic VBA code injection" },
+      { regex: /\.Execute\s*\(["'][^"']+["'](\s*,\s*["'][^"']*["'])?\)/gi, severity: "critical", description: "SQL/command execution" },
+      { regex: /\.NewProcess|\.Terminate|\.Quit/gi, severity: "high", description: "Process manipulation" },
+      { regex: /\.SendKeys/gi, severity: "high", description: "Automated keyboard input" },
+      { regex: /\.ShellBrowse/gi, severity: "high", description: "Shell browsing function" },
+      { regex: /(Set|Get)SecurityDescriptor|SDDL/gi, severity: "high", description: "Security descriptor manipulation" },
+      { regex: /IsBadCodePtr|IsBadReadPtr|IsBadWritePtr|IsBadStringPtr/gi, severity: "critical", description: "Deprecated memory verification (often malicious)" },
+      { regex: /VBA\.CreateObject\s*\(\s*["']Forms\.Timer["']/gi, severity: "high", description: "Timer object for delayed execution" },
+      { regex: /\.StartupPath|\.SpecialFolders\s*\(\s*["'](Startup|Desktop|AppData|System|Temp)["']\s*\)/gi, severity: "high", description: "Special folder access" },
+      { regex: /\.AddScript|\.AddCode|\.AddObject/gi, severity: "critical", description: "Dynamic script/code addition" },
+      { regex: /\.RequestPermission|\.HasPermission/gi, severity: "medium", description: "Permission manipulation" },
+      { regex: /\.ExecQuery\s*\(\s*["']SELECT\s+\*\s+FROM\s+/gi, severity: "high", description: "WMI query execution" },
+      { regex: /InternetOpenUrl|InternetOpen|InternetConnect|InternetReadFile/gi, severity: "high", description: "Low-level internet API" },
+      { regex: /\.ContentType\s*=\s*["']application\/octet-stream["']/gi, severity: "high", description: "Binary content handling" },
+      { regex: /\.HideDocument|\.Visible\s*=\s*msoFalse/gi, severity: "medium", description: "Document hiding" },
+      { regex: /\.FullTrust|\.PermissionSet/gi, severity: "high", description: ".NET security bypass" },
+      { regex: /\.SetOption\s*\(\s*["']SECURITY["']/gi, severity: "high", description: "Security option manipulation" },
+      { regex: /DllRegisterServer|DllUnregisterServer|DllInstall|DllGetClassObject/gi, severity: "critical", description: "DLL registration functions" }
+    ],
+    description: "Detection of potentially malicious VBA macro code in the document."
+  },
+  
+  domainCallbacks: {
+    patterns: [
+      { regex: /\.(local|corp|internal|intranet|lan|private|home|office)/gi, severity: "high", description: "Local domain access" },
+      { regex: /192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}/gi, severity: "high", description: "Private IP address access" },
+      { regex: /\\\\(([a-zA-Z0-9\-_]+)|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))/gi, severity: "high", description: "SMB/network share access" },
+      { regex: /ldap:\/\/|ldaps:\/\//gi, severity: "high", description: "LDAP directory access" },
+      { regex: /wpad\.|isatap\.|teredo\.|6to4\./gi, severity: "high", description: "Network discovery protocol" },
+      { regex: /ActiveDirectory\.|DirectoryServices\.|DirectoryEntry\.|DirectorySearcher\./gi, severity: "high", description: "Directory service access" },
+      { regex: /GetDomainController|GetCurrentDomain|NetWkstaGetInfo|NetServerEnum/gi, severity: "high", description: "Domain enumeration" },
+      { regex: /NetShareEnum|NetShareGetInfo|WNetEnumResource/gi, severity: "high", description: "Network share enumeration" },
+      { regex: /DsGetDcName|DsEnumerateDomainTrusts|DsRoleGetPrimaryDomainInformation/gi, severity: "high", description: "Domain controller enumeration" },
+      { regex: /NetLocalGroupEnum|NetLocalGroupGetMembers|NetGroupEnum|NetGroupGetUsers/gi, severity: "high", description: "Local group enumeration" },
+      { regex: /NdrClientCall|RpcBindingFromStringBinding|RpcStringBindingCompose/gi, severity: "critical", description: "RPC communication" },
+      { regex: /WinRM\.|WSMan\.|New-PSSession|Invoke-Command/gi, severity: "high", description: "Remote management" },
+      { regex: /DsGetSiteName|DsMapSchemaGuids|DsGetSpn/gi, severity: "high", description: "Active Directory site functions" },
+      { regex: /NetUserEnum|NetUserGetInfo|NetUserGetLocalGroups|NetUserGetGroups/gi, severity: "high", description: "User enumeration" },
+      { regex: /kerberos:|ms-DS|ntds|sAMAccountName|userAccountControl/gi, severity: "high", description: "Active Directory attribute access" },
+      { regex: /CIFS|NETBIOS|BROWSER|LANMAN|NTLMSSP|LSARPC|SAMR|DRSUAPI/gi, severity: "high", description: "Windows protocol usage" },
+      { regex: /dnsquery_a|DnsQuery_A|DnsQuery_W|DnsQueryEx/gi, severity: "medium", description: "DNS API usage" },
+      { regex: /GetAdaptersAddresses|GetAdaptersInfo|GetInterfaceInfo/gi, severity: "medium", description: "Network adapter enumeration" },
+      { regex: /certutil -ping|certutil -URL|certutil -TCAInfo/gi, severity: "medium", description: "Certificate infrastructure probing" },
+      { regex: /net view|net group|net localgroup|net user|net accounts/gi, severity: "high", description: "Network enumeration commands" }
+    ],
+    description: "Detection of callbacks to internal/local domains, network resources, and domain enumeration."
+  },
+  
+  dnsOperations: {
+    patterns: [
+      { regex: /DnsQuery|nslookup|dig|host -t|resolver/gi, severity: "medium", description: "DNS query operation" },
+      { regex: /gethostbyname|getaddrinfo|GetHostEntry|Dns\.GetHostEntry/gi, severity: "medium", description: "Hostname resolution" },
+      { regex: /\.soa|\.mx|\.txt|\.srv|\.ns|\.cname|\.ptr|\.dnskey/gi, severity: "medium", description: "DNS record type specification" },
+      { regex: /\.hostedzone|\.awsdns|\.cloudfront\.net|\.azurewebsites\.net/gi, severity: "medium", description: "Cloud DNS reference" },
+      { regex: /dnscat|iodine|dns2tcp|dnsmasq/gi, severity: "critical", description: "DNS tunneling tool" },
+      { regex: /\.(cdn|static|content|media|download)\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/gi, severity: "medium", description: "Content delivery network" },
+      { regex: /\.(bit|dns|domain|domains|dyn|dynamic|freedns)/gi, severity: "high", description: "Dynamic DNS service" },
+      { regex: /\.(no-ip|ddns|dynip|dyndns)\.(org|com|net|info)/gi, severity: "high", description: "Dynamic DNS provider" },
+      { regex: /SubdomainBruteforce|DNSRecon|DNSEnum|Fierce/gi, severity: "high", description: "DNS enumeration tool" },
+      { regex: /reverse lookup|reverse record|PTR record/gi, severity: "medium", description: "Reverse DNS lookup" },
+      { regex: /dns exfiltration|dns tunnel|dns channel|dns data|dns transfer/gi, severity: "high", description: "DNS exfiltration technique" },
+      { regex: /DNSSEC|TSIG|DKIM|SPF|DMARC/gi, severity: "low", description: "DNS security protocol" },
+      { regex: /External DNS|Split DNS|DNS Forwarding/gi, severity: "medium", description: "DNS architecture term" },
+      { regex: /dnscmd|DnsServer\.|Set-DnsServer|Add-DnsServerResourceRecord/gi, severity: "high", description: "DNS server administration" },
+      { regex: /Zone Transfer|AXFR|IXFR/gi, severity: "medium", description: "DNS zone transfer" },
+      { regex: /DNS rebinding|Same-Origin Policy bypass/gi, severity: "high", description: "DNS-based attack" },
+      { regex: /DNS cache poisoning|DNS spoofing/gi, severity: "high", description: "DNS attack technique" },
+      { regex: /encode32|encode64|encodehex|basE91|uuencode/gi, severity: "medium", description: "Data encoding (possible for DNS exfil)" },
+      { regex: /\.arpa\b|in-addr\.arpa/gi, severity: "medium", description: "Reverse DNS zone" },
+      { regex: /nsupdate|dynamic update|DNS UPDATE/gi, severity: "medium", description: "Dynamic DNS update" }
+    ],
+    description: "Detection of DNS operations that may be used for command & control or data exfiltration."
+  },
+  
+  reverseConnections: {
+    patterns: [
+      { regex: /reverse shell|reverse connection|reverse channel|connect-back/gi, severity: "critical", description: "Reverse connection terminology" },
+      { regex: /nc -e|netcat -e|ncat -e|\bnc\s+-\w*v|\bncat\s+-\w*v/gi, severity: "critical", description: "Netcat reverse shell" },
+      { regex: /socat\s+.*\s+EXEC:/gi, severity: "critical", description: "Socat reverse shell" },
+      { regex: /perl -e\s+.*socket.*connect.*exec/gi, severity: "critical", description: "Perl reverse shell" },
+      { regex: /python\s+-c\s+["']import\s+socket.*connect.*subprocess/gi, severity: "critical", description: "Python reverse shell" },
+      { regex: /bash\s+-i\s+>&\s+\/dev\/tcp\//gi, severity: "critical", description: "Bash reverse shell" },
+      { regex: /ruby\s+-rsocket\s+-e/gi, severity: "critical", description: "Ruby reverse shell" },
+      { regex: /php\s+-r\s+.*fsockopen/gi, severity: "critical", description: "PHP reverse shell" },
+      { regex: /powershell\s+.*New-Object\s+System\.Net\.Sockets\.TCPClient/gi, severity: "critical", description: "PowerShell reverse shell" },
+      { regex: /rundll32.*url\.dll,FileProtocolHandler\s+.*\.sct/gi, severity: "critical", description: "Rundll32 callback" },
+      { regex: /certutil.*-urlcache/gi, severity: "critical", description: "Certutil download" },
+      { regex: /bitsadmin.*\/transfer/gi, severity: "critical", description: "BITS transfer" },
+      { regex: /regsvr32.*\/s.*\/u.*\/i:/gi, severity: "critical", description: "Regsvr32 (Squiblydoo) callback" },
+      { regex: /mshta\s+.*\.hta/gi, severity: "critical", description: "MSHTA remote script" },
+      { regex: /wmic\s+.*format:.*http/gi, severity: "critical", description: "WMIC remote execution" },
+      { regex: /Invoke-WebRequest|Invoke-RestMethod|Net\.WebClient\.DownloadString/gi, severity: "high", description: "PowerShell web request" },
+      { regex: /msiexec.*\/q.*\/i.*http/gi, severity: "critical", description: "MsiExec remote install" },
+      { regex: /InternetOpenUrl|URLOpenBlockingStream|WinHttpConnect|InternetReadFile/gi, severity: "high", description: "WinINet/WinHTTP API usage" },
+      { regex: /DnsQuery_UTF8|DnsQuery_A|DnsQuery_W/gi, severity: "medium", description: "DNS API (potential C2)" },
+      { regex: /IPPROTO_TCP|IPPROTO_UDP|SOCK_STREAM|SOCK_DGRAM/gi, severity: "medium", description: "Socket protocol constants" }
+    ],
+    description: "Detection of reverse shell connections and callback mechanisms."
+  },
+  
+  hostHopping: {
+    patterns: [
+      { regex: /PsExec|Invoke-PsExec|PSEXESVC/gi, severity: "critical", description: "PsExec lateral movement" },
+      { regex: /wmic.*node:/gi, severity: "critical", description: "WMIC remote execution" },
+      { regex: /winrm.*quickconfig|New-PSSession|Enter-PSSession|Invoke-Command.*-ComputerName/gi, severity: "high", description: "PowerShell remoting" },
+      { regex: /schtasks.*\/create.*\/s/gi, severity: "critical", description: "Remote scheduled task creation" },
+      { regex: /sc.*\\\\.*create/gi, severity: "critical", description: "Remote service creation" },
+      { regex: /reg.*\\\\.*add/gi, severity: "critical", description: "Remote registry modification" },
+      { regex: /net.*use.*\\\\|New-PSDrive.*-PSProvider FileSystem.*-Root \\\\/gi, severity: "high", description: "Network share mounting" },
+      { regex: /net.*time.*\\\\|w32tm.*\/stripchart.*\/computer:/gi, severity: "medium", description: "Remote time query (reconnaissance)" },
+      { regex: /nbtscan|nbtstat.*-A|nmap.*-sn/gi, severity: "high", description: "Network scanning" },
+      { regex: /ldapsearch|adfind|AdExplorer/gi, severity: "high", description: "Directory service enumeration" },
+      { regex: /crackmapexec|wmiexec|smbexec|dcomexec/gi, severity: "critical", description: "Post-exploitation lateral movement tool" },
+      { regex: /mimikatz|sekurlsa|kerberoast|asktgt|Rubeus/gi, severity: "critical", description: "Credential theft/exploitation tool" },
+      { regex: /atexec|dcomexec|smbexec|wmiexec/gi, severity: "critical", description: "Impacket lateral movement tool" },
+      { regex: /invoke-executemsbuild|invoke-wmicmethod|invoke-shellcode/gi, severity: "critical", description: "PowerSploit/offensive PowerShell" },
+      { regex: /Copy-VSS|Copy-Item.*-Destination \\\\/gi, severity: "high", description: "Remote file copy" },
+      { regex: /vssadmin create shadow|wbadmin start backup/gi, severity: "high", description: "Volume shadow copy creation" },
+      { regex: /diskshadow|wmic shadowcopy/gi, severity: "high", description: "Shadow copy manipulation" },
+      { regex: /SharpHound|Bloodhound|Find-DomainShare|Find-LocalAdminAccess/gi, severity: "critical", description: "Active Directory exploitation tool" },
+      { regex: /xp_cmdshell|enable_xp_cmdshell|sp_oacreate|sp_configure/gi, severity: "critical", description: "SQL Server lateral movement" },
+      { regex: /getuid|getpid|getsystem|hashdump|migrate/gi, severity: "critical", description: "Post-exploitation command" }
+    ],
+    description: "Detection of lateral movement (host hopping) techniques and tools."
+  },
+  
+  antivirusEvasion: {
+    patterns: [
+      { regex: /AMSI\.dll|amsiInitFailed|AmsiScanBuffer|ETW|Event Tracing/gi, severity: "critical", description: "AMSI/ETW bypass attempt" },
+      { regex: /VirtualProtect|syscall|NtProtectVirtualMemory|ZwProtectVirtualMemory/gi, severity: "high", description: "Memory protection modification" },
+      { regex: /SuspendThread|ResumeThread|QueueUserAPC/gi, severity: "high", description: "Thread manipulation" },
+      { regex: /hollowing|module stomping|dll proxying|dll sideloading|process doppelganging/gi, severity: "critical", description: "Process injection terminology" },
+      { regex: /Caesar|Vigenere|XOR|ROT13|rotate\s+\d+/gi, severity: "high", description: "Simple cipher usage" },
+      { regex: /sleep|timeout|waitfor|ping -n/gi, severity: "medium", description: "Execution delay (sandbox evasion)" },
+      { regex: /CreateMutex|OpenMutex|CreateSemaphore|OpenSemaphore/gi, severity: "medium", description: "Mutex/semaphore (single-instance check)" },
+      { regex: /QueryPerformanceCounter|GetTickCount64|timeGetTime/gi, severity: "medium", description: "Timing check (sandbox detection)" },
+      { regex: /GlobalMemoryStatusEx|GetDiskFreeSpaceEx|EnumDeviceDrivers/gi, severity: "medium", description: "System resource check (sandbox detection)" },
+      { regex: /SwitchDesktop|GetThreadDesktop|SetThreadDesktop/gi, severity: "medium", description: "Desktop interaction check" },
+      { regex: /GetCursorPos|GetAsyncKeyState|GetRawInputData/gi, severity: "medium", description: "User interaction check" },
+      { regex: /SetErrorMode|SetUnhandledExceptionFilter|PreventThreadLibraryCalls/gi, severity: "high", description: "Exception/error handling control" },
+      { regex: /CreateToolhelp32Snapshot|NtQuerySystemInformation|NtQueryInformationProcess/gi, severity: "high", description: "Process enumeration (AV detection)" },
+      { regex: /SfcTerminateWatcherThread|MiniDumpWriteDump|TerminateProcess/gi, severity: "high", description: "Process termination" },
+      { regex: /rundll32.*,#/gi, severity: "critical", description: "Rundll32 ordinal calling (obfuscation)" },
+      { regex: /odbcconf\.exe.*\/a.*\{regsvr/gi, severity: "critical", description: "Odbcconf abuse" },
+      { regex: /AppDomain\.CurrentDomain\.Load|Assembly\.Load|Reflection\.Assembly/gi, severity: "high", description: ".NET reflective loading" },
+      { regex: /InstallUtil\.exe|Regsvcs\.exe|Regasm\.exe|RegAsm\.exe/gi, severity: "high", description: ".NET utility abuse" },
+      { regex: /unmanaged exports|DllExport|DllImport|pinvoke|GetProcAddress/gi, severity: "high", description: "Native code call from managed code" },
+      { regex: /antimalware|defender|mcafee|symantec|kaspersky|trend\s*micro|eset|sophos|bitdefender|avast|avg/gi, severity: "high", description: "Antivirus reference" }
+    ],
+    description: "Detection of techniques used to evade antivirus and security products."
+  },
+  
+  advancedPersistence: {
+    patterns: [
+      { regex: /hkcr|hkcu|hklm|hku|hkcc/gi, severity: "high", description: "Registry root key" },
+      { regex: /\\Run\\|\\RunOnce\\|StartupApproved|CurrentControlSet|Group Policy/gi, severity: "high", description: "Autorun registry location" },
+      { regex: /\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/gi, severity: "high", description: "Run key persistence" },
+      { regex: /wbemcomn\.dll|wbemprox\.dll|WMI persistence/gi, severity: "critical", description: "WMI persistence" },
+      { regex: /\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\/gi, severity: "high", description: "Startup folder persistence" },
+      { regex: /schtasks|taskschd\.dll|ITaskScheduler|Task Scheduler/gi, severity: "high", description: "Scheduled task persistence" },
+      { regex: /netsh.*add helper/gi, severity: "critical", description: "Netsh helper DLL persistence" },
+      { regex: /bootkit|rootkit|driver persistence|kernel persistence/gi, severity: "critical", description: "Low-level persistence" },
+      { regex: /AppInit_DLLs|AppCertDLLs|IFEO|Image File Execution Options/gi, severity: "critical", description: "DLL load persistence" },
+      { regex: /winsock.*catalog|LSA.*providers|authentication.*package/gi, severity: "critical", description: "Security provider persistence" },
+      { regex: /COM hijacking|COM object|InprocServer32|LocalServer32/gi, severity: "high", description: "COM hijacking" },
+      { regex: /\.UserInitMprLogonScript/gi, severity: "critical", description: "Logon script persistence" },
+      { regex: /GPO|Group Policy Object|gpt\.ini|PolicyDefinitions/gi, severity: "high", description: "Group Policy persistence" },
+      { regex: /\.job|Task Job|AT command|at\.exe/gi, severity: "high", description: "Scheduled job persistence" },
+      { regex: /\.bashrc|\.bash_profile|\.profile|\.zshrc/gi, severity: "high", description: "Unix/Linux profile persistence" },
+      { regex: /bitsadmin.*\/SetNotifyCmdLine|\/ADDFILE/gi, severity: "critical", description: "BITS job persistence" },
+      { regex: /WinLogon|Userinit|Shell|Notify/gi, severity: "critical", description: "Winlogon persistence" },
+      { regex: /accessibility features|sethc\.exe|utilman\.exe|osk\.exe|magnify\.exe/gi, severity: "critical", description: "Accessibility feature persistence" },
+      { regex: /DLL Search Order|PATH|KnownDLLs|Dynamic-Link Library/gi, severity: "high", description: "DLL search order hijacking" },
+      { regex: /AppData\\Roaming\\Microsoft\\Windows\\Templates/gi, severity: "high", description: "Office template persistence" }
+    ],
+    description: "Detection of advanced persistence mechanisms across systems."
+  },
+  
+  commandControl: {
+    patterns: [
+      { regex: /command\s*and\s*control|C2|command\s*&\s*control|C&C|C and C/gi, severity: "critical", description: "Command & Control terminology" },
+      { regex: /beacon|implant|stager|payload|agent|RAT|remote access|backdoor/gi, severity: "high", description: "Malware component terminology" },
+      { regex: /cobalt\s*strike|metasploit|empire|covenant|apfell|mythic|sliver|havoc/gi, severity: "critical", description: "Post-exploitation framework" },
+      { regex: /Invoke-WebRequest|Invoke-RestMethod|WebClient\.DownloadString|DownloadData/gi, severity: "high", description: "PowerShell web request" },
+      { regex: /DNS\s*exfil|ICMP\s*tunnel|HTTP\s*beacon|HTTPS\s*beacon/gi, severity: "critical", description: "C2 protocol terminology" },
+      { regex: /staged payload|stageless payload|multi-stage|fileless/gi, severity: "high", description: "Payload deployment terminology" },
+      { regex: /domain fronting|fast flux|redirector|proxy aware/gi, severity: "high", description: "C2 infrastructure terminology" },
+      { regex: /User-Agent:\s*Mozilla\/5\.0 \(Windows NT 6\.1; Trident\/7\.0;|User-Agent: Mozilla\/4\.0 \(compatible; MSIE 6\.0;/gi, severity: "medium", description: "Hardcoded/suspicious User-Agent" },
+      { regex: /\/admin\/get\.php|\/news\.php|\/login\/process\.php|\/portal\/index\.php/gi, severity: "high", description: "Common C2 URI pattern" },
+      { regex: /ngrok|serveo|pagekite|localxpose|localtunnel/gi, severity: "high", description: "Tunneling service" },
+      { regex: /SMB\s*beacon|TCP\s*beacon|UDP\s*beacon|ICMP\s*beacon/gi, severity: "critical", description: "Named protocol beacon" },
+      { regex: /shellcode loader|reflective loader|reflective injection|reflective dll/gi, severity: "critical", description: "Advanced code loading" },
+      { regex: /\.sleep\(|sleep_time|jitter|interval|seconds_delay/gi, severity: "medium", description: "Beacon timing configuration" },
+      { regex: /RC4|AES|ChaCha20|Salsa20|XChaCha20/gi, severity: "medium", description: "Encryption algorithm (C2 traffic)" },
+      { regex: /github\.com|gitlab\.com|pastebin\.com|raw\.githubusercontent\.com/gi, severity: "medium", description: "Code repository as C2" },
+      { regex: /twitter\.com\/statuses|api\.telegram\.org|discord\.com\/api|slack\.com\/api/gi, severity: "high", description: "Social media/chat API usage" },
+      { regex: /OneDrive|Dropbox|Google\s*Drive|Box\.com/gi, severity: "medium", description: "Cloud storage as C2" },
+      { regex: /WebDAV|SharePoint|MAPI|Exchange Web Services/gi, severity: "medium", description: "Enterprise protocol as C2" },
+      { regex: /WMI event subscription|permanent WMI event consumer/gi, severity: "critical", description: "WMI-based C2" },
+      { regex: /BITS Transfer|BITS job|Background Intelligent Transfer/gi, severity: "high", description: "BITS-based C2" }
+    ],
+    description: "Detection of command and control (C2) communication and infrastructure."
+  },
+  
+  credentialTheft: {
+    patterns: [
+      { regex: /mimikatz|sekurlsa::|kerberos::|lsadump::|crypto::|vault::|minesweeper/gi, severity: "critical", description: "Mimikatz credential theft tool" },
+      { regex: /LSASS|lsass\.exe|SamSs|hashdump/gi, severity: "critical", description: "LSASS credential access" },
+      { regex: /kerberoast|kerbtgt|golden ticket|silver ticket|TGT|TGS/gi, severity: "critical", description: "Kerberos ticket attack" },
+      { regex: /NTLM|NetNTLM|NetNTLMv1|NetNTLMv2|NTLMv1|NTLMv2/gi, severity: "high", description: "NTLM authentication" },
+      { regex: /LM hash|NTLM hash|Net-NTLMv1|Net-NTLMv2|NLTM downgrade/gi, severity: "critical", description: "Hash extraction terminology" },
+      { regex: /SAM database|SECURITY hive|SYSTEM hive|ntds\.dit|NTDS|Active Directory database/gi, severity: "critical", description: "Credential storage location" },
+      { regex: /pass-the-hash|pass-the-ticket|overpass-the-hash|PTH|PTT/gi, severity: "critical", description: "Credential reuse attack" },
+      { regex: /Credential Manager|Windows Vault|dpapi|chrome passwords|firefox passwords/gi, severity: "critical", description: "Stored credential access" },
+      { regex: /keytab|krb5\.keytab|krb5\.conf|krb5cc_|krb5tgt_/gi, severity: "high", description: "Kerberos credential file" },
+      { regex: /key logging|keylogger|GetAsyncKeyState|GetKeyboardState|SetWindowsHookEx/gi, severity: "critical", description: "Keylogging functionality" },
+      { regex: /LogonCredential|CredentialKeys|DomainCreds|CachedCreds/gi, severity: "critical", description: "Credential object reference" },
+      { regex: /password\s*spray|password\s*guessing|brute\s*force/gi, severity: "high", description: "Password attack methodology" },
+      { regex: /LsaProtectMemory|SspiEncryptAuthenticationInfo|CredUnPackAuthenticationBuffer/gi, severity: "high", description: "Authentication API" },
+      { regex: /LsaEnumerateLogonSessions|SamrEnumerateUsersInDomain|SamrGetGroupsForUser/gi, severity: "high", description: "Account enumeration" },
+      { regex: /token::elevate|token::impersonate|token::steal|ImpersonateLoggedOnUser/gi, severity: "critical", description: "Token manipulation" },
+      { regex: /DumpCreds|ExtractCreds|SaveCreds|GetCreds|ExtractCredentials/gi, severity: "critical", description: "Credential extraction function" },
+      { regex: /password\s*hash|NTLM\s*hash|LM\s*hash|NTHash|LMHash/gi, severity: "high", description: "Password hash reference" },
+      { regex: /password\s*dump|hashdump|credential\s*dump|cred\s*dump/gi, severity: "critical", description: "Credential dumping" },
+      { regex: /procdump\s*-ma\s*lsass|tasklist\s*\/fi\s*"imagename\s*eq\s*lsass\.exe"/gi, severity: "critical", description: "LSASS dump command" },
+      { regex: /HackTool|HackingTool|PasswordStealer|PSW|PWS\.|PWDump/gi, severity: "critical", description: "Password stealer naming" }
+    ],
+    description: "Detection of credential theft and credential extraction techniques."
+  },
+  
+  advancedExfilTechniques: {
+    patterns: [
+      { regex: /exfiltration|exfil|data\s*theft|data\s*leakage|data\s*extraction/gi, severity: "high", description: "Exfiltration terminology" },
+      { regex: /DNS\s*exfil|ICMP\s*exfil|HTTP\s*POST|HTTPS\s*exfil/gi, severity: "high", description: "Protocol-based exfiltration" },
+      { regex: /Base64EncodeAndSend|Base64Exfil|EncodeAndUpload/gi, severity: "high", description: "Data encoding for exfil" },
+      { regex: /steganography|stego|image\s*exfil|audio\s*exfil|media\s*channel/gi, severity: "high", description: "Steganography exfiltration" },
+      { regex: /WebDAV PUT|WebDAV PROPFIND|WebDAV PROPPATCH/gi, severity: "high", description: "WebDAV exfiltration" },
+      { regex: /FTP PUT|TFTP PUT|SFTP upload|SCP upload/gi, severity: "high", description: "File transfer protocol exfil" },
+      { regex: /Gmail|Outlook\.com|Yahoo\s*Mail|Protonmail|Tutanota/gi, severity: "medium", description: "Webmail service reference" },
+      { regex: /cloud\s*exfil|S3 bucket|Azure Blob|GCP Storage/gi, severity: "high", description: "Cloud storage exfiltration" },
+      { regex: /chunked\s*transfer|split\s*file|segment\s*data|chunk\s*size/gi, severity: "medium", description: "Data chunking for exfil" },
+      { regex: /\.DropBox|\.OneDrive|\.GoogleDrive|\.Box/gi, severity: "medium", description: "Cloud storage client" },
+      { regex: /SSH tunnel|SSL tunnel|TLS tunnel|encrypted channel/gi, severity: "high", description: "Encrypted tunnel reference" },
+      { regex: /alternate data stream|ADS|NTFS resource fork|NTFS extended attribute/gi, severity: "high", description: "Covert storage channel" },
+      { regex: /\.rclone|\.gsutil|\.azcopy|\.awscli/gi, severity: "medium", description: "Cloud transfer tool" },
+      { regex: /compress\s*and\s*exfil|zip\s*exfil|7z\s*exfil|rar\s*exfil/gi, severity: "medium", description: "Compressed exfiltration" },
+      { regex: /screen\s*capture|screenshot\s*exfil|screenshot\s*upload/gi, severity: "high", description: "Screen capture exfiltration" },
+      { regex: /keylog\s*exfil|clipboard\s*exfil|clipboard\s*monitor/gi, severity: "high", description: "User input exfiltration" },
+      { regex: /social\s*media\s*exfil|Twitter\s*exfil|Slack\s*exfil|Discord\s*exfil/gi, severity: "high", description: "Social media exfiltration" },
+      { regex: /DNS\s*TXT\s*record|DNS\s*A\s*record|DNS\s*query\s*exfil/gi, severity: "high", description: "DNS record exfiltration" },
+      { regex: /scheduled\s*exfil|timed\s*exfil|periodic\s*exfil|exfil\s*interval/gi, severity: "medium", description: "Scheduled exfiltration" },
+      { regex: /proxy\s*aware\s*exfil|proxy\s*bypass\s*exfil|firewall\s*bypass\s*exfil/gi, severity: "high", description: "Security control bypass" }
+    ],
+    description: "Detection of advanced data exfiltration techniques."
+  },
+  
+  advancedMacroObfuscation: {
+    patterns: [
+      { regex: /Environ\s*\(\s*StrReverse\s*\("PMET"\)\s*\)|Environ\s*\(\s*Chr\s*\(84\)\s*&\s*Chr\s*\(69\)\s*&\s*Chr\s*\(77\)\s*&\s*Chr\s*\(80\)\s*\)/gi, severity: "high", description: "Obfuscated temp folder access" },
+      { regex: /Chr\$?\s*\(\d+\)\s*(?:&|\.)\s*Chr\$?\s*\(\d+\)/gi, severity: "high", description: "Character concatenation obfuscation" },
+      { regex: /Split\s*\(\s*StrReverse\s*\(/gi, severity: "high", description: "String reversal with splitting" },
+      { regex: /\w+\s*=\s*Replace\s*\(\s*\w+\s*,\s*["'][^"']+["']\s*,\s*["'][^"']+["']\s*\)/gi, severity: "medium", description: "String replacement obfuscation" },
+      { regex: /\w+\s*=\s*Mid\s*\(\s*\w+\s*,\s*\d+\s*,\s*\d+\s*\)\s*&\s*Mid\s*\(/gi, severity: "high", description: "String slicing obfuscation" },
+      { regex: /\w+\s*=\s*Array\s*\((?:\d+\s*,\s*)*\d+\s*\)[\s\S]{1,100}For\s+\w+\s*=\s*\d+\s*To\s*UBound\s*\(\s*\w+\s*\)[\s\S]{1,100}Chr\$?\s*\(\s*\w+\s*\(\s*\w+\s*\)\s*\)/gi, severity: "high", description: "Array of character codes" },
+      { regex: /CreateObject\s*\(\s*"WScript.Shell"\s*\)\s*\.Run\s*\(\s*(?:Chr\$?\s*\(\s*\d+\s*\)\s*&\s*)+/gi, severity: "critical", description: "Obfuscated command execution" },
+      { regex: /\w+\s*=\s*"[^"]{2}"\s*\+\s*"[^"]{2}"\s*\+\s*"[^"]{2}"/gi, severity: "medium", description: "String chunking obfuscation" },
+      { regex: /\w+\s*=\s*"[^"]+"\s*\n\s*\w+\s*=\s*Replace\s*\(\s*\w+\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*\)/gi, severity: "high", description: "Multi-stage string manipulation" },
+      { regex: /Hex\s*\(\s*\d+\s*\)|"&H[0-9A-F]+"/gi, severity: "medium", description: "Hexadecimal encoding" },
+      { regex: /Oct\s*\(\s*\d+\s*\)|"&O[0-7]+"/gi, severity: "medium", description: "Octal encoding" },
+      { regex: /ChrW\s*\(\s*\d+\s*\)\s*&\s*ChrW\s*\(\s*\d+\s*\)/gi, severity: "high", description: "Unicode character obfuscation" },
+      { regex: /\w+\s*=\s*"[^"]+"\s*\n\s*For\s+\w+\s*=\s*\d+\s*To\s*Len\s*\(\s*\w+\s*\)[\s\S]{1,100}Asc\s*\(\s*Mid\s*\(\s*\w+\s*,\s*\w+\s*,\s*1\s*\)\s*\)/gi, severity: "high", description: "Character-by-character processing" },
+      { regex: /CreateObject\s*\(\s*Mid\s*\(\s*\w+\s*,\s*\d+\s*,\s*\d+\s*\)\s*&\s*Mid\s*\(\s*\w+\s*,\s*\d+\s*,\s*\d+\s*\)\s*\)/gi, severity: "critical", description: "Obfuscated object creation" },
+      { regex: /\w+\s*=\s*\w+\s*XOR\s*\d+/gi, severity: "high", description: "XOR obfuscation" },
+      { regex: /\[\w+\]\s*\(\s*\[\w+\]\s*\)/gi, severity: "high", description: "Array-based obfuscation" },
+      { regex: /Run\s*"regsvr32\s*\/s\s*\/u\s*\/i:[^"]+\s*scrobj.dll"/gi, severity: "critical", description: "Regsvr32 execution" },
+      { regex: /\w+\s*=\s*"([^"]|\\")+"\s*\.Replace\s*\(\s*"([^"]|\\")+"\s*,\s*"([^"]|\\")+"\s*\)/gi, severity: "high", description: "String replacement deobfuscation" },
+      { regex: /Function\s+\w+\s*\(\s*\w+\s*\)[\s\S]{1,500}End\s+Function[\s\S]{1,100}Call\s+\w+\s*\(\s*"[^"]+"\s*\)/gi, severity: "high", description: "Custom decoder function" },
+      { regex: /Set\s+\w+\s*=\s*GetObject\s*\("winmgmts:"\)/gi, severity: "high", description: "WMI object retrieval" }
+    ],
+    description: "Detection of advanced VBA macro obfuscation techniques."
+  },
+  
+  containerization: {
+    patterns: [
+      { regex: /docker|container|kubernetes|k8s|podman|containerd/gi, severity: "medium", description: "Container technology reference" },
+      { regex: /docker\.sock|docker\.service|docker api|docker client/gi, severity: "high", description: "Docker engine access" },
+      { regex: /kubectl|kubelet|kubeadm|kube-apiserver|kube-system/gi, severity: "high", description: "Kubernetes component" },
+      { regex: /namespace|pod|deployment|statefulset|daemonset/gi, severity: "medium", description: "Kubernetes resource type" },
+      { regex: /container escape|container breakout|privilege escalation/gi, severity: "critical", description: "Container escape terminology" },
+      { regex: /hostPath|privileged\s*container|hostNetwork\s*:|hostPID\s*:|hostIPC\s*:/gi, severity: "high", description: "Privileged container configuration" },
+      { regex: /mount\s*-t\s*proc|nsenter|unshare|setns/gi, severity: "high", description: "Namespace manipulation" },
+      { regex: /capabilities\s*:|CAP_SYS_ADMIN|CAP_NET_ADMIN|allowPrivilegeEscalation/gi, severity: "high", description: "Container capability" },
+      { regex: /docker\.io|gcr\.io|quay\.io|k8s\.gcr\.io|ghcr\.io/gi, severity: "low", description: "Container registry" },
+      { regex: /Dockerfile|docker-compose|docker\s*build|docker\s*run/gi, severity: "medium", description: "Docker build/run reference" },
+      { regex: /kube\s*config|kubectl\s*config|\.kube\/config|KUBECONFIG/gi, severity: "high", description: "Kubernetes configuration" },
+      { regex: /service\s*account|RBAC|ClusterRole|Role|RoleBinding|ClusterRoleBinding/gi, severity: "medium", description: "Kubernetes access control" },
+      { regex: /cri-o|containerd|runsc|runc|OCI Runtime/gi, severity: "medium", description: "Container runtime" },
+      { regex: /admission\s*controller|validating\s*webhook|mutating\s*webhook/gi, severity: "medium", description: "Kubernetes admission controller" },
+      { regex: /etcd\s*client|etcdctl|etcd\s*API/gi, severity: "high", description: "Kubernetes etcd access" },
+      { regex: /node\.kubernetes\.io|app\.kubernetes\.io|pod-template-hash/gi, severity: "low", description: "Kubernetes label" },
+      { regex: /CSI\s*plugin|FlexVolume|PersistentVolume|PersistentVolumeClaim/gi, severity: "medium", description: "Kubernetes storage" },
+      { regex: /NetworkPolicy|CNI|Calico|Flannel|Cilium|WeaveNet/gi, severity: "medium", description: "Kubernetes networking" },
+      { regex: /kube-bench|kube-hunter|kubesec|kubeaudit|trivy/gi, severity: "medium", description: "Kubernetes security tool" },
+      { regex: /helm|chart|tiller|kustomize|operator/gi, severity: "medium", description: "Kubernetes deployment tool" }
+    ],
+    description: "Detection of container and Kubernetes-related operations that may indicate container escape attempts."
+  },
+  
+  cloudInteractions: {
+    patterns: [
+      { regex: /AWS|Amazon\s*Web\s*Services|EC2|S3|IAM|Lambda|CloudTrail/gi, severity: "medium", description: "AWS service reference" },
+      { regex: /Azure|Microsoft\s*Cloud|AzureAD|Azure\s*Storage|Azure\s*Function/gi, severity: "medium", description: "Azure service reference" },
+      { regex: /GCP|Google\s*Cloud|GCE|GCS|BigQuery|Cloud\s*Function/gi, severity: "medium", description: "Google Cloud reference" },
+      { regex: /aws_access_key_id|aws_secret_access_key|AKIA[0-9A-Z]{16}/gi, severity: "critical", description: "AWS credentials" },
+      { regex: /AZURE_STORAGE_CONNECTION_STRING|AZURE_STORAGE_ACCOUNT|AZURE_STORAGE_KEY/gi, severity: "critical", description: "Azure storage credentials" },
+      { regex: /GOOGLE_APPLICATION_CREDENTIALS|GOOGLE_CLOUD_PROJECT|GOOGLE_API_KEY/gi, severity: "critical", description: "GCP credentials" },
+      { regex: /aws\s*configure|gcloud\s*auth|az\s*login/gi, severity: "high", description: "Cloud CLI authentication" },
+      { regex: /sts:AssumeRole|iam:PassRole|ec2:RunInstances/gi, severity: "high", description: "AWS IAM permission" },
+      { regex: /s3:GetObject|s3:PutObject|s3:ListBucket|dynamodb:Query/gi, severity: "medium", description: "AWS S3/DynamoDB operation" },
+      { regex: /Microsoft\.Storage\.Blob|Microsoft\.Compute\.VirtualMachine/gi, severity: "medium", description: "Azure resource type" },
+      { regex: /cloudshell|cloudconsole|cloudsdk|aws\s*cli|azure\s*cli|gcloud/gi, severity: "medium", description: "Cloud CLI tool" },
+      { regex: /terraform|pulumi|cloudformation|arm\s*template|bicep/gi, severity: "medium", description: "Infrastructure as Code tool" },
+      { regex: /cloud-init|user-data|metadata\s*service|instance\s*metadata/gi, severity: "high", description: "Cloud instance initialization" },
+      { regex: /environment\s*variable|env\s*var|secrets\s*manager|key\s*vault|kms/gi, severity: "medium", description: "Cloud secret storage" },
+      { regex: /cloud\s*exfiltration|bucket\s*enumeration|account\s*discovery/gi, severity: "high", description: "Cloud attack terminology" },
+      { regex: /cognito|okta|auth0|azure\s*ad|google\s*identity/gi, severity: "medium", description: "Cloud identity provider" },
+      { regex: /sts\s*token|oauth\s*token|id\s*token|access\s*token|refresh\s*token/gi, severity: "high", description: "Authentication token" },
+      { regex: /cloudtrail|stackdriver|azure\s*monitor|cloud\s*audit/gi, severity: "medium", description: "Cloud logging service" },
+      { regex: /aws\s*ip\s*ranges|azure\s*ip\s*ranges|gcp\s*ip\s*ranges/gi, severity: "medium", description: "Cloud IP range reference" },
+      { regex: /IMDS|instance\s*metadata\s*service|169\.254\.169\.254|metadata\.google\.internal/gi, severity: "high", description: "Cloud metadata service" }
+    ],
+    description: "Detection of cloud service interactions and potential cloud-based attacks."
+  },
+  
+  powerShellTechniques: {
+    patterns: [
+      { regex: /powershell\s+-e|powershell\s+-en|powershell\s+-enc|powershell\s+-encodedcommand/gi, severity: "critical", description: "Encoded PowerShell command" },
+      { regex: /powershell\s+-nop|powershell\s+-noprofile|-ExecutionPolicy\s+bypass/gi, severity: "high", description: "PowerShell security bypass" },
+      { regex: /powershell\s+-w\s+hidden|-windowstyle\s+hidden/gi, severity: "high", description: "Hidden PowerShell window" },
+      { regex: /IEX\s*\(|Invoke-Expression|Invoke-Command|Invoke-WmiMethod/gi, severity: "critical", description: "PowerShell execution function" },
+      { regex: /New-Object\s+Net\.WebClient|Invoke-WebRequest|Invoke-RestMethod/gi, severity: "high", description: "PowerShell web request" },
+      { regex: /Set-MpPreference|Add-MpPreference|Set-ExecutionPolicy/gi, severity: "critical", description: "PowerShell security configuration" },
+      { regex: /ConvertFrom-Base64String|FromBase64String|Base64|ToBase64String/gi, severity: "high", description: "PowerShell Base64 handling" },
+      { regex: /Invoke-Mimikatz|Invoke-ReflectivePEInjection|Invoke-ShellCode/gi, severity: "critical", description: "PowerSploit offensive module" },
+      { regex: /Out-EncryptedScript|Invoke-ObfuscatedExpression|Out-EncodedCommand/gi, severity: "critical", description: "PowerShell obfuscation" },
+      { regex: /PowerUp\.ps1|PowerView\.ps1|Get-GPPPassword|Get-KeyStrokes/gi, severity: "critical", description: "Offensive PowerShell script" },
+      { regex: /Get-WmiObject|Get-CimInstance|Get-Process|Get-Service/gi, severity: "medium", description: "PowerShell system enumeration" },
+      { regex: /Get-ItemProperty\s+-Path\s+HKLM:|Get-ItemProperty\s+-Path\s+HKCU:/gi, severity: "medium", description: "PowerShell registry access" },
+      { regex: /Invoke-CredentialInjection|Invoke-Inveigh|Inveigh|New-HoneyHash/gi, severity: "critical", description: "Credential attack tool" },
+      { regex: /Add-Type\s+-TypeDefinition|Add-Type\s+-Path/gi, severity: "high", description: "PowerShell C# compilation" },
+      { regex: /\[System\.Runtime\.InteropServices\.Marshal\]|\[System\.Runtime\.InteropServices\.DllImport/gi, severity: "high", description: "PowerShell P/Invoke" },
+      { regex: /New-Object\s+System\.Management\.Automation\.PSCredential/gi, severity: "medium", description: "PowerShell credential object" },
+      { regex: /Start-Process\s+-Credential|Invoke-Command\s+-Credential/gi, severity: "high", description: "PowerShell credential usage" },
+      { regex: /Get-NetTCPConnection|Test-NetConnection|Test-Connection|Resolve-DnsName/gi, severity: "medium", description: "PowerShell network commands" },
+      { regex: /\$PSVersionTable\.PSVersion|Get-Host|\$Host\.Version/gi, severity: "low", description: "PowerShell version check" },
+      { regex: /Disable-WindowsOptionalFeature|Remove-WindowsFeature|Uninstall-WindowsFeature/gi, severity: "medium", description: "Windows feature removal" }
+    ],
+    description: "Detection of PowerShell-specific attack techniques and obfuscation."
+  },
+  
+  scriptingLanguages: {
+    patterns: [
+      { regex: /python\s+-c|python3\s+-c|python\.exe\s+-c/gi, severity: "high", description: "Python one-liner execution" },
+      { regex: /\.py\"|\\.py\'|\.py\`|\.pyc\"/gi, severity: "medium", description: "Python script reference" },
+      { regex: /import\s+os|import\s+sys|import\s+subprocess|from\s+subprocess\s+import/gi, severity: "medium", description: "Python system module import" },
+      { regex: /subprocess\.Popen|subprocess\.call|os\.system|os\.popen|exec\(|eval\(/gi, severity: "high", description: "Python command execution" },
+      { regex: /nodejs|node\.exe|node\s+-e|npm\s+run/gi, severity: "medium", description: "Node.js execution" },
+      { regex: /require\('child_process'\)|child_process\.exec|spawn\(|fork\(/gi, severity: "high", description: "Node.js process execution" },
+      { regex: /require\('fs'\)|fs\.readFile|fs\.writeFile|fs\.unlink/gi, severity: "medium", description: "Node.js file operation" },
+      { regex: /require\('http'\)|require\('https'\)|require\('net'\)|require\('dgram'\)/gi, severity: "medium", description: "Node.js network module" },
+      { regex: /perl\s+-e|ruby\s+-e|php\s+-r|lua\s+-e/gi, severity: "high", description: "Scripting language one-liner" },
+      { regex: /\.pl\"|\\.pl\'|\.rb\"|\\.rb\'|\.php\"|\\.php\'/gi, severity: "medium", description: "Script file reference" },
+      { regex: /bash\s+-c|sh\s+-c|zsh\s+-c|ksh\s+-c/gi, severity: "high", description: "Shell one-liner execution" },
+      { regex: /\.sh\"|\\.sh\'|\.bash\"|\\.bash\'/gi, severity: "medium", description: "Shell script reference" },
+      { regex: /curl\s+\|sh|wget\s+\|sh|curl\s+\|bash|wget\s+\|bash/gi, severity: "critical", description: "Piped shell script execution" },
+      { regex: /cscript\.exe|wscript\.exe|jscript\.dll|vbscript\.dll/gi, severity: "high", description: "Windows Script Host" },
+      { regex: /\.js\"|\\.js\'|\.vbs\"|\\.vbs\'|\.jse\"|\\.jse\'|\.vbe\"|\\.vbe\'/gi, severity: "medium", description: "Windows script file" },
+      { regex: /java\s+-jar|javaw\.exe|javaws\.exe|-Xbootclasspath/gi, severity: "medium", description: "Java execution" },
+      { regex: /\.jar\"|\\.jar\'|\.class\"|\\.class\'|\.jnlp\"|\\.jnlp\'/gi, severity: "medium", description: "Java executable reference" },
+      { regex: /Runtime\.getRuntime\(\)\.exec|ProcessBuilder|Process\s+process/gi, severity: "high", description: "Java process execution" },
+      { regex: /groovy\s+-e|\.groovy"|\.groovy'/gi, severity: "medium", description: "Groovy script reference" },
+      { regex: /import\s+groovy\.lang|GroovyShell|GroovyClassLoader/gi, severity: "high", description: "Groovy execution engine" }
+    ],
+    description: "Detection of various scripting languages that may be used for malicious purposes."
+  },
+  
+  internalNetworkScanning: {
+    patterns: [
+      { regex: /for\s+\/L\s+\%i\s+in\s+\(1,1,254\)\s+do/gi, severity: "high", description: "Batch IP scanning loop" },
+      { regex: /ping\s+-n\s+1|ping\s+-c\s+1/gi, severity: "medium", description: "Single packet ping (network scanning)" },
+      { regex: /Test-NetConnection\s+-ComputerName|Test-Connection\s+-Count\s+1/gi, severity: "medium", description: "PowerShell ping scan" },
+      { regex: /arp\s+-a|nbtscan|nbtstat\s+-A|nbtstat\s+-a/gi, severity: "high", description: "Local network enumeration" },
+      { regex: /nmap|masscan|netcat|nc\s+-z|nc\s+-zv/gi, severity: "high", description: "Port scanning tool" },
+      { regex: /for\s+\/f\s+\%i\s+in\s+\('net\s+view'\)/gi, severity: "high", description: "Network share enumeration" },
+      { regex: /Get-NetRoute|route\s+print|ip\s+route\s+show/gi, severity: "medium", description: "Routing table enumeration" },
+      { regex: /Get-NetIPAddress|ipconfig\s+\/all|ifconfig\s+-a/gi, severity: "medium", description: "IP configuration enumeration" },
+      { regex: /Get-NetNeighbor|arp\s+-a/gi, severity: "medium", description: "ARP cache enumeration" },
+      { regex: /netsh\s+interface\s+show\s+interface/gi, severity: "medium", description: "Network interface enumeration" },
+      { regex: /traceroute|tracert|pathping/gi, severity: "medium", description: "Route tracing tool" },
+      { regex: /\/24|\/16|CIDR|subnet\s+scan/gi, severity: "medium", description: "Subnet specification (scanning)" },
+      { regex: /for\s+ip\s+in\s+\$\(seq\s+1\s+254\)|for\s+i\s+in\s+{1\.\.254}/gi, severity: "high", description: "Bash/PowerShell IP scanning loop" },
+      { regex: /OnlineScanner|NetworkScanner|NodeScanner|PortScanner/gi, severity: "high", description: "Network scanning function" },
+      { regex: /masscan\s+-p|nmap\s+-p|--top-ports/gi, severity: "high", description: "Port specification (scanning)" },
+      { regex: /Get-WmiObject\s+-Class\s+Win32_PingStatus|Win32_PingStatus/gi, severity: "medium", description: "WMI ping implementation" },
+      { regex: /Get-WmiObject\s+-ComputerName|Get-CimInstance\s+-ComputerName/gi, severity: "medium", description: "Remote WMI query" },
+      { regex: /GetHostAddresses|System\.Net\.Dns\.GetHostAddresses/gi, severity: "medium", description: ".NET DNS resolution" },
+      { regex: /GetSubnetHosts|EnumerateSubnet|ScanNetwork|Get-NetworkRange/gi, severity: "high", description: "Network enumeration function" },
+      { regex: /PingSweep|SweepNetwork|IP\s*Range\s*Scanner/gi, severity: "high", description: "Network scanning terminology" }
+    ],
+    description: "Detection of internal network scanning and enumeration techniques."
+  }
+};
+    
+   /**
+ * ADVANCED YARA-Like Rules for Excel Malware Detection
+ * Enhanced detection for known and emerging threats
+ */
+const enhancedYaraRules = [
+  // Original rules with improvements
+  {
+    name: "Emotet_VBA_Macro",
+    description: "Detects Emotet malware VBA macros with enhanced coverage",
+    severity: "critical",
+    condition: function(text) {
+      // Enhanced Emotet patterns based on recent campaigns
+      const patterns = [
+        /CreateObject\("WScript\.Shell"\).*\.Run/i,
+        /powershell\.exe.*\-w hidden/i,
+        /\.SaveToFile.*\.exe/i,
+        /\.Run.*Chr\(32\)/i,
+        // Additional patterns
+        /wscript\.shell.*powershell/i,
+        /microsoft\.xmlhttp.*\.ResponseBody/i,
+        /\.Environment\("Process"\).*\.Run/i,
+        /\.CreateObject\(.*ADODB\.Stream/i,
+        /\.Exec\(\s*"regsvr32/i,
+        /Chr\(\d+\)\s*&\s*Chr\(\d+\)\s*&\s*Chr\(\d+\)\s*&\s*Chr\(\d+\)/i
+      ];
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Excel4_Macros_Dropper",
+    description: "Enhanced detection of Excel 4.0 Macro malware patterns",
+    severity: "critical",
+    condition: function(text) {
+      // Extended XLM macro dropper patterns
+      const patterns = [
+        /=EXEC\(.*(cmd|powershell|mshta|regsvr32|certutil|wscript|cscript|bitsadmin)/i,
+        /=FORMULA\(.*=EXEC/i,
+        /=CALL\(.*kernel32/i,
+        /=REGISTER\(.*\.dll/i,
+        // New patterns
+        /=CALL\(\d+,"urlmon",.*"URLDownloadToFile"/i,
+        /=ALERT\(FALSE\)/i,
+        /=HALT\(\)/i,
+        /=RETURN\(\)/i,
+        /=ERROR\(FALSE\)/i,
+        /=CALL\(.*(user32|shell32|ntdll|advapi32)/i,
+        /=CHAR\(\d+\)&CHAR\(\d+\)/i,
+        /=GET\.WORKSPACE\(1\)/i,
+        /=APP\.MAXIMIZE\(\)/i
+      ];
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Ursnif_Pattern",
+    description: "Enhanced detection of patterns associated with Ursnif/Gozi malware",
+    severity: "critical",
+    condition: function(text) {
+      // Expanded Ursnif obfuscation and behavior patterns
+      const patterns = [
+        /StrReverse\(Replace\(/i,
+        /\w{1}\s*&\s*\w{1}\s*&\s*\w{1}\s*&\s*\w{1}/i, // Character-by-character concatenation
+        /Shell\s*\(\s*\w+\s*&\s*\w+/i,
+        /URLDownloadToFile.*StrReverse/i,
+        // New patterns
+        /CreateObject\("ADODB\.Stream"\)/i,
+        /\.SaveToFile\s*.*,\s*2/i,
+        /\.Write\s*\.ResponseBody/i,
+        /WinHttp\.WinHttpRequest/i,
+        /Split\(StrReverse\(/i,
+        /\w+\s*=\s*Replace\(\w+,\s*["'][^"']+["'],\s*["'][^"']+["']\)/i
+      ];
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  // New and enhanced rules
+  {
+    name: "BazarLoader_Pattern",
+    description: "Detects patterns associated with BazarLoader malware",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /WinHttp\.WinHttpRequest.*\.Open\s+"GET"/i,
+        /\.SaveToFile\s+.*,\s*2/i,
+        /\.Run\s+"regsvr32\s+/i,
+        /Microsoft\.XMLHTTP.*\.ResponseBody/i,
+        /CopyFile.*\.exe/i,
+        /CreateObject\("Scripting\.Dictionary"\)/i,
+        /\.CreateObject\("WScript\.Shell"\)\.ExpandEnvironmentStrings\("%TEMP%"\)/i
+      ];
+      return patterns.some(pattern => pattern.test(text)) && 
+             (/Shell/.test(text) || /CreateObject/.test(text));
+    }
+  },
+  
+  {
+    name: "IcedID_Pattern",
+    description: "Detects patterns associated with IcedID/BokBot malware",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /CreateObject\("WinHttp\.WinHttpRequest\.5\.1"\)/i,
+        /\.SaveToFile\s+.*\+\s+"\.dll"/i,
+        /\.Run\s+"regsvr32\s+\/s/i,
+        /\.ExpandEnvironmentStrings\("%TEMP%"\)/i,
+        /\.WriteText\s+StrReverse/i,
+        /\.Environment\("Process"\)\("TEMP"\)/i
+      ];
       
-      formulaThreats: {
-        patterns: [
-          { regex: /=HYPERLINK\(/gi, severity: "medium", description: "Hyperlink in formula" },
-          { regex: /=WEBSERVICE\(/gi, severity: "high", description: "Web request in formula" },
-          { regex: /=DDE|=DDEAUTO/gi, severity: "critical", description: "Dynamic Data Exchange command" },
-          { regex: /\[\d+\]!/gi, severity: "medium", description: "External workbook reference" },
-          { regex: /https?:\/\/|ftp:\/\//gi, severity: "medium", description: "URL in formula" },
-          { regex: /=INDIRECT\(/gi, severity: "medium", description: "Indirect cell reference" },
-          { regex: /file:\/\//gi, severity: "high", description: "File URI in formula" },
-          { regex: /=CMD\(/gi, severity: "critical", description: "Command execution attempt" },
-          { regex: /=EXEC\(/gi, severity: "critical", description: "Execution attempt" },
-          { regex: /=SHELL\(/gi, severity: "critical", description: "Shell command execution" },
-          { regex: /=RUN\(/gi, severity: "critical", description: "Run command execution" },
-          { regex: /=CALL\(/gi, severity: "critical", description: "Function call to external code" },
-          { regex: /=REGISTER\(/gi, severity: "critical", description: "DLL registration" },
-          { regex: /=FORMULA\(/gi, severity: "high", description: "Dynamic formula insertion" },
-          { regex: /=RTD\(/gi, severity: "high", description: "Real-time data function" },
-          { regex: /=SQL\./gi, severity: "high", description: "SQL query execution" },
-          { regex: /=FILTERXML\(/gi, severity: "medium", description: "XML parsing function" },
-          { regex: /=EVALUATE\(/gi, severity: "high", description: "Dynamic expression evaluation" },
-          { regex: /=INFO\(/gi, severity: "low", description: "System information retrieval" },
-          { regex: /powershell|cmd\.exe|mshta|wscript|cscript/gi, severity: "critical", description: "System executable reference" },
-          { regex: /bat|exe|ps1|vbs|js|dll|hta/gi, severity: "high", description: "Executable file extension" },
-          { regex: /=IMPORTDATA\(/gi, severity: "medium", description: "External data import" },
-          { regex: /="[^"]{100,}"/gi, severity: "medium", description: "Long string in formula (possible obfuscation)" },
-          { regex: /=CONCATENATE\(CHAR\(/gi, severity: "high", description: "Character concatenation (obfuscation technique)" },
-          { regex: /(&H[0-9A-F]+)/gi, severity: "medium", description: "Hexadecimal values (possible obfuscation)" }
-        ],
-        description: "Detection of potentially dangerous formulas and functions."
-      },
+      const obfuscation = [
+        /Split\(/i,
+        /Join\(/i,
+        /Mid\(/i,
+        /StrReverse\(/i
+      ];
       
-      externalConnections: {
-        patterns: [
-          { regex: /Connection String|ConnectionString/gi, severity: "high", description: "Database connection string" },
-          { regex: /Data Source=|Provider=/gi, severity: "high", description: "External data source" },
-          { regex: /http:\/\/|https:\/\//gi, severity: "medium", description: "Web URL" },
-          { regex: /ftp:\/\/|sftp:\/\//gi, severity: "high", description: "FTP connection" },
-          { regex: /odbc:|oledb:|jdbc:/gi, severity: "high", description: "Database connection protocol" },
-          { regex: /SharePoint|OData/gi, severity: "medium", description: "SharePoint or OData connection" },
-          { regex: /Excel.Workbook|Excel.Sheet|Excel.Range/gi, severity: "medium", description: "Power Query Excel reference" },
-          { regex: /Web.Contents|Web.Page|Web.BrowserContents/gi, severity: "high", description: "Power Query web request" },
-          { regex: /OdbcConnector|OleDbConnector/gi, severity: "high", description: "Database connector" },
-          { regex: /File.Contents|Folder.Contents|Folder.Files/gi, severity: "medium", description: "Power Query file access" },
-          { regex: /Sql.Database|Sql.Databases/gi, severity: "high", description: "SQL database connection" },
-          { regex: /Oracle.Database/gi, severity: "high", description: "Oracle database connection" },
-          { regex: /Salesforce|Dynamics|SAP|ServiceNow/gi, severity: "medium", description: "Enterprise service connection" },
-          { regex: /ActiveDirectory.Domains/gi, severity: "high", description: "Active Directory connection" },
-          { regex: /Exchange.Contents/gi, severity: "high", description: "Exchange server connection" },
-          { regex: /AzureStorage.BlobContents|AzureStorage.Tables/gi, severity: "high", description: "Azure storage connection" },
-          { regex: /Teradata.Database|Informix.Database/gi, severity: "high", description: "Enterprise database connection" },
-          { regex: /OLAP|SSAS|AnalysisServices/gi, severity: "medium", description: "OLAP/Analysis Services connection" },
-          { regex: /MicrosoftGraph|Office365/gi, severity: "medium", description: "Microsoft Graph/Office 365 connection" },
-          { regex: /WebHook|REST.API|OData.Feed/gi, severity: "high", description: "Web API connection" }
-        ],
-        description: "Detection of external data connections and sources."
-      },
+      return patterns.some(pattern => pattern.test(text)) && 
+             obfuscation.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "GuLoader_Pattern",
+    description: "Detects patterns associated with GuLoader/CloudEye shellcode loader",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /VirtualAlloc|VirtualProtect/i,
+        /RtlMoveMemory|CallWindowProc/i,
+        /\w+\s*=\s*Array\(\s*\d+[\s,\d]*\)/i,
+        /String\(\s*\d+,\s*\d+\)/i,
+        /\.CreateThread/i
+      ];
       
-      structuralAnomalies: {
-        patterns: [
-          { regex: /veryHidden/gi, severity: "high", description: "Very hidden worksheet" },
-          { regex: /xlVeryHidden/gi, severity: "high", description: "Very hidden worksheet state" },
-          { regex: /password/gi, severity: "medium", description: "Password protection" },
-          { regex: /hidden name|veryHidden|_xlnm./gi, severity: "high", description: "Hidden named range or object" },
-          { regex: /mscorvw\.dll|mscoree\.dll/gi, severity: "high", description: ".NET assembly reference" },
-          { regex: /vbproj|csproj|vsdisco/gi, severity: "high", description: "Visual Studio project reference" },
-          { regex: /\\\\hidden/gi, severity: "high", description: "Hidden path reference" },
-          { regex: /autostart|autoinit|autorun|autoopen/gi, severity: "high", description: "Auto-execution reference" },
-          { regex: /\.HiddenAttributes|HideWorksheetTabs/gi, severity: "medium", description: "Hidden UI elements" },
-          { regex: /\.DisplayAlerts\s*=\s*False/gi, severity: "high", description: "Disabled alerts" },
-          { regex: /Locked\s*=\s*True/gi, severity: "low", description: "Locked cell or object" },
-          { regex: /ScreenUpdating\s*=\s*False/gi, severity: "medium", description: "Disabled screen updating" },
-          { regex: /EnableEvents\s*=\s*False/gi, severity: "medium", description: "Disabled events" },
-          { regex: /DisplayStatusBar\s*=\s*False/gi, severity: "low", description: "Hidden status bar" },
-          { regex: /Very Hidden/gi, severity: "high", description: "Very hidden reference" },
-          { regex: /Auto_Activate|Auto_Deactivate/gi, severity: "high", description: "Auto-activation hooks" },
-          { regex: /\._VBA_PROJECT/gi, severity: "medium", description: "VBA project metadata" },
-          { regex: /xlSheetVeryHidden/gi, severity: "high", description: "Very hidden sheet constant" },
-          { regex: /msoFalse/gi, severity: "medium", description: "Office enumeration value" }
-        ],
-        description: "Detection of suspicious structural elements in the workbook."
-      },
+      const behaviors = [
+        /\.Run\s+"msiexec/i,
+        /\.Run\s+"wusa/i,
+        /\.Run\s+"certutil/i,
+        /\.Run\s+"rundll32/i
+      ];
       
-      maliciousPatterns: {
-        patterns: [
-          { regex: /powershell -e|powershell -enc|powershell -EncodedCommand/gi, severity: "critical", description: "Encoded PowerShell command" },
-          { regex: /cmd\.exe|cmd \/c|cmd\/c/gi, severity: "critical", description: "Command prompt execution" },
-          { regex: /rundll32|regsvr32/gi, severity: "critical", description: "System utility execution" },
-          { regex: /certutil -decode/gi, severity: "critical", description: "Binary decoding utility" },
-          { regex: /IEX\s*\(|Invoke-Expression/gi, severity: "critical", description: "PowerShell expression execution" },
-          { regex: /wget|curl/gi, severity: "high", description: "Download utility" },
-          { regex: /bypass|ExecutionPolicy/gi, severity: "high", description: "Security bypass attempt" },
-          { regex: /mshta\s+/gi, severity: "critical", description: "Microsoft HTML Application execution" },
-          { regex: /bitsadmin/gi, severity: "high", description: "BITS file transfer" },
-          { regex: /wmic\s+/gi, severity: "high", description: "WMI command execution" },
-          { regex: /schtasks\s+/gi, severity: "high", description: "Scheduled task manipulation" },
-          { regex: /net\s+user/gi, severity: "critical", description: "User account manipulation" },
-          { regex: /net\s+localgroup/gi, severity: "critical", description: "Local group manipulation" },
-          { regex: /whoami|systeminfo|ipconfig|netstat|tasklist/gi, severity: "medium", description: "System reconnaissance command" },
-          { regex: /sc\s+create|sc\s+config|sc\s+start/gi, severity: "critical", description: "Service manipulation" },
-          { regex: /\.vbs|\.ps1|\.bat|\.cmd|\.hta/gi, severity: "high", description: "Script file reference" },
-          { regex: /winrm|psexec|wmiexec/gi, severity: "critical", description: "Remote execution tool" },
-          { regex: /mimikatz|lazagne|procdump|pwdump/gi, severity: "critical", description: "Hacking tool reference" },
-          { regex: /sdelete|cipher\s+\/w/gi, severity: "high", description: "Data wiping utility" },
-          { regex: /vssadmin\s+delete/gi, severity: "critical", description: "Shadow copy deletion" },
-          { regex: /SEDebugPrivilege|SeBackupPrivilege/gi, severity: "critical", description: "Privilege escalation attempt" },
-          { regex: /pastebin\.com|raw\.githubusercontent\.com/gi, severity: "high", description: "Code hosting site reference" },
-          { regex: /evil|hack|exploit|malware|backdoor|trojan|rootkit/gi, severity: "medium", description: "Suspicious terminology" },
-          { regex: /beacon|c2|command\s+and\s+control|exfil|exfiltrat/gi, severity: "high", description: "Malware terminology" },
-          { regex: /reverse\s+shell|bind\s+shell|meterpreter|metasploit/gi, severity: "critical", description: "Hacking framework reference" },
-          { regex: /GetProcAddress|LoadLibrary|VirtualAlloc|VirtualProtect/gi, severity: "critical", description: "Low-level Windows API" },
-          { regex: /base64 -d|base64 --decode/gi, severity: "high", description: "Base64 decoding command" },
-          { regex: /\.onion\//gi, severity: "high", description: "Tor hidden service reference" },
-          { regex: /tor2web|onion\.to/gi, severity: "high", description: "Tor gateway service" },
-          { regex: /empire|covenant|cobalt\s+strike/gi, severity: "critical", description: "Post-exploitation framework" }
-        ],
-        description: "Detection of known malicious command patterns in document content."
-      },
+      return patterns.some(pattern => pattern.test(text)) && 
+             (behaviors.some(pattern => pattern.test(text)) || 
+              /Array\(/.test(text) && /\d{3},\d{3},\d{3}/.test(text));
+    }
+  },
+  
+  {
+    name: "Macro_Downloader_Generic",
+    description: "Detects generic macro downloader patterns",
+    severity: "high",
+    condition: function(text) {
+      const downloadPatterns = [
+        /\.Open\s+"GET",\s*"https?:\/\//i,
+        /\.Send\(\)/i,
+        /\.ResponseBody/i,
+        /\.OpenTextFile\(.*,\s*2\)/i,
+        /\.SaveToFile/i,
+        /\.DownloadFile/i,
+        /CreateObject\("WinHttp\.WinHttpRequest/i,
+        /CreateObject\("MSXML2\.XMLHTTP/i,
+        /CreateObject\("Microsoft\.XMLHTTP/i
+      ];
       
-      obfuscationTechniques: {
-        patterns: [
-          { regex: /Chr\s*\(\s*\d+\s*\)\s*&\s*Chr\s*\(\s*\d+\s*\)/gi, severity: "high", description: "Character concatenation (obfuscation)" },
-          { regex: /Mid\$?\s*\([^,]+,\s*\d+\s*,\s*\d+\s*\)/gi, severity: "medium", description: "String extraction (possible obfuscation)" },
-          { regex: /\w+\s*=\s*StrReverse\s*\(["'][^"']+["']\)/gi, severity: "high", description: "String reversal obfuscation" },
-          { regex: /[A-Za-z0-9+\/]{40,}={0,2}/g, severity: "high", description: "Base64-encoded content" },
-          { regex: /\.Replace\s*\(["'][^"']+["']\s*,\s*["'][^"']+["']\)/gi, severity: "medium", description: "String replacement (possible obfuscation)" },
-          { regex: /\w+\s*=\s*Split\s*\(["'][^"']+["']\s*,\s*["'][^"']+["']\)/gi, severity: "medium", description: "String splitting (possible obfuscation)" },
-          { regex: /Join\s*\([^,]+,\s*["'][^"']*["']\)/gi, severity: "medium", description: "Array joining (possible obfuscation)" },
-          { regex: /Array\s*\([0-9,\s]+\)/gi, severity: "medium", description: "Numeric array (possible character codes)" },
-          { regex: /ChrW\s*\(\s*\d+\s*\)/gi, severity: "medium", description: "Unicode character conversion (possible obfuscation)" },
-          { regex: /Hex\s*\([\d]+\)/gi, severity: "medium", description: "Hexadecimal conversion (possible obfuscation)" },
-          { regex: /ToCharArray|GetBytes|GetString/gi, severity: "medium", description: "Byte manipulation (possible obfuscation)" },
-          { regex: /Convert\.FromBase64String/gi, severity: "high", description: "Base64 decoding" },
-          { regex: /\\u[0-9a-fA-F]{4}/gi, severity: "medium", description: "Unicode escape sequence" },
-          { regex: /(\w+)\s*=\s*["'].{1}["']\s*&\s*["'].{1}["']/gi, severity: "medium", description: "Character-by-character concatenation" },
-          { regex: /CreateObject\((\w+\s*&\s*)+\w+\)/gi, severity: "high", description: "Obfuscated object creation" },
-          { regex: /[A-Za-z0-9]{1}\s*\+\s*[A-Za-z0-9]{1}/gi, severity: "medium", description: "Single character concatenation (obfuscation)" },
-          { regex: /Asc\s*\(/gi, severity: "medium", description: "ASCII code conversion (possible obfuscation)" },
-          { regex: /\w+\s*=\s*["'][^"']{1}["']\s*\+\s*["'][^"']{1}["']/gi, severity: "medium", description: "Character concatenation (obfuscation)" },
-          { regex: /ExecuteGlobal|Execute\s/gi, severity: "critical", description: "Dynamic code execution" },
-          { regex: /eval\s*\(/gi, severity: "critical", description: "JavaScript evaluation" },
-          { regex: /\.decode|\.atob\s*\(/gi, severity: "high", description: "Decoding function" },
-          { regex: /String\.fromCharCode/gi, severity: "high", description: "JavaScript character code conversion" },
-          { regex: /Oct\s*\([\d]+\)/gi, severity: "medium", description: "Octal conversion (possible obfuscation)" },
-          { regex: /\+[\s"']*\+/gi, severity: "medium", description: "String concatenation with empty segments" }
-        ],
-        description: "Detection of code obfuscation techniques often used to hide malicious content."
-      },
+      const execPatterns = [
+        /\.Run\(/i,
+        /Shell\(/i,
+        /WScript\.Shell/i,
+        /\.Exec\(/i,
+        /shellexecute/i
+      ];
       
-      dataExfiltration: {
-        patterns: [
-          { regex: /\.Send\s*\(/gi, severity: "high", description: "Data sending operation" },
-          { regex: /\.Post\s*\(/gi, severity: "high", description: "HTTP POST request" },
-          { regex: /\.Get\s*\(/gi, severity: "medium", description: "HTTP GET request" },
-          { regex: /\.SaveToFile/gi, severity: "medium", description: "File saving operation" },
-          { regex: /\.UploadFile|\.UploadData/gi, severity: "high", description: "File upload operation" },
-          { regex: /WebClient\.Upload/gi, severity: "high", description: "Web client upload" },
-          { regex: /FTP\.Put|FTP\.Upload/gi, severity: "high", description: "FTP upload operation" },
-          { regex: /Mail\.Send|CDO\.Message|\.SendMail/gi, severity: "high", description: "Email sending operation" },
-          { regex: /discord\.com\/api\/webhooks/gi, severity: "high", description: "Discord webhook (data exfiltration)" },
-          { regex: /api\.telegram\.org\/bot/gi, severity: "high", description: "Telegram bot API (data exfiltration)" },
-          { regex: /pastebin\.com\/api\/api/gi, severity: "high", description: "Pastebin API (data exfiltration)" },
-          { regex: /dropbox\.com\/api/gi, severity: "high", description: "Dropbox API (data exfiltration)" },
-          { regex: /anonfiles\.com\/api/gi, severity: "high", description: "Anonymous file sharing API" },
-          { regex: /gofile\.io\/api/gi, severity: "high", description: "File sharing API" },
-          { regex: /api\.github\.com|raw\.githubusercontent\.com/gi, severity: "medium", description: "GitHub API (possible exfiltration)" },
-          { regex: /requestbin|webhook\.site|pipedream\.com/gi, severity: "high", description: "Request capture service" },
-          { regex: /\.CreateObject\s*\(["'](?:WinHttp|MSXML|ServerXMLHTTP)["']/gi, severity: "high", description: "HTTP client creation" },
-          { regex: /\/upload\.php|\/submit\.php|\/data\.php|\/collect\.php/gi, severity: "high", description: "Data collection endpoint" },
-          { regex: /\.FileSystemObject.*?\.CopyFile/gi, severity: "medium", description: "File copying operation" },
-          { regex: /\.CreateTextFile.*?\.Write/gi, severity: "medium", description: "Writing data to file" }
-        ],
-        description: "Detection of data exfiltration techniques that could be used to steal information."
-      },
+      return downloadPatterns.some(pattern => pattern.test(text)) && 
+             execPatterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Hancitor_Pattern",
+    description: "Detects patterns associated with Hancitor downloader",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /document\.write\(unescape\(/i,
+        /\.Run\s+"powershell\s+-nop\s+-w\s+hidden/i,
+        /\.Run\s+"cmd\s+\/c\s+powershell/i,
+        /ActiveDocument\.Characters\(\d+,\s*\d+\)\.Text/i,
+        /ActiveDocument\.Content\.Find\.Execute/i,
+        /\.FormFields\(["'][^"']+["']\)\.Result/i
+      ];
       
-      exploitTechniques: {
-        patterns: [
-          { regex: /CVE-\d{4}-\d+/gi, severity: "critical", description: "CVE reference" },
-          { regex: /Equation\.3/gi, severity: "critical", description: "Equation Editor exploit" },
-          { regex: /packerInitFunctionName|NtGlobalFlag|IsDebuggerPresent/gi, severity: "critical", description: "Anti-analysis technique" },
-          { regex: /VirtualProtect|VirtualAlloc|WriteProcessMemory/gi, severity: "critical", description: "Memory manipulation" },
-          { regex: /kernel32\.dll|user32\.dll|ntdll\.dll/gi, severity: "high", description: "Windows system DLL reference" },
-          { regex: /ole32\.dll|oleaut32\.dll|shell32\.dll/gi, severity: "high", description: "Windows COM/shell DLL reference" },
-          { regex: /URLDownloadToFile|URLDownloadToCacheFile/gi, severity: "high", description: "URL download API" },
-          { regex: /ROP|ReturnOriented|StackPivot|HeapSpray/gi, severity: "critical", description: "Exploit technique terminology" },
-          { regex: /InjectProcess|CreateRemoteThread/gi, severity: "critical", description: "Process injection technique" },
-          { regex: /GetProcAddress|GetModuleHandle|LoadLibrary/gi, severity: "high", description: "Dynamic library loading" },
-          { regex: /CreateProcess|ShellExecute|WinExec/gi, severity: "critical", description: "Process execution API" },
-          { regex: /NtMapViewOfSection|ZwMapViewOfSection/gi, severity: "critical", description: "Memory mapping API" },
-          { regex: /CreateThread|CreateFiber|QueueUserAPC/gi, severity: "high", description: "Thread creation API" },
-          { regex: /OutputDebugString|DebugBreak|IsDebuggerPresent/gi, severity: "high", description: "Anti-debugging technique" },
-          { regex: /SetWindowsHookEx|GetAsyncKeyState|GetKeyboardState/gi, severity: "high", description: "Keyboard/input hooking" },
-          { regex: /CallNextHookEx|SetPropA|GetCommandLine/gi, severity: "medium", description: "Windows API hooks" },
-          { regex: /MZ[\x00-\xFF]{64,}/gi, severity: "critical", description: "Embedded PE file signature" },
-          { regex: /PEB|Process Environment Block|_TEB/gi, severity: "critical", description: "Low-level process structure" },
-          { regex: /0xC0000005|AccessViolation|EXCEPTION_/gi, severity: "high", description: "Exception handling (possible exploit)" },
-          { regex: /segment\.override|segmentRegister|heapLib/gi, severity: "critical", description: "Exploit framework reference" }
-        ],
-        description: "Detection of exploit techniques that could be used to compromise systems."
-      },
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/powershell/.test(text) || /cmd \/c/.test(text));
+    }
+  },
+  
+  {
+    name: "XLMMacro_Hidden_Sheet",
+    description: "Detects hidden worksheet with Excel 4.0 macros",
+    severity: "high",
+    condition: function(text) {
+      const xlmPatterns = [
+        /=CALL\(/i,
+        /=EXEC\(/i,
+        /=FORMULA\(/i
+      ];
       
-      encryptionObservables: {
-        patterns: [
-          { regex: /AES|Rijndael|Blowfish|RC4|RSA|DES|3DES|TripleDES|TwoFish/gi, severity: "medium", description: "Encryption algorithm reference" },
-          { regex: /CryptoAPI|CryptoStream|Cryptography\./gi, severity: "medium", description: "Cryptography API usage" },
-          { regex: /InitializeCipher|EncryptData|DecryptData/gi, severity: "medium", description: "Encryption/decryption routine" },
-          { regex: /CreateDecryptor|CreateEncryptor/gi, severity: "medium", description: "Cryptographic transformer creation" },
-          { regex: /\.Encrypt\(|\.Decrypt\(/gi, severity: "medium", description: "Encryption/decryption method call" },
-          { regex: /CipherMode\.|PaddingMode\.|KeySize/gi, severity: "medium", description: "Cryptographic parameters" },
-          { regex: /GenerateKey|DeriveKey|ImportKey|ExportKey/gi, severity: "medium", description: "Cryptographic key operation" },
-          { regex: /SHA1|SHA256|SHA512|MD5|HMAC/gi, severity: "low", description: "Hashing algorithm" },
-          { regex: /CBC|ECB|CFB|OFB|CTR|GCM/gi, severity: "medium", description: "Encryption mode" },
-          { regex: /InitVector|IV|Salt/gi, severity: "medium", description: "Cryptographic parameter" },
-          { regex: /PBKDF2|Rfc2898DeriveBytes/gi, severity: "medium", description: "Key derivation function" },
-          { regex: /RandomNumberGenerator|RNGCryptoServiceProvider/gi, severity: "low", description: "Random number generation" },
-          { regex: /ProtectedData|ProtectedMemory/gi, severity: "medium", description: "Protected data API" },
-          { regex: /CertificateRequest|X509Certificate|RSACryptoServiceProvider/gi, severity: "medium", description: "Certificate/PKI operation" },
-          { regex: /PrivateKey|PublicKey|AsymmetricAlgorithm/gi, severity: "medium", description: "Asymmetric cryptography" },
-          { regex: /OAEP|PKCS|KeyedHashAlgorithm/gi, severity: "medium", description: "Cryptographic standard" }
-        ],
-        description: "Detection of encryption operations that might be used to hide malicious content or ransom files."
-      },
+      const hidingPatterns = [
+        /veryHidden/i,
+        /xlVeryHidden/i,
+        /\.Visible\s*=\s*False/i,
+        /DisplaySheets\(/i,
+        /\.Visible\s*=\s*xlSheetHidden/i
+      ];
       
-      antiAnalysisTechniques: {
-        patterns: [
-          { regex: /Application\.EnableEvents\s*=\s*False/gi, severity: "medium", description: "Disabling Excel events" },
-          { regex: /Application\.ScreenUpdating\s*=\s*False/gi, severity: "medium", description: "Disabling screen updates" },
-          { regex: /Application\.DisplayAlerts\s*=\s*False/gi, severity: "high", description: "Disabling alerts" },
-          { regex: /Application\.Visible\s*=\s*False/gi, severity: "high", description: "Hiding application window" },
-          { regex: /Application\.DisplayStatusBar\s*=\s*False/gi, severity: "medium", description: "Hiding status bar" },
-          { regex: /Application\.CommandBars.*?\.Enabled\s*=\s*False/gi, severity: "high", description: "Disabling command bars/menus" },
-          { regex: /GetTickCount|QueryPerformanceCounter|timeGetTime/gi, severity: "medium", description: "Timing check (anti-sandbox)" },
-          { regex: /GetLastInputInfo|GetCursorPos|GetAsyncKeyState/gi, severity: "medium", description: "User activity check (anti-sandbox)" },
-          { regex: /GlobalMemoryStatus|GetSystemInfo|GetSystemMetrics/gi, severity: "medium", description: "System fingerprinting" },
-          { regex: /GetVersionEx|GetComputerName|GetUserName/gi, severity: "medium", description: "System identifier checks" },
-          { regex: /IsProcessorFeaturePresent|GetSystemFirmwareTable/gi, severity: "medium", description: "Hardware fingerprinting" },
-          { regex: /EnumProcesses|Process32First|Process32Next/gi, severity: "high", description: "Process enumeration (sandbox detection)" },
-          { regex: /sfc_os\.dll|sbiedll\.dll|snxhk\.dll|SbieDll\.dll/gi, severity: "high", description: "Sandbox detection" },
-          { regex: /Kaspersky|Wireshark|VMware|VirtualBox|QEMU|Xen/gi, severity: "medium", description: "Security tool/VM detection" },
-          { regex: /Sleep\s*\(\s*\d{4,}\s*\)/gi, severity: "medium", description: "Long sleep (anti-sandbox)" },
-          { regex: /On\s+Error\s+Resume\s+Next/gi, severity: "medium", description: "Error suppression" },
-          { regex: /GetForegroundWindow|IsWindowVisible/gi, severity: "medium", description: "Window state check" },
-          { regex: /WMI|GetObject\(["']winmgmts:/gi, severity: "high", description: "WMI query (system inspection)" },
-          { regex: /IsUserAnAdmin|CheckTokenMembership/gi, severity: "medium", description: "Privilege checking" },
-          { regex: /VBA\.CreateObject\(["']WScript\.Shell["']\)\.Environment\(["']SYSTEM["']\)/gi, severity: "high", description: "System environment inspection" }
-        ],
-        description: "Detection of techniques used to evade analysis, sandboxes, or security tools."
+      return xlmPatterns.some(pattern => pattern.test(text)) && 
+             hidingPatterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "CVE_2017_11882_Exploit",
+    description: "Detects patterns indicative of CVE-2017-11882 Equation Editor exploit",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /Equation\.3/i,
+        /EQNEDT32\.EXE/i,
+        /ObjectLink/i,
+        /equation\s+native/i,
+        /EMBED\s+Equation\.3/i
+      ];
+      
+      const commandPatterns = [
+        /cmd\.exe/i,
+        /powershell/i,
+        /mshta/i,
+        /regsvr32/i,
+        /certutil/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) && 
+             commandPatterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "CVE_2018_4878_Flash_Exploit",
+    description: "Detects patterns indicative of Flash exploitation (CVE-2018-4878)",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /\.swf/i,
+        /ShockwaveFlash\.ShockwaveFlash/i,
+        /application\/x-shockwave-flash/i,
+        /MSComctlLib\.ListViewCtrl/i,
+        /clsid:D27CDB6E-AE6D-11cf-96B8-444553540000/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) && 
+             (/ActiveX/i.test(text) || /EMBED/i.test(text) || /Object/i.test(text));
+    }
+  },
+  
+  {
+    name: "Suspicious_Scheduled_Task",
+    description: "Detects creation of scheduled tasks from Office documents",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /schtasks\s+\/create/i,
+        /TaskService\.NewTask/i,
+        /ScheduledTasks\.TaskFolder/i,
+        /\.CreateTrigger/i,
+        /\.Actions\.Create/i,
+        /Schedule\.Service/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "VBA_Stomping_Indications",
+    description: "Detects indicators of VBA stomping (p-code and source mismatch)",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /Attribute\s+VB_Name/i,
+        /ATTRIBUTION\s+CERTIFICATION/i,
+        /\+\s+\d+\s+\+\s+\d+/i,
+        /CMG=.*DPB=/i,
+        /OriginalVBA=/i
+      ];
+      
+      // Look for suspiciously short VBA procedures with attributes
+      const shortProcedures = /Sub\s+\w+\s*\(\)\s*\n\s*End\s+Sub/i.test(text) && 
+                              /Attribute\s+VB_Name/i.test(text);
+      
+      return patterns.some(pattern => pattern.test(text)) || shortProcedures;
+    }
+  },
+  
+  {
+    name: "Suspicious_ActiveX_Controls",
+    description: "Detects suspicious usage of ActiveX controls",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /Forms\.Frame\.1/i,
+        /Forms\.CommandButton\.1/i,
+        /Mscomctl\.ListViewCtrl/i,
+        /Controls\.Add/i,
+        /msxml2\.DSOControl/i,
+        /TabStrip/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/CreateObject/i.test(text) || /GetObject/i.test(text));
+    }
+  },
+  
+  {
+    name: "Empire_Macro_Pattern",
+    description: "Detects patterns associated with Empire macro payloads",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /powershell\.exe\s+-NoP\s+-NonI\s+-W\s+Hidden\s+/i,
+        /New-Object\s+System\.Net\.WebClient/i,
+        /IEX\s*\(\s*\$\w+\.DownloadString\s*\(/i,
+        /\[System\.Convert\]::FromBase64String/i,
+        /\[System\.Text\.Encoding\]::UTF8\.GetString/i,
+        /\[System\.Reflection\.Assembly\]::Load/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) && 
+             (/DownloadString/.test(text) || /FromBase64String/.test(text));
+    }
+  },
+  
+  {
+    name: "Cobalt_Strike_Macro_Pattern",
+    description: "Detects patterns associated with Cobalt Strike macro payloads",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /powershell\.exe.*-enc/i,
+        /Win32_ProcessStartup/i,
+        /Win32_Process.*\.Create/i,
+        /\.Run\s*chr\(34\)/i,
+        /CreateThread/i,
+        /VirtualAlloc/i,
+        /WriteProcessMemory/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/powershell/i.test(text) || /VirtualAlloc/i.test(text) || /Chr\(\d+\)/.test(text));
+    }
+  },
+  
+  {
+    name: "Obfuscated_PowerShell",
+    description: "Detects heavily obfuscated PowerShell in Office macros",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /\^\^|\^\d+/i, // XOR obfuscation
+        /\{\d+\}\s*-f/i, // Format operator
+        /\[[cChHaArR].*?\]|\[\d+\]/i, // Typecasting obfuscation
+        /join\s*\(\s*['"`]/i, // Join obfuscation
+        /\-replace\s+['"][^'"]+['"]\s*,\s*['"]/i, // Replace obfuscation
+        /\$\{\s*\w+\s*\}/i, // Variable substitution
+        /\)\s*\+\s*\(/i, // String concatenation
+        /\[\s*int\s*\]/i // Integer typecasting
+      ];
+      
+      const powershellIndicators = /powershell|iex|invoke-expression|system\.net\.webclient|downloadstring/i.test(text);
+      
+      return patterns.some(pattern => pattern.test(text)) && powershellIndicators;
+    }
+  },
+  
+  {
+    name: "Excel_DDE_Exploitation",
+    description: "Enhanced detection of DDE exploitation techniques",
+    severity: "critical",
+    condition: function(text) {
+      // Expanded DDE exploitation patterns
+      const patterns = [
+        /\bDDE\b|DDEAUTO/i,
+        /\!.*cmd\.exe/i,
+        /\!.*powershell/i,
+        /\!.*mshta/i,
+        /=\s*".*\!.*/i,
+        // Additional patterns
+        /\bDDEINITIATE\b/i,
+        /\bDDEREQUEST\b/i,
+        /\bDDEEXECUTE\b/i,
+        /\!.*cmd /i,
+        /\!.*\/c /i,
+        /\!.*calc\.exe/i,
+        /\!.*regsvr32/i,
+        /\!.*certutil/i,
+        /\!.*bitsadmin/i,
+        /\!.*wmic/i
+      ];
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "SYLK_Macro_Bypass",
+    description: "Detects SYLK (SLK) file macro security bypass techniques",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /ID;P/i,
+        /O;E/i,
+        /C;X\d+;Y\d+;K/i,
+        /R;.*RUN/i,
+        /R;.*REGISTER/i,
+        /R;.*CALL/i,
+        /F;.*(cmd|powershell)/i,
+        /F;.*mshta/i,
+        /F;.*\.exe/i,
+        /F;.*\.dll/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/\.slk/i.test(text) || /;P/i.test(text));
+    }
+  },
+  
+  {
+    name: "Persistence_Via_Registry",
+    description: "Detects attempts to establish persistence via registry modification",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/i,
+        /HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/i,
+        /HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/i,
+        /HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/i,
+        /savestring.*run/i,
+        /regwrite.*run/i,
+        /SetValue.*CurrentVersion\\Run/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Suspicious_User_Form",
+    description: "Detects suspicious UserForm patterns often used in malware",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /UserForm_Initialize/i,
+        /UserForm\.Show/i,
+        /UserForm\d+\.Label/i,
+        /TextBox\d+\.Text/i,
+        /\.Controls\.Add/i,
+        /\.OLEObjects\.Add/i
+      ];
+      
+      const payloadPatterns = [
+        /\.Caption\s+=\s+/i,
+        /\.Value\s+=\s+/i,
+        /\.Controls\(.*\)\.Caption\s+=\s+/i,
+        /ChDrive|ChDir|CurDir/i,
+        /\.Verb\s+=\s+/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) && 
+             payloadPatterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Excessive_Obfuscation",
+    description: "Detects excessive obfuscation techniques",
+    severity: "high",
+    condition: function(text) {
+      // Count obfuscation indicators
+      let score = 0;
+      
+      if (/Chr\(\d+\)/.test(text)) score += 1;
+      if (/StrReverse\(/.test(text)) score += 1;
+      if (/Mid\(\w+,\s*\d+,\s*\d+\)/.test(text)) score += 1;
+      if (/Replace\(\w+,\s*["'][^"']+["'],\s*["'][^"']+["']\)/.test(text)) score += 1;
+      if (/\w+\s*=\s*\w+\s*\&\s*\w+/.test(text)) score += 1;
+      if (/Array\(\s*\d+,\s*\d+/.test(text)) score += 1;
+      if (/Split\(\w+,\s*["'][^"']+["']\)/.test(text)) score += 1;
+      if (/Join\(\w+,\s*["'][^"']+["']\)/.test(text)) score += 1;
+      if (/Asc\(\w+\)/.test(text)) score += 1;
+      if (/\w+\s*=\s*["'][a-zA-Z0-9]{1}["']\s*\&\s*["'][a-zA-Z0-9]{1}["']/.test(text)) score += 1;
+      
+      return score >= 3 && (/CreateObject/.test(text) || /Shell/.test(text) || /Run/.test(text));
+    }
+  },
+  
+  {
+    name: "Living_Off_The_Land",
+    description: "Detects use of legitimate Windows tools for malicious purposes",
+    severity: "high",
+    condition: function(text) {
+      const lotlTools = [
+        /regsvr32/i,
+        /certutil/i,
+        /bitsadmin/i,
+        /wmic/i,
+        /msiexec/i,
+        /cmstp/i,
+        /mshta/i,
+        /rundll32/i,
+        /mavinject/i,
+        /forfiles/i,
+        /scriptrunner/i,
+        /odbcconf/i,
+        /regasm/i,
+        /regsvcs/i,
+        /msbuild/i,
+        /installutil/i,
+        /pcwutl/i,
+        /dnscmd/i,
+        /netsh/i,
+        /vssadmin/i,
+        /wscript/i,
+        /cscript/i
+      ];
+      
+      const parameters = [
+        /\/s\b/i,
+        /\/q\b/i,
+        /\-decode\b/i,
+        /\-e\b/i,
+        /\-enc\b/i,
+        /\-w\s+hidden\b/i,
+        /\/transfer\b/i,
+        /call\b/i,
+        /create\b/i,
+        /scrobj/i,
+        /regsvr32/i
+      ];
+      
+      return lotlTools.some(pattern => pattern.test(text)) && 
+             parameters.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Advanced_Memory_Techniques",
+    description: "Detects advanced memory manipulation techniques",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /VirtualAlloc/i,
+        /VirtualProtect/i,
+        /WriteProcessMemory/i,
+        /RtlMoveMemory/i,
+        /memcpy/i,
+        /CreateThread/i,
+        /HeapCreate/i,
+        /QueueUserAPC/i,
+        /NtAllocateVirtualMemory/i,
+        /ZwAllocateVirtualMemory/i,
+        /AdjustTokenPrivileges/i,
+        /CallWindowProcA/i,
+        /CallWindowProcW/i,
+        /EnumSystemLocalesA/i,
+        /EnumSystemLocalesW/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/Array\(/.test(text) || /Chr\(/.test(text) || /CVar\(/.test(text));
+    }
+  },
+  
+  {
+    name: "Suspicious_Excel_Formula_Concatenation",
+    description: "Detects suspicious Excel formula concatenation often used in attacks",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /=CONCATENATE\(CHAR\(/i,
+        /=CONCAT\(CHAR\(/i,
+        /=MID\(.*\)&MID\(/i,
+        /=INDIRECT\(.*\)/i,
+        /=RIGHT\(.*\)&LEFT\(/i,
+        /=CHAR\(\d+\)&CHAR\(/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Office_Template_Injection",
+    description: "Detects Microsoft Office template injection techniques",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /NormalTemplate|DocumentTemplate|GlobalTemplate/i,
+        /\.dot$|\.dotm$|\.dotx$/i,
+        /\.Add\s*".*\.dot/i,
+        /\.SaveAs\s*.*\.dot/i,
+        /Template\s*=\s*/i,
+        /\.AttachTemplate\s*/i,
+        /Application\.StartupPath/i,
+        /\%APPDATA\%.*Office.*Startup/i,
+        /Templates.*Normal/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Suspicious_Base64_Content",
+    description: "Detects suspicious Base64 encoded content in Excel documents",
+    severity: "high",
+    condition: function(text) {
+      // Look for Base64 encoding patterns
+      const base64Patterns = [
+        /FromBase64String/i,
+        /Base64Decode/i,
+        /["'][A-Za-z0-9+\/]{40,}={0,2}["']/,
+        /\w+\s*=\s*["'][A-Za-z0-9+\/]{40,}={0,2}["']/
+      ];
+      
+      // Look for execution after decoding
+      const execPatterns = [
+        /IEX\s*\(/i,
+        /Invoke-Expression/i,
+        /eval\s*\(/i,
+        /ExecuteGlobal/i,
+        /Execute\s*\(/i,
+        /\-enc/i,
+        /\.Run\(/i,
+        /Shell\(/i
+      ];
+      
+      return base64Patterns.some(pattern => pattern.test(text)) && 
+             (execPatterns.some(pattern => pattern.test(text)) || /powershell/i.test(text));
+    }
+  },
+  
+  {
+    name: "Process_Hollowing_Indicators",
+    description: "Detects indicators of process hollowing techniques",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /VirtualAllocEx/i,
+        /CreateProcess\w*\(.+\s*,\s*.+\s*,\s*.+\s*,\s*.+\s*,\s*TRUE/i,
+        /WriteProcessMemory/i,
+        /PROCESS_CREATE_THREAD|PROCESS_VM_WRITE|PROCESS_VM_OPERATION/i,
+        /SetThreadContext/i,
+        /ResumeThread/i,
+        /ZwUnmapViewOfSection|NtUnmapViewOfSection/i,
+        /hollow/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/CreateProcess/.test(text) || /WriteProcessMemory/.test(text));
+    }
+  },
+  
+  {
+    name: "Anti_Analysis_Techniques",
+    description: "Detects anti-analysis and anti-VM techniques",
+    severity: "high",
+    condition: function(text) {
+      const patterns = [
+        /GetTickCount/i,
+        /QueryPerformanceCounter/i,
+        /GetSystemInfo/i,
+        /VMWare|VirtualBox|QEMU|Xen|KVM|Parallels/i,
+        /SbieDll\.dll|dbghelp\.dll/i,
+        /Sandboxie|wireshark|processmonitor|filewatcher|processhacker/i,
+        /IsDebuggerPresent/i,
+        /CheckRemoteDebuggerPresent/i,
+        /GetForegroundWindow/i,
+        /IsProcessorFeaturePresent/i,
+        /Sleep\s*\(\s*\d{4,}/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    }
+  },
+  
+  {
+    name: "Supply_Chain_Attack_Indicators",
+    description: "Detects indicators of supply chain attacks via Excel add-ins and automation",
+    severity: "critical",
+    condition: function(text) {
+      const patterns = [
+        /\.RegisterXLL/i,
+        /\.RegisterAddIn/i,
+        /VBA\.AddIn/i,
+        /Excel\.AddIn/i,
+        /\.COMAddIns/i,
+        /\.Automation/i,
+        /Application\.OnTime/i,
+        /Application\.OnKey/i,
+        /Workbook_Open/i,
+        /GetObject\(["']excel\.application/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text)) &&
+             (/CreateObject/.test(text) || /\.Run/.test(text) || /Shell/.test(text));
+    }
+  },
+  
+  {
+    name: "High_Entropy_String",
+    description: "Improved detection of high entropy strings that might indicate obfuscated or encrypted content",
+    severity: "medium",
+    condition: function(text) {
+      // Extract long strings that may be obfuscated content
+      const longStrings = text.match(/["'][A-Za-z0-9+\/=]{40,}["']/g);
+      if (!longStrings) return false;
+      
+      // Improved entropy calculation
+      for (const str of longStrings) {
+        const content = str.slice(1, -1); // Remove quotes
+        const charCount = {};
+        let totalChars = content.length;
+        
+        // Count character frequencies
+        for (const char of content) {
+          charCount[char] = (charCount[char] || 0) + 1;
+        }
+        
+        // Calculate Shannon entropy
+        let entropy = 0;
+        for (const char in charCount) {
+          const probability = charCount[char] / totalChars;
+          entropy -= probability * (Math.log(probability) / Math.log(2));
+        }
+        
+        // High entropy threshold (closer to 6 indicates randomness/encryption)
+        if (entropy > 5.7 && content.length > 100) {
+          return true;
+        }
       }
+      return false;
+    }
+  }
+];
+    
+   /**
+ * Enhanced Helper & Utility Functions
+ * For Advanced Excel Threat Detection System
+ */
+
+// Format bytes to human-readable size
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Create a hash from a file for identification
+async function createFileFingerprint(arrayBuffer) {
+  const dataView = new Uint8Array(arrayBuffer.slice(0, 8192));
+  return CryptoJS.MD5(CryptoJS.lib.WordArray.create(dataView)).toString();
+}
+
+// Create a more comprehensive file hash for malware identification
+async function createComprehensiveHash(arrayBuffer) {
+  // Create multiple hashes for better identification
+  const fullData = new Uint8Array(arrayBuffer);
+  const sha256Hash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(fullData)).toString();
+  const md5Hash = CryptoJS.MD5(CryptoJS.lib.WordArray.create(fullData)).toString();
+  
+  return {
+    md5: md5Hash,
+    sha256: sha256Hash,
+    size: arrayBuffer.byteLength,
+    partialMd5: CryptoJS.MD5(CryptoJS.lib.WordArray.create(fullData.slice(0, 16384))).toString()
+  };
+}
+
+// Convert severity to color class
+function getSeverityColorClass(severity) {
+  switch(severity.toLowerCase()) {
+    case 'critical': return 'bg-red-100 text-red-800 border-red-300';
+    case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
+    case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'low': return 'bg-blue-100 text-blue-800 border-blue-300';
+    case 'info': return 'bg-gray-100 text-gray-800 border-gray-300';
+    default: return 'bg-gray-100 text-gray-800 border-gray-300';
+  }
+}
+
+// Get severity score (numerical)
+function getSeverityScore(severity) {
+  switch(severity.toLowerCase()) {
+    case 'critical': return 5;
+    case 'high': return 4;
+    case 'medium': return 3;
+    case 'low': return 2;
+    case 'info': return 1;
+    default: return 0;
+  }
+}
+
+// Format category name for display
+function formatCategoryName(category) {
+  return category
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+}
+
+// Calculate Shannon entropy for a string (measure of randomness)
+function calculateEntropy(str) {
+  const len = str.length;
+  const frequencies = {};
+  
+  // Count character frequencies
+  for (let i = 0; i < len; i++) {
+    const char = str.charAt(i);
+    if (frequencies[char] === undefined) {
+      frequencies[char] = 1;
+    } else {
+      frequencies[char]++;
+    }
+  }
+  
+  // Calculate entropy
+  let entropy = 0;
+  Object.keys(frequencies).forEach(char => {
+    const freq = frequencies[char] / len;
+    entropy -= freq * (Math.log(freq) / Math.log(2));
+  });
+  
+  return entropy;
+}
+
+// Calculate character distribution metrics for entropy analysis
+function calculateCharacterDistribution(str) {
+  const metrics = {
+    totalChars: str.length,
+    uniqueChars: 0,
+    characterSets: {
+      uppercase: 0,
+      lowercase: 0,
+      numeric: 0,
+      special: 0,
+      control: 0,
+      nonAscii: 0
+    },
+    entropy: 0,
+    distribution: {}
+  };
+  
+  // Count character frequencies
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charAt(i);
+    const code = str.charCodeAt(i);
+    
+    // Track distribution
+    if (metrics.distribution[char] === undefined) {
+      metrics.distribution[char] = 1;
+    } else {
+      metrics.distribution[char]++;
+    }
+    
+    // Track character sets
+    if (code >= 65 && code <= 90) {
+      metrics.characterSets.uppercase++;
+    } else if (code >= 97 && code <= 122) {
+      metrics.characterSets.lowercase++;
+    } else if (code >= 48 && code <= 57) {
+      metrics.characterSets.numeric++;
+    } else if (code < 32 || code === 127) {
+      metrics.characterSets.control++;
+    } else if (code > 127) {
+      metrics.characterSets.nonAscii++;
+    } else {
+      metrics.characterSets.special++;
+    }
+  }
+  
+  metrics.uniqueChars = Object.keys(metrics.distribution).length;
+  metrics.entropy = calculateEntropy(str);
+  
+  return metrics;
+}
+
+// Detect potential obfuscation in strings
+function detectObfuscation(str) {
+  const metrics = calculateCharacterDistribution(str);
+  const results = {
+    isObfuscated: false,
+    confidence: 0,
+    reasons: []
+  };
+  
+  // Check for high entropy
+  if (metrics.entropy > 5.7) {
+    results.reasons.push('High entropy value: ' + metrics.entropy.toFixed(2));
+    results.confidence += 25;
+  } else if (metrics.entropy > 5.0) {
+    results.reasons.push('Moderately high entropy: ' + metrics.entropy.toFixed(2));
+    results.confidence += 15;
+  }
+  
+  // Check for unusual character distribution
+  const alphanumeric = metrics.characterSets.uppercase + metrics.characterSets.lowercase + metrics.characterSets.numeric;
+  const oddChars = metrics.characterSets.special + metrics.characterSets.control + metrics.characterSets.nonAscii;
+  
+  if (oddChars > alphanumeric && metrics.totalChars > 20) {
+    results.reasons.push('High ratio of special/control characters to alphanumeric');
+    results.confidence += 20;
+  }
+  
+  // Check for high uniqueness
+  const uniquenessRatio = metrics.uniqueChars / metrics.totalChars;
+  if (uniquenessRatio > 0.5 && metrics.totalChars > 30) {
+    results.reasons.push('High ratio of unique characters: ' + uniquenessRatio.toFixed(2));
+    results.confidence += 15;
+  }
+  
+  // Check for long repetitions
+  const longestRepetition = findLongestRepetition(str);
+  if (longestRepetition > 10) {
+    results.reasons.push('Contains long repetitive patterns (' + longestRepetition + ' chars)');
+    results.confidence += 15;
+  }
+  
+  results.isObfuscated = results.confidence >= 30;
+  return results;
+}
+
+// Find the longest repetitive pattern in a string
+function findLongestRepetition(str) {
+  let longest = 0;
+  for (let i = 0; i < str.length; i++) {
+    let currentChar = str[i];
+    let currentLen = 1;
+    
+    for (let j = i + 1; j < str.length; j++) {
+      if (str[j] === currentChar) {
+        currentLen++;
+      } else {
+        break;
+      }
+    }
+    
+    if (currentLen > longest) {
+      longest = currentLen;
+    }
+  }
+  return longest;
+}
+
+// Detect potential Base64 encoded content
+function detectBase64(str) {
+  // Base64 character set check
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  if (!base64Regex.test(str)) return false;
+  
+  // Length check (must be multiple of 4 for proper padding)
+  if (str.length % 4 !== 0 && str.length > 20) return false;
+  
+  // Check for valid padding
+  if (str.indexOf('=') !== -1 && str.indexOf('=') < str.length - 2) return false;
+  
+  // Character distribution check
+  const metrics = calculateCharacterDistribution(str);
+  
+  // Base64 strings typically have high entropy but not too high
+  return metrics.entropy > 3.8 && metrics.entropy < 6.1 && str.length >= 20;
+}
+
+// Attempt to decode Base64 content safely
+function safeBase64Decode(str) {
+  try {
+    // First check if it's likely Base64
+    if (!detectBase64(str)) return { success: false, reason: 'Not valid Base64 format' };
+    
+    // Try to decode
+    const decoded = atob(str);
+    
+    // Check if result is binary or text
+    const isBinary = containsBinaryData(decoded);
+    
+    return {
+      success: true,
+      isBinary: isBinary,
+      result: isBinary ? '<Binary data>' : decoded,
+      length: decoded.length
+    };
+  } catch (e) {
+    return { success: false, reason: 'Decoding error: ' + e.message };
+  }
+}
+
+// Check if a string contains binary data
+function containsBinaryData(str) {
+  // Check for non-printable characters
+  for (let i = 0; i < Math.min(str.length, 100); i++) {
+    const code = str.charCodeAt(i);
+    if (code < 9 || (code > 13 && code < 32) || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Highlight VBA code with syntax highlighting
+function highlightVbaCode(code) {
+  if (!code) return '';
+  
+  // Define VBA keywords for highlighting
+  const keywords = ['Sub', 'Function', 'End', 'If', 'Then', 'Else', 'ElseIf', 'Dim', 'Set', 'As', 'New', 'For', 'To', 'Next', 'While', 'Wend', 'Do', 'Loop', 'Until', 'Select', 'Case', 'With', 'Private', 'Public', 'On Error', 'Resume', 'Exit', 'GoTo', 'Call', 'Let', 'Const', 'Type', 'ReDim', 'Option', 'Explicit', 'Boolean', 'Integer', 'Long', 'String', 'Variant', 'Object', 'Byte', 'Currency', 'Date', 'Double', 'Single', 'Module', 'Class', 'Property', 'Get', 'Let', 'Set', 'ByVal', 'ByRef', 'Optional', 'ParamArray', 'Preserve', 'AddressOf'];
+  
+  const functions = ['CreateObject', 'Shell', 'Run', 'Open', 'Write', 'Close', 'GetObject', 'SaveAs', 'CopyFile', 'Kill', 'Environ', 'Chr', 'ChrW', 'Asc', 'AscW', 'Mid', 'Left', 'Right', 'InStr', 'StrReverse', 'Replace', 'Split', 'Join', 'LCase', 'UCase', 'Trim', 'LTrim', 'RTrim', 'Len', 'Array', 'FileSystemObject', 'WScript', 'VBA', 'WorksheetFunction', 'URLDownloadToFile', 'MsgBox', 'InputBox', 'CreateTextFile', 'OpenTextFile', 'FileExists', 'FolderExists', 'RegRead', 'RegWrite', 'RegDelete', 'Base64Decode', 'Base64Encode', 'StrConv', 'Format', 'Now', 'Date', 'Time', 'Timer', 'Sleep', 'Wait', 'Eval', 'Execute', 'ExecuteGlobal', 'CByte', 'CInt', 'CLng', 'CDbl', 'CStr', 'CBool', 'CDate', 'CVErr', 'Fix', 'Int', 'Sgn', 'Abs'];
+  
+  const dangerousFunctions = ['Shell', 'ShellExecute', 'Exec', 'Run', 'CallByName', 'CreateObject', 'GetObject', 'URLDownloadToFile', 'DownloadFile', 'WriteLine', 'SaveToFile', 'RegWrite', 'AddCode', 'VirtualAlloc', 'VirtualProtect', 'WriteProcessMemory', 'EnumProcesses', 'CreateThread', 'CreateRemoteThread', 'WinExec', 'ShellExecuteEx', 'CreateProcess'];
+  
+  // Sanitize HTML characters
+  let highlightedCode = escapeHtml(code);
+  
+  // Highlight VBA keywords
+  keywords.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    highlightedCode = highlightedCode.replace(regex, match => `<span class="vba-keyword">${match}</span>`);
+  });
+  
+  // Highlight VBA functions
+  functions.forEach(func => {
+    const regex = new RegExp(`\\b${func}\\b`, 'gi');
+    highlightedCode = highlightedCode.replace(regex, match => `<span class="vba-function">${match}</span>`);
+  });
+  
+  // Highlight dangerous functions with special class
+  dangerousFunctions.forEach(func => {
+    const regex = new RegExp(`\\b${func}\\b`, 'gi');
+    highlightedCode = highlightedCode.replace(regex, match => `<span class="vba-dangerous-function">${match}</span>`);
+  });
+  
+  // Highlight strings
+  highlightedCode = highlightedCode.replace(/"[^"\\]*(?:\\.[^"\\]*)*"/g, match => `<span class="vba-string">${match}</span>`);
+  
+  // Highlight comments
+  highlightedCode = highlightedCode.replace(/'.*$/gm, match => `<span class="vba-comment">${match}</span>`);
+  
+  // Highlight potential obfuscation patterns
+  highlightedCode = highlightedCode.replace(/Chr\s*\(\s*\d+\s*\)(\s*&\s*Chr\s*\(\s*\d+\s*\))*/g, match => `<span class="vba-obfuscation">${match}</span>`);
+  highlightedCode = highlightedCode.replace(/StrReverse\s*\([^)]+\)/g, match => `<span class="vba-obfuscation">${match}</span>`);
+  
+  // Convert newlines to <br> for HTML display
+  highlightedCode = highlightedCode.replace(/\n/g, '<br>');
+  
+  return highlightedCode;
+}
+
+// Highlight XLM/Excel 4.0 macro formulas
+function highlightXlmFormula(formula) {
+  if (!formula) return '';
+  
+  // Sanitize HTML characters
+  let highlighted = escapeHtml(formula);
+  
+  // Highlight XLM functions
+  const xlmFunctions = ['EXEC', 'CALL', 'REGISTER', 'RETURN', 'HALT', 'RUN', 'FORMULA', 'ALERT', 'ERROR', 'WORKSPACE', 'FOPEN', 'FCLOSE', 'FWRITE', 'FREAD', 'CHAR', 'CODE', 'FILES', 'GET.WORKSPACE', 'APP.MAXIMIZE', 'CONCATENATE', 'DIRECTORY', 'WHILE', 'GOTO'];
+  
+  xlmFunctions.forEach(func => {
+    const regex = new RegExp(`=\\s*${func}\\s*\\(`, 'gi');
+    highlighted = highlighted.replace(regex, match => {
+      return match.replace(new RegExp(func, 'i'), f => `<span class="xlm-function">${f}</span>`);
+    });
+  });
+  
+  // Highlight dangerous XLM functions
+  const dangerousXlmFunctions = ['EXEC', 'CALL', 'REGISTER', 'RUN', 'SYSTEM'];
+  dangerousXlmFunctions.forEach(func => {
+    const regex = new RegExp(`=\\s*${func}\\s*\\(`, 'gi');
+    highlighted = highlighted.replace(regex, match => {
+      return match.replace(new RegExp(func, 'i'), f => `<span class="xlm-dangerous-function">${f}</span>`);
+    });
+  });
+  
+  // Highlight parameters
+  highlighted = highlighted.replace(/"[^"]*"/g, match => `<span class="xlm-string">${match}</span>`);
+  
+  return highlighted;
+}
+
+// Analyze a string for suspicious characteristics
+function analyzeSuspiciousString(str) {
+  const analysis = {
+    length: str.length,
+    entropy: calculateEntropy(str),
+    base64Encoded: detectBase64(str),
+    obfuscation: detectObfuscation(str),
+    containsExecutables: /(\.exe|\.dll|\.scr|\.bat|\.cmd|\.ps1|\.vbs|\.js)/i.test(str),
+    containsUrls: /https?:\/\/[^\s"']+/i.test(str),
+    containsIpAddresses: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/.test(str),
+    containsCommandLines: /(cmd\.exe|powershell\.exe|wscript\.exe|cscript\.exe|regsvr32\.exe|rundll32\.exe|mshta\.exe)/.test(str),
+    suspiciousCommands: [],
+    threatScore: 0
+  };
+  
+  // Check for suspicious commands
+  const suspiciousCommands = [
+    {pattern: /powershell\s+-[ew]\s+hidden|-encodedcommand|-enc\s+/i, name: "PowerShell encoded/hidden command"},
+    {pattern: /cmd\s+\/c\s+/i, name: "Command prompt execution"},
+    {pattern: /rundll32\s+.*,/i, name: "RunDLL32 function call"},
+    {pattern: /regsvr32\s+\/s\s+\/u\s+/i, name: "RegSvr32 suspicious usage"},
+    {pattern: /certutil\s+-urlcache\s+-split\s+/i, name: "CertUtil file download"},
+    {pattern: /bitsadmin\s+\/transfer\s+/i, name: "BITSAdmin file transfer"},
+    {pattern: /mshta\s+vbscript:/i, name: "MSHTA VBScript execution"},
+    {pattern: /wmic\s+.*\s+call\s+/i, name: "WMIC process call"}
+  ];
+  
+  suspiciousCommands.forEach(cmd => {
+    if (cmd.pattern.test(str)) {
+      analysis.suspiciousCommands.push(cmd.name);
+      analysis.threatScore += 25;
+    }
+  });
+  
+  // Assess entropy
+  if (analysis.entropy > 5.7) analysis.threatScore += 20;
+  else if (analysis.entropy > 5.0) analysis.threatScore += 10;
+  
+  // Assess other factors
+  if (analysis.base64Encoded) analysis.threatScore += 15;
+  if (analysis.obfuscation.isObfuscated) analysis.threatScore += analysis.obfuscation.confidence / 2;
+  if (analysis.containsExecutables) analysis.threatScore += 15;
+  if (analysis.containsUrls) analysis.threatScore += 10;
+  if (analysis.containsIpAddresses) analysis.threatScore += 10;
+  if (analysis.containsCommandLines) analysis.threatScore += 15;
+  
+  return analysis;
+}
+
+// Detect known malware specific strings
+function detectKnownMalwareStrings(str) {
+  const malwareSignatures = [
+    {pattern: /powershell\.exe -nop -w hidden -e/, family: "Generic PowerShell Malware"},
+    {pattern: /cmd\.exe \/c powershell\.exe -NoP -sta -NonI -W Hidden/, family: "Empire"},
+    {pattern: /regsvr32\.exe \/s \/u \/i:[^ ]+\.sct/, family: "Squiblydoo"},
+    {pattern: /mshta\.exe.*javascript:|vbscript:/, family: "MSHTA Malware"},
+    {pattern: /wmic\s+process\s+call\s+create/, family: "WMIC Malware"},
+    {pattern: /CertUtil -URLCache -Split -f/, family: "CertUtil Downloader"},
+    {pattern: /copy \/Y \w:\\\\\w+\.exe %temp%\\/, family: "Generic Malware Dropper"},
+    {pattern: /schtasks \/create \/sc minute \/mo \d+ \/tn/, family: "Scheduled Task Persistence"},
+    {pattern: /VirtualAlloc.*MoveMemory.*CreateThread/, family: "Shellcode Loader"},
+    {pattern: /IEX \(\[System\.Text\.Encoding\]::ASCII\.GetString\(\[System\.Convert\]::FromBase64String/, family: "PowerShell Backdoor"}
+  ];
+  
+  const results = [];
+  
+  malwareSignatures.forEach(sig => {
+    if (sig.pattern.test(str)) {
+      results.push({
+        family: sig.family,
+        matchedPattern: sig.pattern.toString(),
+        confidence: "High"
+      });
+    }
+  });
+  
+  return results;
+}
+
+// Extract and analyze potentially malicious URLs
+function extractAndAnalyzeUrls(text) {
+  const urlRegex = /(https?:\/\/[^\s"']+)/g;
+  const results = [];
+  let match;
+  
+  while ((match = urlRegex.exec(text)) !== null) {
+    const url = match[1];
+    
+    // Parse URL
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch (e) {
+      continue; // Invalid URL
+    }
+    
+    // Analyze URL components
+    const analysis = {
+      url: url,
+      domain: parsedUrl.hostname,
+      path: parsedUrl.pathname,
+      riskScore: 0,
+      riskFactors: []
     };
     
-    /**
-     * YARA-Like Rules for Well-Known Malware Patterns
-     */
-    const yaraRules = [
-      {
-        name: "Emotet_VBA_Macro",
-        description: "Detects Emotet malware VBA macros",
-        severity: "critical",
-        condition: function(text) {
-          // Look for typical Emotet patterns
-          const patterns = [
-            /CreateObject\("WScript\.Shell"\).*\.Run/i,
-            /powershell\.exe.*\-w hidden/i,
-            /\.SaveToFile.*\.exe/i,
-            /\.Run.*Chr\(32\)/i
-          ];
-          return patterns.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "Excel4_Macros_Dropper",
-        description: "Detects Excel 4.0 Macro malware patterns",
-        severity: "critical",
-        condition: function(text) {
-          // Look for typical XLM macro dropper patterns
-          const patterns = [
-            /=EXEC\(.*(cmd|powershell|mshta)/i,
-            /=FORMULA\(.*=EXEC/i,
-            /=CALL\(.*kernel32/i,
-            /=REGISTER\(.*\.dll/i
-          ];
-          return patterns.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "Ursnif_Pattern",
-        description: "Detects patterns associated with Ursnif/Gozi malware",
-        severity: "critical",
-        condition: function(text) {
-          // Common Ursnif obfuscation and behavior
-          const patterns = [
-            /StrReverse\(Replace\(/i,
-            /\w{1}\s*&\s*\w{1}\s*&\s*\w{1}\s*&\s*\w{1}/i, // Character-by-character concatenation
-            /Shell\s*\(\s*\w+\s*&\s*\w+/i,
-            /URLDownloadToFile.*StrReverse/i
-          ];
-          return patterns.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "FormBook_Pattern",
-        description: "Detects patterns associated with FormBook malware",
-        severity: "critical",
-        condition: function(text) {
-          // FormBook typically uses heavily obfuscated strings and specific API calls
-          const patterns = [
-            /Array\(\d+,\d+,\d+.*Chr\(/i,
-            /\w+\s*=\s*Mid\$\(\w+\s*,\s*\d+\s*,\s*\d+\)/i,
-            /Chr\(\d+\s*\+\s*\d+\s*\-\s*\d+\)/i,
-            /CreateThread|GetProcAddress|LoadLibrary/i
-          ];
-          return patterns.some(pattern => pattern.test(text)) && 
-                 /Chr\(/.test(text) && 
-                 /\+|\-|\*/.test(text);
-        }
-      },
-      {
-        name: "Dridex_Macro",
-        description: "Detects patterns associated with Dridex malware macros",
-        severity: "critical",
-        condition: function(text) {
-          // Dridex patterns
-          const patterns = [
-            /\b(chr|asc|mid|left|right)\$?\([^\)]+\)\s*&\s*(chr|asc|mid|left|right)\$?\(/i,
-            /\.Run\s+\w+\s*&\s*\w+/i,
-            /\b(wscript|cscript)\.network/i,
-            /CreateTextFile.*?Write.*?Close/i
-          ];
-          return patterns.some(pattern => pattern.test(text)) && 
-                 (/chr\(/i.test(text) || /Mid\$/i.test(text) || /StrReverse/i.test(text));
-        }
-      },
-      {
-        name: "Trickbot_Pattern",
-        description: "Detects patterns associated with Trickbot malware",
-        severity: "critical",
-        condition: function(text) {
-          // Trickbot typically uses specific PowerShell techniques
-          const patterns = [
-            /powershell.*-enc/i,
-            /\w:SetContent|Invoke-WebRequest|Net\.WebClient/i,
-            /schtasks.*\/create/i,
-            /New-Object.*System\.Net\.WebClient/i
-          ];
-          
-          const behaviors = [
-            /IEX\s*\(/i,
-            /\[System\.Convert\]::FromBase64String/i
-          ];
-          
-          return patterns.some(pattern => pattern.test(text)) && 
-                 behaviors.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "Qakbot_Excel4_Pattern",
-        description: "Detects patterns associated with Qakbot using Excel 4.0 macros",
-        severity: "critical",
-        condition: function(text) {
-          // Qakbot XLM patterns
-          const patterns = [
-            /=FORMULA\(.*=CALL\(/i,
-            /=CALL\(\d+,.*,("user32"|"kernel32"|"urlmon")/i,
-            /=EXEC\(.*cmd\.exe\s+\/c/i,
-            /=REGISTER\(.*\.dll.*\)/i
-          ];
-          
-          return patterns.some(pattern => pattern.test(text)) && 
-                 (/=CHAR\(/.test(text) || /=CONCATENATE\(/.test(text));
-        }
-      },
-      {
-        name: "AgentTesla_Pattern",
-        description: "Detects patterns associated with AgentTesla keylogger",
-        severity: "critical",
-        condition: function(text) {
-          // Agent Tesla typically steals credentials and uses certain API calls
-          const patterns = [
-            /SmtpClient|MailMessage|NetworkCredential/i,
-            /GetAsyncKeyState|GetKeyboardState|GetKeyState/i,
-            /System\.Runtime\.InteropServices/i,
-            /System\.Security\.Cryptography/i
-          ];
-          
-          const obfuscation = [
-            /Convert\.FromBase64String/i,
-            /System\.Text\.Encoding/i
-          ];
-          
-          return patterns.some(pattern => pattern.test(text)) && 
-                 obfuscation.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "RemoteTemplate_Injection",
-        description: "Detects attempts to load remote templates",
-        severity: "high",
-        condition: function(text) {
-          // Look for attempts to load remote templates
-          const patterns = [
-            /\.AttachTemplate/i,
-            /\.SaveAs.*\.dot/i,
-            /NormalTemplate|DocumentTemplate/i,
-            /Template\s*=\s*["'][^"']*[\\\/][^"']*["']/i
-          ];
-          return patterns.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "Generic_DDE_Exploit",
-        description: "Detects Dynamic Data Exchange (DDE) exploitation techniques",
-        severity: "critical",
-        condition: function(text) {
-          // DDE exploitation patterns
-          const patterns = [
-            /\bDDE\b|DDEAUTO/i,
-            /\!.*cmd\.exe/i,
-            /\!.*powershell/i,
-            /\!.*mshta/i,
-            /=\s*".*\!.*/i
-          ];
-          return patterns.some(pattern => pattern.test(text));
-        }
-      },
-      {
-        name: "High_Entropy_String",
-        description: "Detects high entropy strings that might indicate obfuscated or encrypted content",
-        severity: "medium",
-        condition: function(text) {
-          // This is a simplified implementation - real entropy calculation would be more complex
-          const longStrings = text.match(/["'][A-Za-z0-9+\/]{50,}=*["']/g);
-          if (!longStrings) return false;
-          
-          // Check if string has high character diversity (simplified entropy check)
-          for (const str of longStrings) {
-            const uniqueChars = new Set(str.slice(1, -1)).size;
-            const ratio = uniqueChars / str.length;
-            if (ratio > 0.5 && uniqueChars > 20) {
-              return true;
-            }
-          }
-          return false;
-        }
-      }
-    ];
-    
-    /**
-     * Helper & Utility Functions
-     */
-    
-    // Format bytes to human-readable size
-    function formatBytes(bytes, decimals = 2) {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const dm = decimals < 0 ? 0 : decimals;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    // Check for suspicious TLDs
+    const suspiciousTlds = ['.top', '.xyz', '.tk', '.ml', '.ga', '.cf', '.gq'];
+    const tld = parsedUrl.hostname.substring(parsedUrl.hostname.lastIndexOf("."));
+    if (suspiciousTlds.includes(tld)) {
+      analysis.riskScore += 20;
+      analysis.riskFactors.push("Suspicious TLD: " + tld);
     }
     
-    // Escape HTML to prevent XSS
-    function escapeHtml(unsafe) {
-      if (!unsafe) return '';
-      return unsafe
-        .toString()
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    // Check for suspicious paths
+    if (/\.(exe|dll|ps1|vbs|hta|bat|cmd|scr)$/i.test(parsedUrl.pathname)) {
+      analysis.riskScore += 30;
+      analysis.riskFactors.push("Executable file download");
     }
     
-    // Create a hash from a file for identification
-    async function createFileFingerprint(arrayBuffer) {
-      const dataView = new Uint8Array(arrayBuffer.slice(0, 8192));
-      return CryptoJS.MD5(CryptoJS.lib.WordArray.create(dataView)).toString();
-    }
-    
-    // Convert severity to color class
-    function getSeverityColorClass(severity) {
-      switch(severity.toLowerCase()) {
-        case 'critical': return 'bg-red-100 text-red-800 border-red-300';
-        case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
-        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-        case 'low': return 'bg-blue-100 text-blue-800 border-blue-300';
-        case 'info': return 'bg-gray-100 text-gray-800 border-gray-300';
-        default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    // Check for obfuscation in URL
+    if (/[%][0-9a-f]{2}/i.test(url)) {
+      const percentEncodingCount = (url.match(/%[0-9a-f]{2}/gi) || []).length;
+      if (percentEncodingCount > 3) {
+        analysis.riskScore += 15;
+        analysis.riskFactors.push("Excessive URL encoding");
       }
     }
     
-    // Format category name for display
-    function formatCategoryName(category) {
-      return category
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, str => str.toUpperCase())
-        .trim();
+    // Check for numeric IP addresses
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(parsedUrl.hostname)) {
+      analysis.riskScore += 20;
+      analysis.riskFactors.push("IP address as hostname");
     }
     
-    // Calculate Shannon entropy for a string (measure of randomness)
-    function calculateEntropy(str) {
-      const len = str.length;
-      const frequencies = {};
-      
-      // Count character frequencies
-      for (let i = 0; i < len; i++) {
-        const char = str.charAt(i);
-        if (frequencies[char] === undefined) {
-          frequencies[char] = 1;
-        } else {
-          frequencies[char]++;
-        }
+    // Check for uncommon ports
+    if (parsedUrl.port && !['', '80', '443'].includes(parsedUrl.port)) {
+      analysis.riskScore += 15;
+      analysis.riskFactors.push("Uncommon port: " + parsedUrl.port);
+    }
+    
+    // Check for long subdomains or domain names (potential DGA)
+    const domainParts = parsedUrl.hostname.split('.');
+    if (domainParts.some(part => part.length > 22)) {
+      analysis.riskScore += 15;
+      analysis.riskFactors.push("Unusually long domain segment");
+    }
+    
+    // Check for random-looking domains
+    if (domainParts.length > 0) {
+      const mainDomain = domainParts[domainParts.length-2] || '';
+      if (mainDomain.length > 8 && calculateEntropy(mainDomain) > 4) {
+        analysis.riskScore += 20;
+        analysis.riskFactors.push("High entropy domain name (potential DGA)");
       }
-      
-      // Calculate entropy
-      let entropy = 0;
-      Object.keys(frequencies).forEach(char => {
-        const freq = frequencies[char] / len;
-        entropy -= freq * (Math.log(freq) / Math.log(2));
-      });
-      
-      return entropy;
     }
     
-    // Highlight VBA code with syntax highlighting
-    function highlightVbaCode(code) {
-      if (!code) return '';
-      
-      // Define VBA keywords for highlighting
-      const keywords = ['Sub', 'Function', 'End', 'If', 'Then', 'Else', 'ElseIf', 'Dim', 'Set', 'As', 'New', 'For', 'To', 'Next', 'While', 'Wend', 'Do', 'Loop', 'Until', 'Select', 'Case', 'With', 'Private', 'Public', 'On Error', 'Resume', 'Exit', 'GoTo', 'Call', 'Let', 'Const', 'Type', 'ReDim', 'Option', 'Explicit', 'Boolean', 'Integer', 'Long', 'String', 'Variant', 'Object', 'Byte', 'Currency', 'Date', 'Double', 'Single'];
-      
-      const functions = ['CreateObject', 'Shell', 'Run', 'Open', 'Write', 'Close', 'GetObject', 'SaveAs', 'CopyFile', 'Kill', 'Environ', 'Chr', 'ChrW', 'Asc', 'AscW', 'Mid', 'Left', 'Right', 'InStr', 'StrReverse', 'Replace', 'Split', 'Join', 'LCase', 'UCase', 'Trim', 'LTrim', 'RTrim', 'Len', 'Array', 'FileSystemObject', 'WScript', 'VBA', 'WorksheetFunction', 'URLDownloadToFile', 'MsgBox'];
-      
-      // Sanitize HTML characters
-      let highlightedCode = escapeHtml(code);
-      
-      // Highlight VBA keywords
-      keywords.forEach(keyword => {
-        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-        highlightedCode = highlightedCode.replace(regex, match => `<span class="vba-keyword">${match}</span>`);
-      });
-      
-      // Highlight VBA functions
-      functions.forEach(func => {
-        const regex = new RegExp(`\\b${func}\\b`, 'gi');
-        highlightedCode = highlightedCode.replace(regex, match => `<span class="vba-function">${match}</span>`);
-      });
-      
-      // Highlight strings
-      highlightedCode = highlightedCode.replace(/"[^"\\]*(?:\\.[^"\\]*)*"/g, match => `<span class="vba-string">${match}</span>`);
-      
-      // Highlight comments
-      highlightedCode = highlightedCode.replace(/'.*$/gm, match => `<span class="vba-comment">${match}</span>`);
-      
-      // Convert newlines to <br> for HTML display
-      highlightedCode = highlightedCode.replace(/\n/g, '<br>');
-      
-      return highlightedCode;
+    results.push(analysis);
+  }
+  
+  return results;
+}
+
+// Function to detect similarity between two strings (for variant detection)
+function calculateStringSimilarity(str1, str2) {
+  if (!str1 || !str2) return 0;
+  
+  // Convert to lowercase for comparison
+  str1 = str1.toLowerCase();
+  str2 = str2.toLowerCase();
+  
+  // If strings are identical
+  if (str1 === str2) return 1.0;
+  
+  // Implement Levenshtein distance
+  const len1 = str1.length;
+  const len2 = str2.length;
+  
+  // Quick check for empty strings
+  if (len1 === 0) return 0;
+  if (len2 === 0) return 0;
+  
+  // Create the distance matrix
+  let matrix = [];
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+  
+  // Fill in the matrix
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      if (str1.charAt(i-1) === str2.charAt(j-1)) {
+        matrix[i][j] = matrix[i-1][j-1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i-1][j-1] + 1, // substitution
+          matrix[i][j-1] + 1,   // insertion
+          matrix[i-1][j] + 1    // deletion
+        );
+      }
     }
+  }
+  
+  // Calculate similarity as 1 - normalized distance
+  const maxLen = Math.max(len1, len2);
+  return 1 - (matrix[len1][len2] / maxLen);
+}
+
+// Create summary of scan results
+function createThreatSummary(results) {
+  const summary = {
+    totalFindings: 0,
+    bySeverity: {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      info: 0
+    },
+    byCategory: {},
+    topThreats: [],
+    overallRiskScore: 0,
+    malwareFamilies: []
+  };
+  
+  // Process results
+  results.forEach(finding => {
+    summary.totalFindings++;
+    summary.bySeverity[finding.severity.toLowerCase()]++;
+    
+    if (!summary.byCategory[finding.category]) {
+      summary.byCategory[finding.category] = 0;
+    }
+    summary.byCategory[finding.category]++;
+    
+    // Track potential malware family
+    if (finding.malwareFamily) {
+      if (!summary.malwareFamilies.some(mf => mf.name === finding.malwareFamily)) {
+        summary.malwareFamilies.push({
+          name: finding.malwareFamily,
+          confidence: finding.confidence || "Medium",
+          relatedFindings: 1
+        });
+      } else {
+        const familyIndex = summary.malwareFamilies.findIndex(mf => mf.name === finding.malwareFamily);
+        summary.malwareFamilies[familyIndex].relatedFindings++;
+      }
+    }
+    
+    // Calculate risk score contribution
+    const severityScore = getSeverityScore(finding.severity);
+    summary.overallRiskScore += severityScore;
+    
+    // Track top threats
+    if (severityScore >= 3) { // Medium or higher
+      summary.topThreats.push({
+        description: finding.description,
+        severity: finding.severity,
+        category: finding.category,
+        score: severityScore
+      });
+    }
+  });
+  
+  // Sort and limit top threats
+  summary.topThreats.sort((a, b) => b.score - a.score);
+  summary.topThreats = summary.topThreats.slice(0, 5);
+  
+  // Normalize overall risk score (0-100)
+  const maxPossibleScore = summary.totalFindings * 5; // if all were critical
+  summary.overallRiskScore = maxPossibleScore > 0 
+    ? Math.min(100, Math.round((summary.overallRiskScore / maxPossibleScore) * 100)) 
+    : 0;
+  
+  return summary;
+}
     
     /**
      * Core Excel Analyzer Class
@@ -1598,34 +2788,36 @@
      */
     class ExcelAnalyzer {
       constructor() {
-        this.results = {
-          metadata: {},
-          security: {},
-          structure: {
-            sheets: [],
-            macros: [],
-            xlmMacros: [],
-            externalLinks: [],
-            hiddenObjects: [],
-            suspiciousFormulas: []
-          },
-          entropyAnalysis: {
-            highEntropyAreas: [],
-            averageEntropy: 0
-          },
-          rawScanFindings: [],
-          stats: { 
-            threatScore: 0, 
-            totalIssues: 0,
-            criticalCount: 0,
-            highCount: 0,
-            mediumCount: 0,
-            lowCount: 0,
-            infoCount: 0
-          },
-          yaraMatches: [],
-          insights: []
-        };
+   // In your analyzeExcel method in ExcelAnalyzer class
+this.results = {
+  metadata: {},
+  security: {},
+  structure: {
+    sheets: [],
+    macros: [],
+    xlmMacros: [],
+    externalLinks: [],
+    hiddenObjects: [],
+    suspiciousFormulas: []
+  },
+  entropyAnalysis: {
+    highEntropyAreas: [],
+    averageEntropy: 0
+  },
+  rawScanFindings: [],
+  stats: { 
+    threatScore: 0, 
+    totalIssues: 0,
+    criticalCount: 0,
+    highCount: 0,
+    mediumCount: 0,
+    lowCount: 0,
+    infoCount: 0
+  },
+  yaraMatches: [],
+  insights: [],
+  workbook: this.workbook // Add this line to include the workbook
+};
         this.workbook = null;
         this.sensitivityLevel = 4; // 1-5 scale, 5 being most sensitive
         this.scanMode = 'standard';
@@ -2126,53 +3318,54 @@
        * Analyze macro content for security threats
        */
       analyzeMacroContent(module) {
-        if (!module || !module.code) return;
-        
-        // First, check for auto-execute functions
-        if (module.autoExecute) {
-          this.results.rawScanFindings.push({
-            type: "Auto-Execute Macro",
-            message: `The module "${module.name}" contains auto-execute code that runs when the workbook is opened`,
-            severity: "high"
-          });
-        }
-        
-        // Check for suspicious VBA patterns in this module
-        for (const pattern of securityPatterns.vbaMacros.patterns) {
-          const regex = new RegExp(pattern.regex);
-          const matches = module.code.match(regex);
-          
-          if (matches && matches.length > 0) {
-            // Apply sensitivity adjustment
-            let adjustedSeverity = pattern.severity;
-            
-            // Reduce severity level in conservative mode
-            if (this.scanMode === 'conservative' && adjustedSeverity !== 'critical') {
-              if (adjustedSeverity === 'high') adjustedSeverity = 'medium';
-              else if (adjustedSeverity === 'medium') adjustedSeverity = 'low';
-            }
-            
-            // Increase severity in aggressive mode
-            if (this.scanMode === 'aggressive' && adjustedSeverity !== 'critical') {
-              if (adjustedSeverity === 'low') adjustedSeverity = 'medium';
-              else if (adjustedSeverity === 'medium') adjustedSeverity = 'high';
-            }
-            
-            // Skip low severity findings if sensitivity level is low
-            if (this.sensitivityLevel < 3 && adjustedSeverity === 'low') continue;
-            
-            // Record the finding
-            this.results.rawScanFindings.push({
-              type: "Suspicious Macro Code",
-              message: `${pattern.description} found in module "${module.name}": ${matches.length} instance(s)`,
-              severity: adjustedSeverity,
-              pattern: pattern.regex.toString(),
-              module: module.name,
-              matches: matches.slice(0, 3) // Include up to 3 example matches
-            });
-          }
-        }
+  if (!module || !module.code) return;
+  
+  // First, check for auto-execute functions
+  if (module.autoExecute) {
+    this.results.rawScanFindings.push({
+      type: "Auto-Execute Macro",
+      message: `The module "${module.name}" contains auto-execute code that runs when the workbook is opened`,
+      severity: "high"
+    });
+  }
+  
+  // Check for suspicious VBA patterns in this module
+  // Change this line to use enhancedSecurityPatterns instead of securityPatterns
+  for (const pattern of enhancedSecurityPatterns.vbaMacros.patterns) {
+    const regex = new RegExp(pattern.regex);
+    const matches = module.code.match(regex);
+    
+    if (matches && matches.length > 0) {
+      // Apply sensitivity adjustment
+      let adjustedSeverity = pattern.severity;
+      
+      // Reduce severity level in conservative mode
+      if (this.scanMode === 'conservative' && adjustedSeverity !== 'critical') {
+        if (adjustedSeverity === 'high') adjustedSeverity = 'medium';
+        else if (adjustedSeverity === 'medium') adjustedSeverity = 'low';
       }
+      
+      // Increase severity in aggressive mode
+      if (this.scanMode === 'aggressive' && adjustedSeverity !== 'critical') {
+        if (adjustedSeverity === 'low') adjustedSeverity = 'medium';
+        else if (adjustedSeverity === 'medium') adjustedSeverity = 'high';
+      }
+      
+      // Skip low severity findings if sensitivity level is low
+      if (this.sensitivityLevel < 3 && adjustedSeverity === 'low') continue;
+      
+      // Record the finding
+      this.results.rawScanFindings.push({
+        type: "Suspicious Macro Code",
+        message: `${pattern.description} found in module "${module.name}": ${matches.length} instance(s)`,
+        severity: adjustedSeverity,
+        pattern: pattern.regex.toString(),
+        module: module.name,
+        matches: matches.slice(0, 3) // Include up to 3 example matches
+      });
+    }
+  }
+}
       
       /**
        * Detect Excel 4.0 macros (XLM macros)
@@ -2244,67 +3437,67 @@
       /**
        * Analyze formulas in the workbook for suspicious patterns
        */
-      analyzeFormulas() {
-        const suspiciousFormulas = [];
+   analyzeFormulas() {
+  const suspiciousFormulas = [];
+  
+  // Iterate through all sheets
+  this.workbook.SheetNames.forEach(name => {
+    const sheet = this.workbook.Sheets[name];
+    
+    // Check each cell for formulas
+    for (const cellRef in sheet) {
+      if (cellRef[0] === '!') continue; // Skip metadata
+      
+      const cell = sheet[cellRef];
+      
+      // If cell has a formula
+      if (cell && cell.f) {
+        const formula = cell.f.toString();
         
-        // Iterate through all sheets
-        this.workbook.SheetNames.forEach(name => {
-          const sheet = this.workbook.Sheets[name];
-          
-          // Check each cell for formulas
-          for (const cellRef in sheet) {
-            if (cellRef[0] === '!') continue; // Skip metadata
+        // Check formula against patterns
+        for (const pattern of enhancedSecurityPatterns.formulaThreats.patterns) {
+          if (pattern.regex.test(formula)) {
+            // Apply sensitivity adjustments
+            let adjustedSeverity = pattern.severity;
             
-            const cell = sheet[cellRef];
-            
-            // If cell has a formula
-            if (cell && cell.f) {
-              const formula = cell.f.toString();
-              
-              // Check formula against patterns
-              for (const pattern of securityPatterns.formulaThreats.patterns) {
-                if (pattern.regex.test(formula)) {
-                  // Apply sensitivity adjustments
-                  let adjustedSeverity = pattern.severity;
-                  
-                  // Increase severity for certain critical functions
-                  if (formula.match(/DDE|EXEC|CALL|SHELL|RUN|REGISTER/i)) {
-                    adjustedSeverity = "critical";
-                  }
-                  
-                  suspiciousFormulas.push({
-                    sheet: name,
-                    cell: cellRef,
-                    formula: formula,
-                    issue: pattern.description,
-                    severity: adjustedSeverity
-                  });
-                  
-                  // Add to raw findings
-                  this.results.rawScanFindings.push({
-                    type: "Suspicious Formula",
-                    message: `${pattern.description} in sheet '${name}' cell ${cellRef}: ${formula}`,
-                    severity: adjustedSeverity
-                  });
-                  
-                  break; // Move to next cell after finding first issue
-                }
-              }
+            // Increase severity for certain critical functions
+            if (formula.match(/DDE|EXEC|CALL|SHELL|RUN|REGISTER/i)) {
+              adjustedSeverity = "critical";
             }
+            
+            suspiciousFormulas.push({
+              sheet: name,
+              cell: cellRef,
+              formula: formula,
+              issue: pattern.description,
+              severity: adjustedSeverity
+            });
+            
+            // Add to raw findings
+            this.results.rawScanFindings.push({
+              type: "Suspicious Formula",
+              message: `${pattern.description} in sheet '${name}' cell ${cellRef}: ${formula}`,
+              severity: adjustedSeverity
+            });
+            
+            break; // Move to next cell after finding first issue
           }
-        });
-        
-        this.results.structure.suspiciousFormulas = suspiciousFormulas;
-        
-        // If DDE commands are found, add a specific high-severity finding
-        if (suspiciousFormulas.some(f => f.formula.match(/DDE|DDEAUTO/i))) {
-          this.results.rawScanFindings.push({
-            type: "DDE Command",
-            message: "Dynamic Data Exchange (DDE) commands found in formulas - these can be used to execute arbitrary code",
-            severity: "critical"
-          });
         }
       }
+    }
+  });
+  
+  this.results.structure.suspiciousFormulas = suspiciousFormulas;
+  
+  // If DDE commands are found, add a specific high-severity finding
+  if (suspiciousFormulas.some(f => f.formula.match(/DDE|DDEAUTO/i))) {
+    this.results.rawScanFindings.push({
+      type: "DDE Command",
+      message: "Dynamic Data Exchange (DDE) commands found in formulas - these can be used to execute arbitrary code",
+      severity: "critical"
+    });
+  }
+}
       
       /**
        * Check for external links and data connections
@@ -2855,52 +4048,55 @@
       /**
        * Perform comprehensive security analysis across all categories
        */
-      async performSecurityAnalysis() {
-        this.results.security = {};
-        
-        // Prepare all text sources for analysis
-        const textSources = [
-          // Combine all macro code
-          { 
-            text: this.results.structure.macros ? 
-                  this.results.structure.macros.map(m => m.code).join("\n") : "", 
-            source: "VBA" 
-          },
-          
-          // Include all formulas
-          {
-            text: this.results.structure.suspiciousFormulas ? 
-                  this.results.structure.suspiciousFormulas.map(f => f.formula).join("\n") : "",
-            source: "Formulas"
-          },
-          
-          // Include all names and references
-          {
-            text: this.workbook.Workbook && this.workbook.Workbook.Names ? 
-                  this.workbook.Workbook.Names.map(n => `${n.Name}=${n.Ref}`).join("\n") : "",
-            source: "Names"
-          },
-          
-          // Include all sheet names
-          {
-            text: this.workbook.SheetNames.join("\n"),
-            source: "Sheets"
-          }
-        ];
-        
-        // Process each security pattern category
-        for (const [category, data] of Object.entries(securityPatterns)) {
-          this.results.security[category] = [];
-          
-          // Check each pattern against all text sources
-          for (const source of textSources) {
-            if (!source.text) continue;
-            
-            const matches = this.matchPatterns(source.text, data.patterns, source.source);
-            this.results.security[category].push(...matches);
-          }
-        }
-      }
+      // In your ExcelAnalyzer class, modify the performSecurityAnalysis method:
+
+async performSecurityAnalysis() {
+  this.results.security = {};
+  
+  // Prepare all text sources for analysis
+  const textSources = [
+    // Combine all macro code
+    { 
+      text: this.results.structure.macros ? 
+            this.results.structure.macros.map(m => m.code).join("\n") : "", 
+      source: "VBA" 
+    },
+    
+    // Include all formulas
+    {
+      text: this.results.structure.suspiciousFormulas ? 
+            this.results.structure.suspiciousFormulas.map(f => f.formula).join("\n") : "",
+      source: "Formulas"
+    },
+    
+    // Include all names and references
+    {
+      text: this.workbook.Workbook && this.workbook.Workbook.Names ? 
+            this.workbook.Workbook.Names.map(n => `${n.Name}=${n.Ref}`).join("\n") : "",
+      source: "Names"
+    },
+    
+    // Include all sheet names
+    {
+      text: this.workbook.SheetNames.join("\n"),
+      source: "Sheets"
+    }
+  ];
+  
+  // Process each security pattern category
+  // Change this line to use enhancedSecurityPatterns instead of securityPatterns
+  for (const [category, data] of Object.entries(enhancedSecurityPatterns)) {
+    this.results.security[category] = [];
+    
+    // Check each pattern against all text sources
+    for (const source of textSources) {
+      if (!source.text) continue;
+      
+      const matches = this.matchPatterns(source.text, data.patterns, source.source);
+      this.results.security[category].push(...matches);
+    }
+  }
+}
       
       /**
        * Match text against pattern set and record findings
@@ -4245,96 +5441,106 @@ updateRiskChart(results) {
       /**
        * Render a sheet preview
        */
-      renderSheetPreview(sheetName) {
-        if (!this.lastResults || !this.lastResults.structure || !sheetName) return;
+     renderSheetPreview(sheetName) {
+  if (!this.lastResults || !this.lastResults.structure || !sheetName) return;
+  
+  const sheetVisibilityStatus = document.getElementById('sheetVisibilityStatus');
+  const selectedOption = Array.from(document.getElementById('sheetSelector').options)
+    .find(opt => opt.value === sheetName);
+  
+  if (selectedOption) {
+    if (selectedOption.dataset.veryHidden === 'true') {
+      sheetVisibilityStatus.textContent = '(Very Hidden)';
+      sheetVisibilityStatus.className = 'text-sm text-red-600 font-medium';
+    } else if (selectedOption.dataset.hidden === 'true') {
+      sheetVisibilityStatus.textContent = '(Hidden)';
+      sheetVisibilityStatus.className = 'text-sm text-orange-600 font-medium';
+    } else {
+      sheetVisibilityStatus.textContent = '(Visible)';
+      sheetVisibilityStatus.className = 'text-sm text-gray-500';
+    }
+  }
+  
+  // Save current sheet name
+  this.currentSheet = sheetName;
+  
+  // Try to get the sheet data
+  try {
+    // Check if we can access the workbook through the analyzer
+    const workbook = this.analyzer?.workbook;
+    
+    // If analyzer workbook is not available, display a message
+    if (!workbook) {
+      document.getElementById('sheetPreviewArea').innerHTML = 
+        '<div class="text-center py-10 text-gray-500"><p>Workbook data not available for preview</p></div>';
+      return;
+    }
+    
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      document.getElementById('sheetPreviewArea').innerHTML = 
+        '<div class="text-center py-10 text-gray-500"><p>Unable to preview this sheet</p></div>';
+      return;
+    }
+    
+    // Get sheet range
+    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:J10');
+    
+    // Create preview table
+    let html = '<table class="sheet-grid">';
+    
+    // Create header row
+    html += '<tr><th></th>';
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      html += `<th>${XLSX.utils.encode_col(c)}</th>`;
+    }
+    html += '</tr>';
+    
+    // Create data rows
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      html += `<tr><th>${r + 1}</th>`;
+      
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cellRef = XLSX.utils.encode_cell({r, c});
+        const cell = sheet[cellRef];
         
-        const sheetVisibilityStatus = document.getElementById('sheetVisibilityStatus');
-        const selectedOption = Array.from(document.getElementById('sheetSelector').options)
-          .find(opt => opt.value === sheetName);
+        const previewMode = document.getElementById('previewMode').value;
+        let cellContent = '';
+        let cellClass = '';
         
-        if (selectedOption) {
-          if (selectedOption.dataset.veryHidden === 'true') {
-            sheetVisibilityStatus.textContent = '(Very Hidden)';
-            sheetVisibilityStatus.className = 'text-sm text-red-600 font-medium';
-          } else if (selectedOption.dataset.hidden === 'true') {
-            sheetVisibilityStatus.textContent = '(Hidden)';
-            sheetVisibilityStatus.className = 'text-sm text-orange-600 font-medium';
-          } else {
-            sheetVisibilityStatus.textContent = '(Visible)';
-            sheetVisibilityStatus.className = 'text-sm text-gray-500';
+        if (cell) {
+          if (previewMode === 'formulas' && cell.f) {
+            cellContent = '=' + escapeHtml(cell.f);
+            cellClass = 'font-mono text-xs bg-gray-50';
+          } else if (cell.v !== undefined) {
+            cellContent = escapeHtml(cell.v);
           }
-        }
-        
-        // Save current sheet name
-        this.currentSheet = sheetName;
-        
-        // Try to get the sheet data
-        try {
-          const sheet = this.lastResults.workbook.Sheets[sheetName];
-          if (!sheet) {
-            document.getElementById('sheetPreviewArea').innerHTML = 
-              '<div class="text-center py-10 text-gray-500"><p>Unable to preview this sheet</p></div>';
-            return;
-          }
           
-          // Get sheet range
-          const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:J10');
-          
-          // Create preview table
-          let html = '<table class="sheet-grid">';
-          
-          // Create header row
-          html += '<tr><th></th>';
-          for (let c = range.s.c; c <= range.e.c; c++) {
-            html += `<th>${XLSX.utils.encode_col(c)}</th>`;
-          }
-          html += '</tr>';
-          
-          // Create data rows
-          for (let r = range.s.r; r <= range.e.r; r++) {
-            html += `<tr><th>${r + 1}</th>`;
-            
-            for (let c = range.s.c; c <= range.e.c; c++) {
-              const cellRef = XLSX.utils.encode_cell({r, c});
-              const cell = sheet[cellRef];
-              
-              const previewMode = document.getElementById('previewMode').value;
-              let cellContent = '';
-              let cellClass = '';
-              
-              if (cell) {
-                if (previewMode === 'formulas' && cell.f) {
-                  cellContent = '=' + escapeHtml(cell.f);
-                  cellClass = 'font-mono text-xs bg-gray-50';
-                } else if (cell.v !== undefined) {
-                  cellContent = escapeHtml(cell.v);
-                }
-                
-                // Highlight suspicious formulas
-                if (previewMode === 'highlight' && cell.f) {
-                  const isSuspicious = this.isSuspiciousFormula(cell.f);
-                  if (isSuspicious) {
-                    cellClass += ' bg-red-100';
-                  }
-                }
-              }
-              
-              html += `<td class="${cellClass}">${cellContent}</td>`;
+          // Highlight suspicious formulas
+          if (previewMode === 'highlight' && cell.f) {
+            const isSuspicious = this.isSuspiciousFormula(cell.f);
+            if (isSuspicious) {
+              cellClass += ' bg-red-100';
             }
-            
-            html += '</tr>';
           }
-          
-          html += '</table>';
-          
-          document.getElementById('sheetPreviewArea').innerHTML = html;
-          
-        } catch (error) {
-          console.warn('Error rendering sheet preview:', error);
-          document.getElementById('sheetPreviewArea').innerHTML = 
-            `<div class="text-center py-10 text-red-500"><p>Error previewing sheet: ${error.message}</p></div>`;
         }
+        
+        html += `<td class="${cellClass}">${cellContent}</td>`;
       }
+      
+      html += '</tr>';
+    }
+    
+    html += '</table>';
+    
+    document.getElementById('sheetPreviewArea').innerHTML = html;
+    
+  } catch (error) {
+    console.warn('Error rendering sheet preview:', error);
+    document.getElementById('sheetPreviewArea').innerHTML = 
+      `<div class="text-center py-10 text-red-500"><p>Error previewing sheet: ${error.message}</p></div>`;
+  }
+}
       
       /**
        * Check if a formula is suspicious based on patterns
@@ -5133,5 +6339,124 @@ updateRiskChart(results) {
     // Initialize UI handler
     const ui = new UIHandler();
   </script>
+
+<script>
+// Global variable to store last analysis results
+let lastAnalysisResults = null;
+
+// Hook into displayResults to save results
+const originalDisplayResults = UIHandler.prototype.displayResults;
+UIHandler.prototype.displayResults = function(results, file) {
+  // Save results globally
+  lastAnalysisResults = results;
+  // Call the original function
+  originalDisplayResults.call(this, results, file);
+};
+
+// Add click handler for Excel report button
+document.getElementById('excelReportBtn').addEventListener('click', function() {
+  generateExcelReport();
+});
+
+function generateExcelReport() {
+  if (!lastAnalysisResults) {
+    alert('No analysis results available. Please scan a file first.');
+    return;
+  }
+
+  try {
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    const results = lastAnalysisResults;
+    
+    // Generate Summary sheet
+    const summaryData = [
+      ['Excel Security Analysis Report', '', '', ''],
+      ['Generated on', new Date().toLocaleString(), '', ''],
+      ['', '', '', ''],
+      ['File Information', '', '', ''],
+      ['File Size', formatBytes(results.metadata.fileSize || 0), '', ''],
+      ['Workbook Type', results.metadata.workbookType || 'Unknown', '', ''],
+      ['Sheet Count', results.metadata.sheetCount || 0, '', ''],
+      ['Hidden Sheets', results.metadata.hiddenSheets || 0, '', ''],
+      ['', '', '', ''],
+      ['Security Summary', '', '', ''],
+      ['Threat Score', results.stats.threatScore || 0, '', ''],
+      ['Threat Level', results.stats.threatLevel || 'Unknown', '', ''],
+      ['Critical Issues', results.stats.criticalCount || 0, '', ''],
+      ['High Issues', results.stats.highCount || 0, '', ''],
+      ['Medium Issues', results.stats.mediumCount || 0, '', ''],
+      ['Low Issues', results.stats.lowCount || 0, '', ''],
+      ['Total Issues', results.stats.totalIssues || 0, '', '']
+    ];
+    
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+    summaryWs['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+    
+    // Security Findings
+    const findingsData = [['Category', 'Severity', 'Description', 'Matches', 'Source']];
+    
+    // Add raw scan findings
+    if (results.rawScanFindings && results.rawScanFindings.length > 0) {
+      results.rawScanFindings.forEach(finding => {
+        findingsData.push([
+          'Raw Scan',
+          finding.severity,
+          finding.message || finding.description || '',
+          1,
+          finding.type || ''
+        ]);
+      });
+    }
+    
+    // Add YARA matches
+    if (results.yaraMatches && results.yaraMatches.length > 0) {
+      results.yaraMatches.forEach(match => {
+        findingsData.push([
+          'Malware Signature',
+          match.severity,
+          match.description || '',
+          1,
+          match.rule || ''
+        ]);
+      });
+    }
+    
+    const findingsWs = XLSX.utils.aoa_to_sheet(findingsData);
+    findingsWs['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 50 }, { wch: 10 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, findingsWs, 'Security Findings');
+    
+    // Generate Excel file
+    const excelData = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+    
+    // Convert to ArrayBuffer and download
+    function s2ab(s) {
+      const buf = new ArrayBuffer(s.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < s.length; i++) {
+        view[i] = s.charCodeAt(i) & 0xFF;
+      }
+      return buf;
+    }
+    
+    const blob = new Blob([s2ab(excelData)], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `excel-security-report-${new Date().getTime()}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('Excel report generated successfully!');
+    
+  } catch (error) {
+    console.error('Error generating Excel report:', error);
+    alert('Error generating Excel report: ' + error.message);
+  }
+}
+</script>
 </body>
 </html>
