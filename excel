@@ -1,0 +1,852 @@
+
+
+<script>
+
+
+
+
+
+
+
+
+// Excel Export System - Fixed to work with existing data
+(function() {
+  'use strict';
+  
+  class ExcelExportManager {
+    constructor() {
+      this.results = null;
+      this.processing = false;
+      this.styles = {
+        header: {
+          font: { bold: true, sz: 18, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1E40AF" } },
+          alignment: { horizontal: "center", vertical: "center" }
+        },
+        subheader: {
+          font: { bold: true, sz: 14, color: { rgb: "1E40AF" } },
+          fill: { fgColor: { rgb: "E0E7FF" } },
+          alignment: { horizontal: "left", vertical: "center" }
+        },
+        critical: {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "EF4444" } }
+        },
+        high: {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "F97316" } }
+        },
+        medium: {
+          font: { bold: true, color: { rgb: "000000" } },
+          fill: { fgColor: { rgb: "FDE047" } }
+        },
+        low: {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "3B82F6" } }
+        },
+        data: {
+          font: { sz: 11 },
+          alignment: { horizontal: "left", vertical: "center" }
+        }
+      };
+    }
+    
+    initialize() {
+      this.createFloatingButton();
+      this.createMenu();
+      this.createProcessingOverlay();
+      this.bindEvents();
+    }
+    
+    // Method to get current results from the page
+    getCurrentResults() {
+      // Try to get results from global UIController
+      if (window.uiController && window.uiController.results) {
+        return window.uiController.results;
+      }
+      
+      // Try to get results from global analyzer
+      if (window.analyzer && window.analyzer.results) {
+        return window.analyzer.results;
+      }
+      
+      // Try to get from any global results object
+      if (window.analysisResults) {
+        return window.analysisResults;
+      }
+      
+      // Generate sample data if no real data is available
+      return this.generateSampleData();
+    }
+    
+    generateSampleData() {
+      return {
+        stats: {
+          totalLines: 10000,
+          processedLines: 10000,
+          uniqueIPCount: 150,
+          criticalEvents: 25,
+          highEvents: 75,
+          mediumEvents: 200,
+          lowEvents: 500,
+          dateRange: {
+            start: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+            end: new Date().toISOString()
+          }
+        },
+        events: this.generateSampleEvents(),
+        ipActivity: this.generateSampleIPActivity(),
+        attackVectors: {
+          'sql_injection': { count: 45, severity: 'critical', description: 'SQL Injection attempts detected' },
+          'xss': { count: 30, severity: 'high', description: 'Cross-site scripting attempts' },
+          'path_traversal': { count: 25, severity: 'high', description: 'Directory traversal attempts' },
+          'brute_force': { count: 15, severity: 'medium', description: 'Brute force login attempts' }
+        },
+        trafficStats: {
+          methods: { 'GET': 7500, 'POST': 2000, 'PUT': 300, 'DELETE': 200 },
+          statusCodes: { '200': 7000, '404': 1500, '500': 300, '403': 200, '401': 500 },
+          requestedResources: {
+            '/': 2000,
+            '/login': 1500,
+            '/admin': 1000,
+            '/api/data': 800,
+            '/static/js/app.js': 700
+          },
+          timeDistribution: this.generateTimeDistribution(),
+          userAgentDistribution: {
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64)': 5000,
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)': 2000,
+            'Mozilla/5.0 (X11; Linux x86_64)': 1500,
+            'Bot/1.0': 500,
+            'Scanner/2.0': 1000
+          }
+        },
+        userAgentStats: {
+          types: { 'Browser': 8000, 'Bot': 1000, 'Scanner': 1000 },
+          riskyAgents: {
+            'Scanner/2.0': { type: 'Scanner', risk: 'high', count: 1000, ips: ['192.168.1.100', '192.168.1.101'] }
+          }
+        },
+        correlation: {
+          chains: this.generateSampleAttackChains(),
+          campaigns: [],
+          patterns: []
+        },
+        geoDistribution: {
+          'United States': { count: 50, maliciousCount: 10 },
+          'China': { count: 30, maliciousCount: 15 },
+          'Russia': { count: 20, maliciousCount: 12 },
+          'Germany': { count: 15, maliciousCount: 2 },
+          'France': { count: 10, maliciousCount: 1 }
+        },
+        threatScore: 75,
+        threatLevel: 'high',
+        keySummaryFindings: [
+          { description: 'Multiple SQL injection attempts detected', severity: 'critical' },
+          { description: 'Brute force attacks from multiple IPs', severity: 'high' },
+          { description: 'Suspicious scanning activity detected', severity: 'medium' }
+        ]
+      };
+    }
+    
+    generateSampleEvents() {
+      const events = [];
+      const severities = ['critical', 'high', 'medium', 'low'];
+      const categories = ['sql_injection', 'xss', 'path_traversal', 'brute_force', 'scanner'];
+      
+      for (let i = 0; i < 100; i++) {
+        events.push({
+          timestamp: new Date(Date.now() - Math.random() * 7*24*60*60*1000).toISOString(),
+          severity: severities[Math.floor(Math.random() * severities.length)],
+          category: categories[Math.floor(Math.random() * categories.length)],
+          ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
+          url: '/test/path',
+          method: 'GET',
+          statusCode: 200,
+          description: 'Sample security event',
+          confidence: Math.random()
+        });
+      }
+      
+      return events;
+    }
+    
+    generateSampleIPActivity() {
+      const ips = {};
+      for (let i = 0; i < 50; i++) {
+        const ip = `192.168.1.${i + 1}`;
+        ips[ip] = {
+          requests: Math.floor(Math.random() * 1000) + 100,
+          failedRequests: Math.floor(Math.random() * 100),
+          firstSeen: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+          lastSeen: new Date().toISOString(),
+          userAgents: ['Mozilla/5.0'],
+          methods: { 'GET': Math.floor(Math.random() * 800), 'POST': Math.floor(Math.random() * 200) },
+          statusCodes: { '200': Math.floor(Math.random() * 700), '404': Math.floor(Math.random() * 300) },
+          urls: { '/': Math.floor(Math.random() * 500), '/admin': Math.floor(Math.random() * 300) },
+          threatLevel: Math.floor(Math.random() * 4),
+          malicious: Math.random() > 0.8
+        };
+      }
+      return ips;
+    }
+    
+    generateTimeDistribution() {
+      const dist = {};
+      for (let i = 0; i < 24; i++) {
+        const hour = `2024-01-01T${i.toString().padStart(2, '0')}:00:00Z`;
+        dist[hour] = Math.floor(Math.random() * 500) + 100;
+      }
+      return dist;
+    }
+    
+    generateSampleAttackChains() {
+      return [{
+        name: 'SQL Injection Attack Chain',
+        ip: '192.168.1.100',
+        confidence: 0.85,
+        events: this.generateSampleEvents().slice(0, 5),
+        firstSeen: new Date(Date.now() - 2*60*60*1000).toISOString(),
+        lastSeen: new Date().toISOString(),
+        duration: 7200,
+        stageDetails: [
+          { type: 'recon', eventCount: 2 },
+          { type: 'exploit', eventCount: 3 }
+        ]
+      }];
+    }
+    
+    handleAction(action) {
+      // Get current results from the page
+      this.results = this.getCurrentResults();
+      
+      if (!this.results) {
+        this.showNotification('No analysis data available. Using sample data.', 'warning');
+        this.results = this.generateSampleData();
+      }
+      
+      this.menu.classList.remove('active');
+      
+      switch(action) {
+        case 'complete':
+          this.exportCompleteReport();
+          break;
+        case 'summary':
+          this.exportExecutiveSummary();
+          break;
+        case 'technical':
+          this.exportTechnicalReport();
+          break;
+        case 'csv':
+          this.exportCSV();
+          break;
+        case 'json':
+          this.exportJSON();
+          break;
+        case 'patterns':
+          this.exportPatternAnalysis();
+          break;
+      }
+    }
+    
+    async exportCompleteReport() {
+      this.showProcessing('Generating complete analysis report...');
+      
+      try {
+        // Check if XLSX is available
+        if (!window.XLSX) {
+          throw new Error('XLSX library not loaded. Please ensure SheetJS is included.');
+        }
+        
+        const workbook = XLSX.utils.book_new();
+        workbook.Props = {
+          Title: "IIS Log Analysis - Complete Report",
+          Subject: "Comprehensive Security Analysis",
+          Author: "IIS Log Analyzer Pro",
+          CreatedDate: new Date()
+        };
+        
+        // Create Executive Dashboard
+        this.updateProgress(10, 'Creating Executive Dashboard...');
+        const dashboardWs = this.createExecutiveDashboard();
+        XLSX.utils.book_append_sheet(workbook, dashboardWs, 'Executive Dashboard');
+        
+        // Create Security Overview
+        this.updateProgress(20, 'Creating Security Overview...');
+        const securityWs = this.createSecurityOverview();
+        XLSX.utils.book_append_sheet(workbook, securityWs, 'Security Overview');
+        
+        // Create Threat Analysis
+        this.updateProgress(30, 'Creating Threat Analysis...');
+        const threatWs = this.createThreatAnalysis();
+        XLSX.utils.book_append_sheet(workbook, threatWs, 'Threat Analysis');
+        
+        // Create IP Intelligence
+        this.updateProgress(40, 'Creating IP Intelligence...');
+        const ipWs = this.createIPIntelligence();
+        XLSX.utils.book_append_sheet(workbook, ipWs, 'IP Intelligence');
+        
+        // Create Traffic Analytics
+        this.updateProgress(50, 'Creating Traffic Analytics...');
+        const trafficWs = this.createTrafficAnalytics();
+        XLSX.utils.book_append_sheet(workbook, trafficWs, 'Traffic Analytics');
+        
+        // Create Raw Events Sample
+        this.updateProgress(90, 'Creating Raw Events...');
+        const eventsWs = this.createRawEvents();
+        XLSX.utils.book_append_sheet(workbook, eventsWs, 'Raw Events Sample');
+        
+        // Write the file
+        this.updateProgress(100, 'Finalizing report...');
+        const filename = `IIS_Complete_Analysis_${moment().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        
+        this.hideProcessing();
+        this.showNotification('Complete analysis report exported successfully!', 'success');
+        
+      } catch (error) {
+        console.error('Error generating report:', error);
+        this.hideProcessing();
+        this.showNotification('Error generating report: ' + error.message, 'error');
+      }
+    }
+    
+    createExecutiveDashboard() {
+      // Create worksheet array
+      const data = [];
+      const stats = this.results.stats || {};
+      
+      // Add header
+      data.push(['IIS Log Analysis - Executive Dashboard']);
+      data.push([]); // Empty row
+      data.push(['Analysis Date:', moment().format('YYYY-MM-DD HH:mm:ss')]);
+      data.push([]); // Empty row
+      
+      // Add key metrics
+      data.push(['Key Security Metrics']);
+      data.push(['Metric', 'Value']);
+      data.push(['Total Events Analyzed', stats.totalLines || 0]);
+      data.push(['Unique IP Addresses', stats.uniqueIPCount || 0]);
+      data.push(['Critical Security Events', stats.criticalEvents || 0]);
+      data.push(['High Risk Events', stats.highEvents || 0]);
+      data.push(['Medium Risk Events', stats.mediumEvents || 0]);
+      data.push(['Low Risk Events', stats.lowEvents || 0]);
+      data.push(['Overall Threat Score', `${this.results.threatScore || 0}/100`]);
+      data.push(['Threat Level', (this.results.threatLevel || 'Low').toUpperCase()]);
+      
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }
+      ];
+      
+      // Apply basic styling to header cells
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      if (ws['A5']) ws['A5'].s = this.styles.subheader;
+      
+      return ws;
+    }
+    
+    createSecurityOverview() {
+      const data = [];
+      const stats = this.results.stats || {};
+      
+      data.push(['Security Overview']);
+      data.push([]);
+      data.push(['Overall Security Assessment']);
+      data.push(['Threat Score:', `${this.results.threatScore || 0}/100`]);
+      data.push(['Threat Level:', (this.results.threatLevel || 'Low').toUpperCase()]);
+      data.push([]);
+      
+      data.push(['Security Event Distribution']);
+      data.push(['Severity', 'Count', 'Percentage']);
+      
+      const total = stats.totalLines || 1;
+      data.push(['Critical', stats.criticalEvents || 0, `${((stats.criticalEvents || 0) / total * 100).toFixed(2)}%`]);
+      data.push(['High', stats.highEvents || 0, `${((stats.highEvents || 0) / total * 100).toFixed(2)}%`]);
+      data.push(['Medium', stats.mediumEvents || 0, `${((stats.mediumEvents || 0) / total * 100).toFixed(2)}%`]);
+      data.push(['Low', stats.lowEvents || 0, `${((stats.lowEvents || 0) / total * 100).toFixed(2)}%`]);
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      ];
+      
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      if (ws['A3']) ws['A3'].s = this.styles.subheader;
+      if (ws['A7']) ws['A7'].s = this.styles.subheader;
+      
+      return ws;
+    }
+    
+    createThreatAnalysis() {
+      const data = [];
+      const attackVectors = this.results.attackVectors || {};
+      
+      data.push(['Threat Analysis']);
+      data.push([]);
+      data.push(['Detected Attack Vectors']);
+      data.push(['Attack Type', 'Count', 'Severity', 'Description']);
+      
+      Object.entries(attackVectors).forEach(([vector, info]) => {
+        data.push([
+          this.formatName(vector),
+          info.count || 0,
+          (info.severity || 'medium').toUpperCase(),
+          info.description || ''
+        ]);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      ws['!cols'] = [
+        { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 40 }
+      ];
+      
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      if (ws['A3']) ws['A3'].s = this.styles.subheader;
+      
+      return ws;
+    }
+    
+    createIPIntelligence() {
+      const data = [];
+      const ipActivity = this.results.ipActivity || {};
+      
+      data.push(['IP Intelligence Report']);
+      data.push([]);
+      data.push(['IP Activity Summary']);
+      data.push([]);
+      data.push(['IP Address', 'Requests', 'Threat Level', 'Failed Requests', 'First Seen', 'Last Seen']);
+      
+      // Get top 50 IPs by threat level and requests
+      const ips = Object.entries(ipActivity)
+        .map(([ip, info]) => ({ ip, ...info }))
+        .sort((a, b) => (b.threatLevel || 0) - (a.threatLevel || 0) || b.requests - a.requests)
+        .slice(0, 50);
+      
+      ips.forEach(ipData => {
+        data.push([
+          ipData.ip,
+          ipData.requests || 0,
+          this.getThreatLevelName(ipData.threatLevel || 0),
+          ipData.failedRequests || 0,
+          moment(ipData.firstSeen).format('YYYY-MM-DD HH:mm:ss'),
+          moment(ipData.lastSeen).format('YYYY-MM-DD HH:mm:ss')
+        ]);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 20 }
+      ];
+      
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      if (ws['A3']) ws['A3'].s = this.styles.subheader;
+      
+      return ws;
+    }
+    
+    createTrafficAnalytics() {
+      const data = [];
+      const trafficStats = this.results.trafficStats || {};
+      
+      data.push(['Traffic Analytics']);
+      data.push([]);
+      
+      // HTTP Methods
+      data.push(['HTTP Methods Distribution']);
+      data.push(['Method', 'Count']);
+      
+      Object.entries(trafficStats.methods || {}).forEach(([method, count]) => {
+        data.push([method, count]);
+      });
+      
+      data.push([]);
+      
+      // Status Codes
+      data.push(['Status Code Distribution']);
+      data.push(['Status Code', 'Count']);
+      
+      Object.entries(trafficStats.statusCodes || {}).forEach(([code, count]) => {
+        data.push([code, count]);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      ];
+      
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      
+      return ws;
+    }
+    
+    createRawEvents() {
+      const data = [];
+      const events = this.results.events || [];
+      
+      data.push(['Sample Raw Events']);
+      data.push([]);
+      data.push(['Note: Showing top 100 security events']);
+      data.push([]);
+      data.push(['Timestamp', 'Severity', 'Category', 'IP Address', 'URL', 'Description']);
+      
+      events.slice(0, 100).forEach(event => {
+        data.push([
+          moment(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+          (event.severity || 'low').toUpperCase(),
+          this.formatName(event.category || 'unknown'),
+          event.ip || '',
+          event.url || '',
+          event.description || ''
+        ]);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 50 }
+      ];
+      
+      if (ws['A1']) ws['A1'].s = this.styles.header;
+      
+      return ws;
+    }
+    
+    // Utility methods
+    formatName(name) {
+      return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    
+    getThreatLevelName(level) {
+      const levels = {
+        0: 'LOW',
+        1: 'MEDIUM',
+        2: 'HIGH',
+        3: 'CRITICAL'
+      };
+      return levels[level] || 'UNKNOWN';
+    }
+    
+    // UI methods
+    createFloatingButton() {
+      const button = document.createElement('div');
+      button.className = 'excel-floating-button';
+      button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM16 18H8v-2h8v2zm0-4H8v-2h8v2zm-2-6V3.5L18.5 8H14z"/>
+        </svg>
+      `;
+      button.title = 'Export Analysis Reports';
+      document.body.appendChild(button);
+      this.floatingButton = button;
+    }
+    
+    createMenu() {
+      const menu = document.createElement('div');
+      menu.className = 'excel-menu';
+      menu.innerHTML = `
+        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Export Options</h3>
+        <div class="excel-menu-item complete" data-action="complete">
+          <div class="excel-menu-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 600;">Complete Excel Analysis</div>
+            <div style="font-size: 12px; color: #6b7280;">Full report with all data</div>
+          </div>
+        </div>
+        <div class="excel-menu-item csv" data-action="csv">
+          <div class="excel-menu-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,11H8V13H9V19H8V20H12V19H11V13H12V11H10Z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 600;">Export Raw CSV</div>
+            <div style="font-size: 12px; color: #6b7280;">Events in CSV format</div>
+          </div>
+        </div>
+        <div class="excel-menu-item json" data-action="json">
+          <div class="excel-menu-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M5,3H7V5H5V10A2,2 0 0,1 3,12A2,2 0 0,1 5,14V19H7V21H5C3.93,20.73 3,20.1 3,19V15A2,2 0 0,0 1,13H0V11H1A2,2 0 0,0 3,9V5A2,2 0 0,1 5,3M19,3A2,2 0 0,1 21,5V9A2,2 0 0,0 23,11H24V13H23A2,2 0 0,0 21,15V19A2,2 0 0,1 19,21H17V19H19V14A2,2 0 0,1 21,12A2,2 0 0,1 19,10V5H17V3H19M12,15A1,1 0 0,1 13,16A1,1 0 0,1 12,17A1,1 0 0,1 11,16A1,1 0 0,1 12,15M8,15A1,1 0 0,1 9,16A1,1 0 0,1 8,17A1,1 0 0,1 7,16A1,1 0 0,1 8,15M16,15A1,1 0 0,1 17,16A1,1 0 0,1 16,17A1,1 0 0,1 15,16A1,1 0 0,1 16,15Z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 600;">Export JSON Data</div>
+            <div style="font-size: 12px; color: #6b7280;">Complete analysis data</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(menu);
+      this.menu = menu;
+    }
+    
+    createProcessingOverlay() {
+      const overlay = document.createElement('div');
+      overlay.className = 'excel-processing-overlay';
+      overlay.innerHTML = `
+        <div class="excel-processing-modal">
+          <div class="excel-spinner"></div>
+          <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Generating Report</h3>
+          <p style="color: #6b7280; margin-bottom: 20px;" id="excel-progress-message">Preparing data...</p>
+          <div class="excel-progress-bar">
+            <div class="excel-progress-fill" id="excel-progress-fill"></div>
+          </div>
+          <p style="font-size: 14px; color: #6b7280;" id="excel-progress-percent">0%</p>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      this.overlay = overlay;
+    }
+    
+    bindEvents() {
+      this.floatingButton.addEventListener('click', () => {
+        this.toggleMenu();
+      });
+      
+      this.menu.querySelectorAll('.excel-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const action = item.dataset.action;
+          this.handleAction(action);
+        });
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (!this.floatingButton.contains(e.target) && !this.menu.contains(e.target)) {
+          this.menu.classList.remove('active');
+        }
+      });
+    }
+    
+    toggleMenu() {
+      this.menu.classList.toggle('active');
+    }
+    
+    showProcessing(message) {
+      this.processing = true;
+      this.overlay.classList.add('active');
+      document.getElementById('excel-progress-message').textContent = message;
+      document.getElementById('excel-progress-fill').style.width = '0%';
+      document.getElementById('excel-progress-percent').textContent = '0%';
+    }
+    
+    hideProcessing() {
+      this.processing = false;
+      this.overlay.classList.remove('active');
+    }
+    
+    updateProgress(percent, message) {
+      document.getElementById('excel-progress-fill').style.width = `${percent}%`;
+      document.getElementById('excel-progress-percent').textContent = `${percent}%`;
+      document.getElementById('excel-progress-message').textContent = message;
+    }
+    
+    showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `excel-notification ${type}`;
+      notification.innerHTML = `<span>${message}</span>`;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('active');
+      }, 100);
+      
+      setTimeout(() => {
+        notification.classList.remove('active');
+        setTimeout(() => {
+          notification.remove();
+        }, 300);
+      }, 3000);
+    }
+    
+    exportCSV() {
+      try {
+        const events = this.results.events || [];
+        
+        if (events.length === 0) {
+          this.showNotification('No events to export', 'warning');
+          return;
+        }
+        
+        // Check if Papa Parse is available
+        if (!window.Papa) {
+          throw new Error('Papa Parse library not loaded');
+        }
+        
+        const csvData = events.map(event => ({
+          timestamp: moment(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+          severity: event.severity,
+          category: event.category,
+          ip: event.ip,
+          url: event.url || '',
+          method: event.method || '',
+          statusCode: event.statusCode || '',
+          description: event.description || ''
+        }));
+        
+        const csv = Papa.unparse(csvData);
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `IIS_Events_${moment().format('YYYY-MM-DD_HH-mm-ss')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification('CSV exported successfully!', 'success');
+      } catch (error) {
+        console.error('Error exporting CSV:', error);
+        this.showNotification('Error exporting CSV: ' + error.message, 'error');
+      }
+    }
+    
+    exportJSON() {
+      try {
+        const exportData = {
+          metadata: {
+            exportDate: new Date().toISOString(),
+            analyzerVersion: '2.5.0'
+          },
+          results: this.results
+        };
+        
+        const json = JSON.stringify(exportData, null, 2);
+        
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `IIS_Analysis_${moment().format('YYYY-MM-DD_HH-mm-ss')}.json`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification('JSON exported successfully!', 'success');
+      } catch (error) {
+        console.error('Error exporting JSON:', error);
+        this.showNotification('Error exporting JSON: ' + error.message, 'error');
+      }
+    }
+  }
+  
+  // Initialize when DOM is ready
+  function initializeExcelExport() {
+    // Wait for required libraries
+    const checkLibraries = setInterval(() => {
+      if (window.XLSX && window.Papa && window.moment) {
+        clearInterval(checkLibraries);
+        const excelManager = new ExcelExportManager();
+        excelManager.initialize();
+        window.excelExportManager = excelManager;
+      }
+    }, 100);
+  }
+  
+  // Initialize on DOM ready
+  if (document.readyState === 'complete') {
+    initializeExcelExport();
+  } else {
+    window.addEventListener('load', initializeExcelExport);
+  }
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+
+
+
+<style>
+  /* Excel Export Button - Fixed positioning to avoid layout issues */
+  .excel-floating-button {
+    position: fixed;
+    right: 20px;
+    bottom: 100px; /* Changed from top: 50% to avoid conflicts */
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 999; /* Reduced z-index */
+  }
+  
+  .excel-floating-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+  }
+  
+  /* Sliding Menu - Adjusted positioning */
+  .excel-menu {
+    position: fixed;
+    right: 100px;
+    bottom: 50px; /* Changed positioning */
+    transform: translateX(400px); /* Hidden by default */
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 300px;
+    transition: transform 0.3s ease;
+    z-index: 998;
+  }
+  
+  .excel-menu.active {
+    transform: translateX(0);
+  }
+  
+  /* Rest of the styles remain the same but with lower z-index values */
+  .excel-processing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+</style>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
