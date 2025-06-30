@@ -1,0 +1,1195 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+class AdvancedSecurityReportGenerator {
+    constructor() {
+        this.reportData = null;
+        this.uiController = null;
+        this.initializeButton();
+        this.waitForAnalysis();
+    }
+
+    initializeButton() {
+        // Create PDF report button
+        const exportSection = document.querySelector('.space-y-3');
+        if (exportSection && !document.getElementById('generateAdvancedPDFReport')) {
+            const pdfButton = document.createElement('button');
+            pdfButton.id = 'generateAdvancedPDFReport';
+            pdfButton.className = 'w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500';
+            pdfButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Generate Advanced Security Report (PDF)
+            `;
+            
+            pdfButton.addEventListener('click', () => this.generateAdvancedReport());
+            exportSection.appendChild(pdfButton);
+        }
+    }
+
+    waitForAnalysis() {
+        // Check every 2 seconds for completed analysis
+        const checkInterval = setInterval(() => {
+            // Look for the global uiController instance
+            if (window.uiController && window.uiController.results) {
+                this.uiController = window.uiController;
+                this.reportData = window.uiController.results;
+                clearInterval(checkInterval);
+                console.log('Analysis data found:', this.reportData);
+                
+                // Show the button once data is available
+                const button = document.getElementById('generateAdvancedPDFReport');
+                if (button) {
+                    button.disabled = false;
+                    button.classList.remove('opacity-50');
+                }
+            }
+        }, 2000);
+    }
+
+    async generateAdvancedReport() {
+        if (!this.reportData) {
+            // Try to get data one more time
+            if (window.uiController && window.uiController.results) {
+                this.reportData = window.uiController.results;
+            } else {
+                this.showNotification('No analysis data available. Please run analysis first.', 'error');
+                return;
+            }
+        }
+
+        this.showNotification('Generating advanced security report...', 'info');
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // Process and analyze the data
+            const processedData = this.processAnalysisData();
+            
+            // Generate the comprehensive report
+            await this.generateReportSections(doc, processedData);
+            
+            // Save the PDF
+            const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g, '');
+            doc.save(`Advanced_Security_Report_${timestamp}.pdf`);
+            
+            this.showNotification('Advanced security report generated successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Error generating report:', error);
+            this.showNotification('Error generating report: ' + error.message, 'error');
+        }
+    }
+
+    processAnalysisData() {
+        console.log('Processing analysis data:', this.reportData);
+        
+        const processed = {
+            overview: this.extractOverviewData(),
+            threatIntelligence: this.extractThreatIntelligence(),
+            attackerProfiles: this.buildAttackerProfiles(),
+            payloadAnalysis: this.analyzePayloads(),
+            geographicalAnalysis: this.analyzeGeography(),
+            temporalAnalysis: this.analyzeTemporalPatterns(),
+            recommendations: this.generateRecommendations(),
+            iocs: this.extractIOCs(),
+            riskAssessment: this.calculateRiskMetrics()
+        };
+
+        return processed;
+    }
+
+    extractOverviewData() {
+        const stats = this.reportData.stats || {};
+        const threatScore = this.reportData.threatScore || 0;
+        const threatLevel = this.reportData.threatLevel || 'Unknown';
+        
+        return {
+            totalRequests: stats.totalLines || 0,
+            uniqueIPs: stats.uniqueIPCount || Object.keys(this.reportData.ipActivity || {}).length,
+            criticalEvents: stats.criticalEvents || 0,
+            highEvents: stats.highEvents || 0,
+            mediumEvents: stats.mediumEvents || 0,
+            lowEvents: stats.lowEvents || 0,
+            threatScore: threatScore,
+            threatLevel: threatLevel,
+            analysisDate: new Date().toLocaleDateString(),
+            timespan: this.calculateTimespan()
+        };
+    }
+
+    extractThreatIntelligence() {
+        const events = this.reportData.events || [];
+        const ipActivity = this.reportData.ipActivity || {};
+        
+        // Group threats by category
+        const threatCategories = {};
+        events.forEach(event => {
+            if (!threatCategories[event.category]) {
+                threatCategories[event.category] = {
+                    count: 0,
+                    severity: event.severity,
+                    ips: new Set(),
+                    examples: []
+                };
+            }
+            threatCategories[event.category].count++;
+            threatCategories[event.category].ips.add(event.ip);
+            if (threatCategories[event.category].examples.length < 3) {
+                threatCategories[event.category].examples.push({
+                    description: event.description,
+                    ip: event.ip,
+                    timestamp: event.timestamp,
+                    url: event.url
+                });
+            }
+        });
+
+        // Convert sets to arrays for processing
+        Object.keys(threatCategories).forEach(category => {
+            threatCategories[category].ips = Array.from(threatCategories[category].ips);
+        });
+
+        return {
+            categories: threatCategories,
+            topThreats: Object.entries(threatCategories)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 10),
+            attackVectors: this.reportData.attackVectors || {}
+        };
+    }
+
+    buildAttackerProfiles() {
+        const ipActivity = this.reportData.ipActivity || {};
+        const events = this.reportData.events || [];
+        
+        const attackers = [];
+        
+        Object.entries(ipActivity).forEach(([ip, data]) => {
+            // Focus on suspicious/malicious IPs
+            if (data.malicious || data.threatLevel > 1 || data.scanner || data.requests > 100) {
+                const ipEvents = events.filter(e => e.ip === ip);
+                
+                const profile = {
+                    ip: ip,
+                    threatLevel: data.threatLevel || 0,
+                    totalRequests: data.requests || 0,
+                    failedRequests: data.failedRequests || 0,
+                    errorRate: data.requests > 0 ? ((data.failedRequests || 0) / data.requests * 100).toFixed(2) : 0,
+                    firstSeen: data.firstSeen,
+                    lastSeen: data.lastSeen,
+                    userAgents: Array.isArray(data.userAgents) ? data.userAgents : [],
+                    topUrls: this.getTopUrls(data.urls || {}),
+                    attackTypes: this.categorizeAttacks(ipEvents),
+                    payloads: this.extractPayloadsForIP(ipEvents),
+                    behaviorPattern: this.analyzeBehaviorPattern(data, ipEvents),
+                    geolocation: this.getIPGeolocation(ip),
+                    reputation: this.getIPReputation(ip),
+                    timeline: this.buildAttackTimeline(ipEvents)
+                };
+                
+                attackers.push(profile);
+            }
+        });
+
+        // Sort by threat level and request count
+        return attackers.sort((a, b) => {
+            if (b.threatLevel !== a.threatLevel) return b.threatLevel - a.threatLevel;
+            return b.totalRequests - a.totalRequests;
+        }).slice(0, 20); // Top 20 most dangerous attackers
+    }
+
+    analyzePayloads() {
+        const events = this.reportData.events || [];
+        const payloads = {
+            sqlInjection: [],
+            xss: [],
+            commandInjection: [],
+            pathTraversal: [],
+            other: []
+        };
+
+        events.forEach(event => {
+            const payload = this.extractPayloadFromEvent(event);
+            if (payload) {
+                if (event.category.includes('sql')) {
+                    payloads.sqlInjection.push({...payload, event});
+                } else if (event.category.includes('xss')) {
+                    payloads.xss.push({...payload, event});
+                } else if (event.category.includes('command')) {
+                    payloads.commandInjection.push({...payload, event});
+                } else if (event.category.includes('traversal')) {
+                    payloads.pathTraversal.push({...payload, event});
+                } else {
+                    payloads.other.push({...payload, event});
+                }
+            }
+        });
+
+        // Deduplicate and rank by frequency
+        Object.keys(payloads).forEach(type => {
+            const seen = new Map();
+            payloads[type].forEach(payload => {
+                const key = payload.content || payload.url || payload.description;
+                if (seen.has(key)) {
+                    seen.get(key).count++;
+                } else {
+                    seen.set(key, {...payload, count: 1});
+                }
+            });
+            payloads[type] = Array.from(seen.values())
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 10);
+        });
+
+        return payloads;
+    }
+
+    analyzeGeography() {
+        const ipActivity = this.reportData.ipActivity || {};
+        const geoData = {};
+        
+        Object.entries(ipActivity).forEach(([ip, data]) => {
+            const country = this.getIPGeolocation(ip);
+            if (!geoData[country]) {
+                geoData[country] = {
+                    totalIPs: 0,
+                    maliciousIPs: 0,
+                    totalRequests: 0,
+                    threatScore: 0
+                };
+            }
+            
+            geoData[country].totalIPs++;
+            geoData[country].totalRequests += data.requests || 0;
+            
+            if (data.malicious || data.threatLevel > 1) {
+                geoData[country].maliciousIPs++;
+                geoData[country].threatScore += data.threatLevel || 1;
+            }
+        });
+
+        // Calculate threat percentages
+        Object.keys(geoData).forEach(country => {
+            const data = geoData[country];
+            data.maliciousPercentage = data.totalIPs > 0 ? 
+                ((data.maliciousIPs / data.totalIPs) * 100).toFixed(2) : 0;
+            data.avgThreatScore = data.maliciousIPs > 0 ? 
+                (data.threatScore / data.maliciousIPs).toFixed(2) : 0;
+        });
+
+        return Object.entries(geoData)
+            .sort((a, b) => b[1].maliciousIPs - a[1].maliciousIPs)
+            .slice(0, 15);
+    }
+
+    analyzeTemporalPatterns() {
+        const events = this.reportData.events || [];
+        const hourlyData = new Array(24).fill(0).map(() => ({
+            total: 0,
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0
+        }));
+
+        const dailyData = {};
+        
+        events.forEach(event => {
+            const date = new Date(event.timestamp);
+            const hour = date.getHours();
+            const day = date.toDateString();
+            
+            // Hourly analysis
+            hourlyData[hour].total++;
+            hourlyData[hour][event.severity]++;
+            
+            // Daily analysis
+            if (!dailyData[day]) {
+                dailyData[day] = { total: 0, critical: 0, high: 0, medium: 0, low: 0 };
+            }
+            dailyData[day].total++;
+            dailyData[day][event.severity]++;
+        });
+
+        return {
+            hourly: hourlyData,
+            daily: Object.entries(dailyData).sort((a, b) => new Date(a[0]) - new Date(b[0])),
+            peakHour: hourlyData.indexOf(Math.max(...hourlyData.map(h => h.total))),
+            peakDay: Object.entries(dailyData).sort((a, b) => b[1].total - a[1].total)[0]
+        };
+    }
+
+    generateRecommendations() {
+        const overview = this.extractOverviewData();
+        const threats = this.extractThreatIntelligence();
+        const recommendations = [];
+
+        // Critical threat-based recommendations
+        if (overview.criticalEvents > 0) {
+            recommendations.push({
+                priority: 'CRITICAL',
+                category: 'Immediate Action Required',
+                title: 'Critical Security Events Detected',
+                description: `${overview.criticalEvents} critical security events require immediate investigation and response.`,
+                action: 'Deploy incident response team and implement emergency security measures.'
+            });
+        }
+
+        // SQL Injection recommendations
+        if (threats.categories['sql_injection']) {
+            recommendations.push({
+                priority: 'HIGH',
+                category: 'Application Security',
+                title: 'SQL Injection Attacks Detected',
+                description: `${threats.categories['sql_injection'].count} SQL injection attempts from ${threats.categories['sql_injection'].ips.length} unique IPs.`,
+                action: 'Implement parameterized queries, input validation, and deploy WAF rules.'
+            });
+        }
+
+        // High error rate recommendations
+        if (overview.totalRequests > 0) {
+            const errorRate = ((overview.criticalEvents + overview.highEvents) / overview.totalRequests) * 100;
+            if (errorRate > 5) {
+                recommendations.push({
+                    priority: 'HIGH',
+                    category: 'Monitoring',
+                    title: 'High Error Rate Detected',
+                    description: `Error rate of ${errorRate.toFixed(2)}% indicates potential security issues or misconfigurations.`,
+                    action: 'Review application logs, implement better error handling, and enhance monitoring.'
+                });
+            }
+        }
+
+        // Scanner detection recommendations
+        Object.entries(threats.categories).forEach(([category, data]) => {
+            if (category.includes('scan') && data.count > 10) {
+                recommendations.push({
+                    priority: 'MEDIUM',
+                    category: 'Threat Detection',
+                    title: 'Scanning Activity Detected',
+                    description: `${data.count} scanning events detected from ${data.ips.length} IPs.`,
+                    action: 'Implement rate limiting, deploy intrusion detection systems, and block persistent scanners.'
+                });
+            }
+        });
+
+        // General security hardening
+        recommendations.push({
+            priority: 'MEDIUM',
+            category: 'Security Hardening',
+            title: 'Enhance Security Monitoring',
+            description: 'Implement comprehensive security monitoring and alerting systems.',
+            action: 'Deploy SIEM, enhance logging, implement real-time alerting, and conduct regular security assessments.'
+        });
+
+        return recommendations.sort((a, b) => {
+            const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+        });
+    }
+
+    extractIOCs() {
+        const events = this.reportData.events || [];
+        const ipActivity = this.reportData.ipActivity || {};
+        
+        const iocs = {
+            ips: [],
+            urls: [],
+            userAgents: [],
+            payloads: []
+        };
+
+        // Malicious IPs
+        Object.entries(ipActivity).forEach(([ip, data]) => {
+            if (data.malicious || data.threatLevel > 1) {
+                iocs.ips.push({
+                    value: ip,
+                    threatLevel: data.threatLevel,
+                    firstSeen: data.firstSeen,
+                    lastSeen: data.lastSeen,
+                    confidence: this.calculateConfidence(data)
+                });
+            }
+        });
+
+        // Suspicious URLs
+        const urlCounts = {};
+        events.forEach(event => {
+            if (event.url && (event.severity === 'critical' || event.severity === 'high')) {
+                urlCounts[event.url] = (urlCounts[event.url] || 0) + 1;
+            }
+        });
+        
+        Object.entries(urlCounts).forEach(([url, count]) => {
+            if (count > 2) {
+                iocs.urls.push({
+                    value: url,
+                    count: count,
+                    confidence: Math.min(0.9, 0.5 + (count / 20))
+                });
+            }
+        });
+
+        // Suspicious User Agents
+        if (this.reportData.userAgentStats && this.reportData.userAgentStats.malicious) {
+            this.reportData.userAgentStats.malicious.forEach(ua => {
+                iocs.userAgents.push({
+                    value: ua,
+                    confidence: 0.8
+                });
+            });
+        }
+
+        return iocs;
+    }
+
+    calculateRiskMetrics() {
+        const overview = this.extractOverviewData();
+        const threats = this.extractThreatIntelligence();
+        
+        const metrics = {
+            overallRiskScore: overview.threatScore,
+            riskLevel: overview.threatLevel,
+            exposureMetrics: {
+                criticalExposure: overview.criticalEvents / Math.max(overview.totalRequests, 1) * 100,
+                attackSurfaceSize: Object.keys(threats.categories).length,
+                attackerCount: Object.keys(this.reportData.ipActivity || {}).filter(ip => 
+                    this.reportData.ipActivity[ip].malicious || this.reportData.ipActivity[ip].threatLevel > 1
+                ).length
+            },
+            vulnerabilityMetrics: {
+                sqlInjectionRisk: threats.categories['sql_injection'] ? 'HIGH' : 'LOW',
+                xssRisk: threats.categories['xss'] ? 'HIGH' : 'LOW',
+                authenticationRisk: threats.categories['auth_failure'] ? 'MEDIUM' : 'LOW'
+            }
+        };
+
+        return metrics;
+    }
+
+    // Helper methods
+    calculateTimespan() {
+        const events = this.reportData.events || [];
+        if (events.length < 2) return 'Unknown';
+        
+        const times = events.map(e => new Date(e.timestamp)).sort((a, b) => a - b);
+        const duration = times[times.length - 1] - times[0];
+        const hours = Math.floor(duration / (1000 * 60 * 60));
+        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+        
+        return `${hours}h ${minutes}m`;
+    }
+
+    getTopUrls(urls) {
+        return Object.entries(urls)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([url, count]) => ({ url, count }));
+    }
+
+    categorizeAttacks(events) {
+        const categories = {};
+        events.forEach(event => {
+            categories[event.category] = (categories[event.category] || 0) + 1;
+        });
+        return Object.entries(categories)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+    }
+
+    extractPayloadsForIP(events) {
+        return events.filter(e => e.url || e.userAgent || e.evidence)
+            .slice(0, 5)
+            .map(e => ({
+                type: e.category,
+                content: e.url || e.userAgent || e.evidence || e.description,
+                timestamp: e.timestamp
+            }));
+    }
+
+    analyzeBehaviorPattern(data, events) {
+        const patterns = [];
+        
+        if (data.scanner) patterns.push('Scanner');
+        if (data.bruteForce) patterns.push('Brute Force');
+        if (data.attackChain) patterns.push('Attack Chain');
+        
+        const requestRate = data.requests / Math.max(1, (new Date(data.lastSeen) - new Date(data.firstSeen)) / 3600000);
+        if (requestRate > 10) patterns.push('High Frequency');
+        
+        if (data.failedRequests / data.requests > 0.5) patterns.push('High Error Rate');
+        
+        return patterns.length > 0 ? patterns.join(', ') : 'Normal';
+    }
+
+    getIPGeolocation(ip) {
+        // Simple mock geolocation based on IP patterns
+        if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) return 'Private';
+        
+        const geoMap = {
+            '1': 'US', '2': 'CN', '3': 'RU', '4': 'DE', '5': 'UK',
+            '6': 'FR', '7': 'JP', '8': 'BR', '9': 'IN', '0': 'Other'
+        };
+        
+        return geoMap[ip.charAt(ip.length - 1)] || 'Unknown';
+    }
+
+    getIPReputation(ip) {
+        // Mock reputation scoring
+        const lastOctet = parseInt(ip.split('.').pop()) || 0;
+        const score = ((lastOctet % 100) / 100) * 10;
+        
+        if (score > 7) return 'Malicious';
+        if (score > 4) return 'Suspicious';
+        return 'Clean';
+    }
+
+    buildAttackTimeline(events) {
+        return events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+            .slice(0, 10)
+            .map(e => ({
+                time: new Date(e.timestamp).toLocaleString(),
+                action: e.description,
+                severity: e.severity
+            }));
+    }
+
+    extractPayloadFromEvent(event) {
+        if (event.url && (event.url.includes('=') || event.url.includes('%'))) {
+            return {
+                type: 'URL Parameter',
+                content: event.url.substring(0, 200),
+                description: event.description
+            };
+        }
+        
+        if (event.userAgent && event.userAgent !== '-') {
+            return {
+                type: 'User Agent',
+                content: event.userAgent.substring(0, 200),
+                description: event.description
+            };
+        }
+        
+        if (event.evidence) {
+            return {
+                type: 'Evidence',
+                content: event.evidence.substring(0, 200),
+                description: event.description
+            };
+        }
+        
+        return null;
+    }
+
+    calculateConfidence(data) {
+        let confidence = 0.5;
+        
+        if (data.malicious) confidence += 0.3;
+        if (data.threatLevel > 2) confidence += 0.2;
+        if (data.requests > 100) confidence += 0.1;
+        if (data.failedRequests / data.requests > 0.3) confidence += 0.1;
+        
+        return Math.min(0.95, confidence);
+    }
+
+    async generateReportSections(doc, data) {
+        let yPosition = 20;
+        
+        // Title Page
+        yPosition = this.addTitlePage(doc, data.overview);
+        
+        // Executive Summary
+        doc.addPage();
+        yPosition = this.addExecutiveSummary(doc, data.overview, data.riskAssessment);
+        
+        // Threat Intelligence Section
+        doc.addPage();
+        yPosition = this.addThreatIntelligence(doc, data.threatIntelligence);
+        
+        // Attacker Profiles Section
+        if (data.attackerProfiles.length > 0) {
+            doc.addPage();
+            yPosition = this.addAttackerProfiles(doc, data.attackerProfiles);
+        }
+        
+        // Payload Analysis Section
+        doc.addPage();
+        yPosition = this.addPayloadAnalysis(doc, data.payloadAnalysis);
+        
+        // Geographic Analysis
+        doc.addPage();
+        yPosition = this.addGeographicAnalysis(doc, data.geographicalAnalysis);
+        
+        // IOCs Section
+        doc.addPage();
+        yPosition = this.addIOCs(doc, data.iocs);
+        
+        // Recommendations Section
+        doc.addPage();
+        yPosition = this.addRecommendations(doc, data.recommendations);
+    }
+
+    addTitlePage(doc, overview) {
+        doc.setFontSize(28);
+        doc.setFont(undefined, 'bold');
+        doc.text('ADVANCED SECURITY', 105, 60, { align: 'center' });
+        doc.text('ANALYSIS REPORT', 105, 75, { align: 'center' });
+        
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'normal');
+        doc.text('IIS Log Security Analysis', 105, 95, { align: 'center' });
+        
+        // Threat level indicator
+        doc.setFontSize(24);
+        doc.setFont(undefined, 'bold');
+        const color = overview.threatLevel === 'Critical' ? [255, 0, 0] : 
+                     overview.threatLevel === 'High' ? [255, 165, 0] : [0, 128, 0];
+        doc.setTextColor(...color);
+        doc.text(`THREAT LEVEL: ${overview.threatLevel.toUpperCase()}`, 105, 120, { align: 'center' });
+        
+        // Reset color
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        
+        // Key metrics
+        const metrics = [
+            `Analysis Date: ${overview.analysisDate}`,
+            `Total Requests Analyzed: ${overview.totalRequests.toLocaleString()}`,
+            `Unique IP Addresses: ${overview.uniqueIPs.toLocaleString()}`,
+            `Critical Security Events: ${overview.criticalEvents.toLocaleString()}`,
+            `Overall Threat Score: ${overview.threatScore}/100`,
+            `Analysis Timespan: ${overview.timespan}`
+        ];
+        
+        let y = 150;
+        metrics.forEach(metric => {
+            doc.text(metric, 105, y, { align: 'center' });
+            y += 10;
+        });
+        
+        // Classification
+        doc.setFontSize(10);
+        doc.text('CONFIDENTIAL - INTERNAL SECURITY REPORT', 105, 280, { align: 'center' });
+        
+        return 290;
+    }
+
+    addExecutiveSummary(doc, overview, riskAssessment) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('EXECUTIVE SUMMARY', 20, y);
+        y += 15;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        
+        const summary = `This report presents a comprehensive security analysis of IIS web server logs, covering ${overview.totalRequests.toLocaleString()} requests from ${overview.uniqueIPs.toLocaleString()} unique IP addresses. The analysis identified ${overview.criticalEvents} critical security events requiring immediate attention.
+
+RISK ASSESSMENT:
+- Overall Threat Level: ${overview.threatLevel}
+- Security Score: ${overview.threatScore}/100
+- Critical Events: ${overview.criticalEvents}
+- High Severity Events: ${overview.highEvents}
+- Attack Surface Exposure: ${riskAssessment.exposureMetrics.attackSurfaceSize} distinct attack categories
+
+KEY FINDINGS:
+- ${riskAssessment.exposureMetrics.attackerCount} active malicious IP addresses identified
+- Critical exposure rate: ${riskAssessment.exposureMetrics.criticalExposure.toFixed(2)}%
+- SQL Injection Risk: ${riskAssessment.vulnerabilityMetrics.sqlInjectionRisk}
+- XSS Risk: ${riskAssessment.vulnerabilityMetrics.xssRisk}
+- Authentication Risk: ${riskAssessment.vulnerabilityMetrics.authenticationRisk}
+
+IMMEDIATE ACTIONS REQUIRED:
+${overview.criticalEvents > 0 ? '• Deploy incident response team for critical events' : ''}
+${overview.threatLevel === 'Critical' ? '• Implement emergency security measures' : ''}
+- Review and enhance security monitoring capabilities
+- Implement additional protective measures for identified vulnerabilities`;
+        
+        const lines = doc.splitTextToSize(summary, 170);
+        lines.forEach(line => {
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.text(line, 20, y);
+            y += 6;
+        });
+        
+        return y;
+    }
+
+    addThreatIntelligence(doc, threats) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('THREAT INTELLIGENCE ANALYSIS', 20, y);
+        y += 15;
+        
+        doc.setFontSize(14);
+        doc.text('Top Security Threats Detected', 20, y);
+        y += 10;
+        
+        // Create table data for top threats
+        const tableData = threats.topThreats.map(([category, data]) => [
+            category.replace(/_/g, ' ').toUpperCase(),
+            data.count.toString(),
+            data.ips.length.toString(),
+            data.severity.toUpperCase(),
+            data.examples[0]?.description.substring(0, 50) + '...' || 'N/A'
+        ]);
+        
+        doc.autoTable({
+            startY: y,
+            head: [['Threat Category', 'Count', 'Unique IPs', 'Severity', 'Example']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [220, 53, 69] },
+            columnStyles: {
+                0: { cellWidth: 40 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 60 }
+            }
+        });
+        
+        y = doc.lastAutoTable.finalY + 20;
+        
+        // Detailed threat analysis
+        doc.setFontSize(14);
+        doc.text('Detailed Threat Analysis', 20, y);
+        y += 10;
+        
+        threats.topThreats.slice(0, 5).forEach(([category, data]) => {
+            if (y > 240) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${category.replace(/_/g, ' ').toUpperCase()}:`, 20, y);
+            y += 7;
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            const details = `Events: ${data.count} | Unique IPs: ${data.ips.length} | Severity: ${data.severity.toUpperCase()}`;
+            doc.text(details, 25, y);
+            y += 5;
+            
+            if (data.examples.length > 0) {
+                doc.text('Example attacks:', 25, y);
+                y += 5;
+                data.examples.slice(0, 2).forEach(example => {
+                    const exampleText = `• ${example.timestamp}: ${example.description}`;
+                    const lines = doc.splitTextToSize(exampleText, 160);
+                    lines.forEach(line => {
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        doc.text(line, 30, y);
+                        y += 4;
+                    });
+                });
+            }
+            y += 5;
+        });
+        
+        return y;
+    }
+
+    addAttackerProfiles(doc, attackers) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('ATTACKER PROFILES & INTELLIGENCE', 20, y);
+        y += 15;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Analysis of ${attackers.length} most dangerous IP addresses:`, 20, y);
+        y += 15;
+        
+        attackers.slice(0, 10).forEach((attacker, index) => {
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            // Attacker header
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`ATTACKER #${index + 1}: ${attacker.ip}`, 20, y);
+            y += 10;
+            
+            // Basic info table
+            const basicInfo = [
+                ['IP Address', attacker.ip],
+                ['Threat Level', attacker.threatLevel.toString()],
+                ['Total Requests', attacker.totalRequests.toLocaleString()],
+                ['Error Rate', `${attacker.errorRate}%`],
+                ['First Seen', new Date(attacker.firstSeen).toLocaleString()],
+                ['Last Seen', new Date(attacker.lastSeen).toLocaleString()],
+                ['Geolocation', attacker.geolocation],
+                ['Reputation', attacker.reputation],
+                ['Behavior Pattern', attacker.behaviorPattern]
+            ];
+            
+            doc.autoTable({
+                startY: y,
+                head: [['Attribute', 'Value']],
+                body: basicInfo,
+                theme: 'grid',
+                columnStyles: {
+                    0: { cellWidth: 50, fontStyle: 'bold' },
+                    1: { cellWidth: 80 }
+                },
+                margin: { left: 20 }
+            });
+            
+            y = doc.lastAutoTable.finalY + 10;
+            
+            // Attack types
+            if (attacker.attackTypes.length > 0) {
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Attack Types:', 20, y);
+                y += 7;
+                
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(10);
+                attacker.attackTypes.forEach(([type, count]) => {
+                    doc.text(`• ${type.replace(/_/g, ' ')}: ${count} attempts`, 25, y);
+                    y += 5;
+                });
+                y += 5;
+            }
+            
+            // Sample payloads
+            if (attacker.payloads.length > 0) {
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Sample Attack Payloads:', 20, y);
+                y += 7;
+                
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(9);
+                attacker.payloads.slice(0, 3).forEach(payload => {
+                    const payloadText = `• ${payload.type}: ${payload.content}`;
+                    const lines = doc.splitTextToSize(payloadText, 160);
+                    lines.forEach(line => {
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        doc.text(line, 25, y);
+                        y += 4;
+                    });
+                });
+                y += 10;
+            }
+        });
+        
+        return y;
+    }
+
+    addPayloadAnalysis(doc, payloads) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('PAYLOAD ANALYSIS', 20, y);
+        y += 15;
+        
+        const payloadTypes = Object.keys(payloads);
+        
+        payloadTypes.forEach(type => {
+            if (payloads[type].length === 0) return;
+            
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${type.replace(/([A-Z])/g, ' $1').toUpperCase()} PAYLOADS`, 20, y);
+            y += 10;
+            
+            // Create table for payloads
+            const tableData = payloads[type].slice(0, 10).map(payload => [
+                payload.count?.toString() || '1',
+                payload.content?.substring(0, 80) + '...' || 'N/A',
+                payload.event?.ip || 'N/A',
+                payload.event?.timestamp ? new Date(payload.event.timestamp).toLocaleString() : 'N/A'
+            ]);
+            
+            doc.autoTable({
+                startY: y,
+                head: [['Count', 'Payload', 'Source IP', 'First Seen']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 53, 69] },
+                columnStyles: {
+                    0: { cellWidth: 20 },
+                    1: { cellWidth: 80 },
+                    2: { cellWidth: 35 },
+                    3: { cellWidth: 35 }
+                },
+                styles: { fontSize: 8 }
+            });
+            
+            y = doc.lastAutoTable.finalY + 15;
+        });
+        
+        return y;
+    }
+
+    addGeographicAnalysis(doc, geoData) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('GEOGRAPHIC THREAT ANALYSIS', 20, y);
+        y += 15;
+        
+        // Create table for geographic data
+        const tableData = geoData.map(([country, data]) => [
+            country,
+            data.totalIPs.toString(),
+            data.maliciousIPs.toString(),
+            `${data.maliciousPercentage}%`,
+            data.totalRequests.toLocaleString(),
+            data.avgThreatScore
+        ]);
+        
+        doc.autoTable({
+            startY: y,
+            head: [['Country', 'Total IPs', 'Malicious IPs', 'Malicious %', 'Total Requests', 'Avg Threat Score']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [220, 53, 69] },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 35 },
+                5: { cellWidth: 25 }
+            }
+        });
+        
+        y = doc.lastAutoTable.finalY + 15;
+        
+        // Analysis summary
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Geographic Threat Summary:', 20, y);
+        y += 10;
+        
+        doc.setFont(undefined, 'normal');
+        const topThreats = geoData.slice(0, 3);
+        topThreats.forEach(([country, data]) => {
+            doc.text(`• ${country}: ${data.maliciousIPs} malicious IPs (${data.maliciousPercentage}% of total)`, 25, y);
+            y += 7;
+        });
+        
+        return y;
+    }
+
+    addIOCs(doc, iocs) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('INDICATORS OF COMPROMISE (IOCs)', 20, y);
+        y += 15;
+        
+        // Malicious IPs
+        if (iocs.ips.length > 0) {
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Malicious IP Addresses:', 20, y);
+            y += 10;
+            
+            const ipTableData = iocs.ips.slice(0, 15).map(ip => [
+                ip.value,
+                ip.threatLevel?.toString() || 'Unknown',
+                (ip.confidence * 100).toFixed(0) + '%',
+                new Date(ip.firstSeen).toLocaleDateString(),
+                new Date(ip.lastSeen).toLocaleDateString()
+            ]);
+            
+            doc.autoTable({
+                startY: y,
+                head: [['IP Address', 'Threat Level', 'Confidence', 'First Seen', 'Last Seen']],
+                body: ipTableData,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 53, 69] },
+                styles: { fontSize: 9 }
+            });
+            
+            y = doc.lastAutoTable.finalY + 15;
+        }
+        
+        // Malicious URLs
+        if (iocs.urls.length > 0) {
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Suspicious URLs:', 20, y);
+            y += 10;
+            
+            const urlTableData = iocs.urls.slice(0, 10).map(url => [
+                url.value.substring(0, 80) + (url.value.length > 80 ? '...' : ''),
+                url.count?.toString() || '1',
+                (url.confidence * 100).toFixed(0) + '%'
+            ]);
+            
+            doc.autoTable({
+                startY: y,
+                head: [['URL', 'Count', 'Confidence']],
+                body: urlTableData,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 53, 69] },
+                columnStyles: {
+                    0: { cellWidth: 120 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 25 }
+                },
+                styles: { fontSize: 8 }
+            });
+            
+            y = doc.lastAutoTable.finalY + 15;
+        }
+        
+        // Malicious User Agents
+        if (iocs.userAgents.length > 0) {
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Suspicious User Agents:', 20, y);
+            y += 10;
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            iocs.userAgents.slice(0, 10).forEach(ua => {
+                const uaText = `• ${ua.value} (Confidence: ${(ua.confidence * 100).toFixed(0)}%)`;
+                const lines = doc.splitTextToSize(uaText, 160);
+                lines.forEach(line => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.text(line, 25, y);
+                    y += 5;
+                });
+            });
+        }
+        
+        return y;
+    }
+
+    addRecommendations(doc, recommendations) {
+        let y = 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('SECURITY RECOMMENDATIONS', 20, y);
+        y += 15;
+        
+        recommendations.forEach((rec, index) => {
+            if (y > 220) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            // Priority indicator
+            const priorityColor = rec.priority === 'CRITICAL' ? [255, 0, 0] : 
+                                 rec.priority === 'HIGH' ? [255, 165, 0] : [0, 128, 0];
+            
+            doc.setTextColor(...priorityColor);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${rec.priority} - ${rec.title}`, 20, y);
+            y += 8;
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            
+            // Category
+            doc.text(`Category: ${rec.category}`, 20, y);
+            y += 6;
+            
+            // Description
+            const descLines = doc.splitTextToSize(`Description: ${rec.description}`, 170);
+            descLines.forEach(line => {
+                doc.text(line, 20, y);
+                y += 5;
+            });
+            
+            // Action
+            const actionLines = doc.splitTextToSize(`Recommended Action: ${rec.action}`, 170);
+            actionLines.forEach(line => {
+                doc.text(line, 20, y);
+                y += 5;
+            });
+            
+            y += 10;
+        });
+        
+        return y;
+    }
+
+    showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm ${
+            type === 'success' ? 'bg-green-500' : 
+            type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+        } text-white`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+}
+
+// Initialize the report generator when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Small delay to ensure the UIController is initialized
+    setTimeout(() => {
+        new AdvancedSecurityReportGenerator();
+    }, 1000);
+});
+</script>
