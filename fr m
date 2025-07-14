@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Document Embedder - X-Frame Bypass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="container mx-auto p-6 max-w-7xl">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                X-Frame Bypass Tool
+            </h1>
+            <p class="text-gray-400">Advanced document embedding with multiple bypass techniques</p>
+        </div>
+        
+        <!-- Main Control Panel -->
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-6 mb-6 border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Document URL</label>
+                    <input type="text" id="docUrl" 
+                           placeholder="https://example.com/document.pdf" 
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Quick Actions</label>
+                    <div class="flex gap-2">
+                        <button onclick="autoDetectAndEmbed()" 
+                                class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium">
+                            🚀 Auto-Bypass
+                        </button>
+                        <button onclick="testAllMethods()" 
+                                class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-medium">
+                            🧪 Test All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div class="mt-6">
+                <button onclick="toggleAdvanced()" class="text-blue-400 hover:text-blue-300 text-sm font-medium mb-4">
+                    ⚙️ Advanced Options ▼
+                </button>
+                <div id="advancedOptions" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Custom Proxy</label>
+                        <input type="text" id="customProxy" placeholder="https://your-proxy.com/" 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">User Agent</label>
+                        <select id="userAgent" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm">
+                            <option value="default">Default</option>
+                            <option value="googlebot">Googlebot</option>
+                            <option value="mobile">Mobile</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Timeout (ms)</label>
+                        <input type="number" id="timeout" value="10000" 
+                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar" class="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700 hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div id="statusIcon" class="mr-3"></div>
+                    <span id="statusText" class="text-sm"></span>
+                </div>
+                <div id="statusProgress" class="w-32 bg-gray-700 rounded-full h-2 hidden">
+                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Method Pills -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button onclick="useMethod('direct')" class="method-pill">Direct</button>
+            <button onclick="useMethod('proxy1')" class="method-pill">Proxy Chain</button>
+            <button onclick="useMethod('worker')" class="method-pill">Service Worker</button>
+            <button onclick="useMethod('reverse')" class="method-pill">Reverse Proxy</button>
+            <button onclick="useMethod('inject')" class="method-pill">Injection</button>
+            <button onclick="useMethod('hybrid')" class="method-pill">Hybrid</button>
+            <button onclick="useMethod('extension')" class="method-pill">Extension</button>
+            <button onclick="useMethod('websocket')" class="method-pill">WebSocket</button>
+        </div>
+
+        <!-- Main Viewer -->
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Document Viewer</h2>
+                <div class="flex gap-2">
+                    <button onclick="fullscreen()" class="text-gray-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </button>
+                    <button onclick="downloadFrame()" class="text-gray-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="viewerContainer" class="bg-gray-900 rounded-lg overflow-hidden" style="height: 700px;">
+                <div class="flex items-center justify-center h-full text-gray-500">
+                    <div class="text-center">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>No document loaded</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Console -->
+        <div class="mt-6 bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Debug Console</h3>
+                <button onclick="clearConsole()" class="text-sm text-gray-400 hover:text-white">Clear</button>
+            </div>
+            <div id="console" class="bg-black rounded-lg p-4 font-mono text-xs h-48 overflow-y-auto">
+                <div class="text-green-400">System ready...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden iframe for testing -->
+    <iframe id="hiddenFrame" style="display: none;"></iframe>
+
+    <script>
+        // Enhanced proxy list with reliability scores
+        const PROXIES = [
+            { url: 'https://api.allorigins.win/raw?url=', score: 0.9, type: 'cors' },
+            { url: 'https://cors-anywhere.herokuapp.com/', score: 0.7, type: 'cors' },
+            { url: 'https://corsproxy.io/?', score: 0.8, type: 'cors' },
+            { url: 'https://proxy.cors.sh/', score: 0.6, type: 'cors' },
+            { url: 'https://cors.bridged.cc/', score: 0.7, type: 'cors' },
+            { url: 'https://cors-proxy.htmldriven.com/?url=', score: 0.5, type: 'cors' }
+        ];
+
+        let currentMethod = null;
+        let frameCheckInterval = null;
+
+        // Console logging with styling
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400',
+                system: 'text-purple-400'
+            };
+            
+            const entry = document.createElement('div');
+            entry.className = colors[type] || 'text-gray-400';
+            entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            console.appendChild(entry);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Status management
+        function setStatus(text, type = 'info', progress = null) {
+            const statusBar = document.getElementById('statusBar');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusProgress = document.getElementById('statusProgress');
+            
+            statusBar.classList.remove('hidden');
+            
+            const icons = {
+                loading: '⏳',
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            statusIcon.textContent = icons[type] || icons.info;
+            statusText.textContent = text;
+            
+            if (progress !== null) {
+                statusProgress.classList.remove('hidden');
+                statusProgress.querySelector('div').style.width = `${progress}%`;
+            } else {
+                statusProgress.classList.add('hidden');
+            }
+        }
+
+        // Auto-detect and bypass
+        async function autoDetectAndEmbed() {
+            const url = document.getElementById('docUrl').value;
+            if (!url) {
+                log('Please enter a URL', 'error');
+                return;
+            }
+
+            setStatus('Analyzing document...', 'loading');
+            log('Starting auto-bypass detection', 'system');
+            
+            // First, check headers
+            const headers = await checkHeaders(url);
+            
+            if (headers['x-frame-options'] || headers['content-security-policy']) {
+                log('Frame blocking detected, trying bypass methods', 'warning');
+                
+                // Try methods in order of effectiveness
+                const methods = ['proxy1', 'worker', 'reverse', 'inject', 'hybrid'];
+                
+                for (let i = 0; i < methods.length; i++) {
+                    setStatus(`Trying method ${i + 1}/${methods.length}...`, 'loading', (i + 1) / methods.length * 100);
+                    
+                    if (await tryMethod(methods[i], url)) {
+                        setStatus('Successfully bypassed restrictions!', 'success');
+                        break;
+                    }
+                }
+            } else {
+                log('No frame restrictions detected, using direct embed', 'success');
+                useMethod('direct');
+            }
+        }
+
+        // Check headers
+        async function checkHeaders(url) {
+            try {
+                // Try multiple approaches to get headers
+                const proxyUrl = PROXIES[0].url + encodeURIComponent(url);
+                const response = await fetch(proxyUrl, { method: 'HEAD' });
+                
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key.toLowerCase()] = value;
+                });
+                
+                log(`Headers: ${JSON.stringify(headers)}`, 'info');
+                return headers;
+            } catch (error) {
+                log(`Header check failed: ${error.message}`, 'warning');
+                return {};
+            }
+        }
+
+        // Try a specific method
+        async function tryMethod(method, url) {
+            try {
+                await useMethod(method);
+                // Wait a bit to see if it loads
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Check if iframe loaded successfully
+                const iframe = document.querySelector('#viewerContainer iframe');
+                if (iframe && iframe.contentWindow) {
+                    try {
+                        // Try to access the content
+                        const test = iframe.contentWindow.location.href;
+                        return true;
+                    } catch (e) {
+                        // Cross-origin, but might still be loaded
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // Main method handler
+        async function useMethod(method) {
+            const url = document.getElementById('docUrl').value;
+            if (!url) {
+                log('Please enter a URL', 'error');
+                return;
+            }
+
+            currentMethod = method;
+            const container = document.getElementById('viewerContainer');
+            
+            log(`Using ${method} method`, 'system');
+            
+            switch (method) {
+                case 'direct':
+                    embedDirect(url, container);
+                    break;
+                case 'proxy1':
+                    await embedProxyChain(url, container);
+                    break;
+                case 'worker':
+                    embedServiceWorker(url, container);
+                    break;
+                case 'reverse':
+                    embedReverseProxy(url, container);
+                    break;
+                case 'inject':
+                    embedInjection(url, container);
+                    break;
+                case 'hybrid':
+                    embedHybrid(url, container);
+                    break;
+                case 'extension':
+                    showExtensionInfo(container);
+                    break;
+                case 'websocket':
+                    embedWebSocket(url, container);
+                    break;
+            }
+        }
+
+        // Method 1: Direct embed
+        function embedDirect(url, container) {
+            container.innerHTML = `
+                <iframe 
+                    src="${url}"
+                    width="100%"
+                    height="100%"
+                    frameborder="0"
+                    allowfullscreen
+                    class="w-full h-full">
+                </iframe>
+            `;
+            monitorFrame();
+        }
+
+        // Method 2: Proxy chain with fallback
+        async function embedProxyChain(url, container) {
+            log('Trying proxy chain method', 'info');
+            
+            // Sort proxies by score
+            const sortedProxies = [...PROXIES].sort((a, b) => b.score - a.score);
+            
+            for (const proxy of sortedProxies) {
+                log(`Trying proxy: ${proxy.url}`, 'info');
+                
+                try {
+                    const proxiedUrl = proxy.url + encodeURIComponent(url);
+                    
+                    // Test if proxy is responsive
+                    const testResponse = await fetch(proxiedUrl, { 
+                        method: 'HEAD',
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    
+                    if (testResponse.ok) {
+                        container.innerHTML = `
+                            <iframe 
+                                src="${proxiedUrl}"
+                                width="100%"
+                                height="100%"
+                                frameborder="0"
+                                allowfullscreen
+                                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                                class="w-full h-full">
+                            </iframe>
+                        `;
+                        log(`Success with proxy: ${proxy.url}`, 'success');
+                        break;
+                    }
+                } catch (error) {
+                    log(`Proxy failed: ${error.message}`, 'warning');
+                }
+            }
+            monitorFrame();
+        }
+
+        // Method 3: Service Worker approach
+        function embedServiceWorker(url, container) {
+            container.innerHTML = `
+                <div class="p-8 text-center">
+                    <h3 class="text-xl mb-4">Service Worker Method</h3>
+                    <p class="mb-4">This creates a service worker to intercept and modify headers.</p>
+                    <button onclick="installServiceWorker('${url}')" 
+                            class="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg">
+                        Install Service Worker
+                    </button>
+                </div>
+            `;
+        }
+
+        // Method 4: Reverse proxy with custom headers
+        function embedReverseProxy(url, container) {
+            const customProxy = document.getElementById('customProxy').value;
+            const proxyEndpoint = customProxy || '/api/proxy';
+            
+            container.innerHTML = `
+                <div class="p-8">
+                    <h3 class="text-xl mb-4">Reverse Proxy Setup</h3>
+                    <p class="mb-4">Add this to your server:</p>
+                    <pre class="bg-black p-4 rounded-lg overflow-x-auto text-xs">
+// Node.js Express example
+app.get('${proxyEndpoint}', async (req, res) => {
+    const targetUrl = req.query.url;
+    const response = await fetch(targetUrl);
+    const content = await response.text();
+    
+    // Remove X-Frame-Options
+    res.removeHeader('X-Frame-Options');
+    res.removeHeader('Content-Security-Policy');
+    
+    // Add permissive headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Frame-Options', 'ALLOWALL');
+    
+    res.send(content);
+});
+
+// Then use: ${proxyEndpoint}?url=${encodeURIComponent(url)}
+</pre>
+                    <button onclick="tryCustomProxy('${url}')" 
+                            class="mt-4 bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg">
+                        Try Custom Proxy
+                    </button>
+                </div>
+            `;
+        }
+
+        // Method 5: JavaScript injection
+        function embedInjection(url, container) {
+            log('Using injection method', 'info');
+            
+            container.innerHTML = `
+                <div id="injectedContent" class="w-full h-full bg-white"></div>
+            `;
+            
+            // Fetch and inject content
+            fetchAndInject(url);
+        }
+
+        // Method 6: Hybrid approach
+        async function embedHybrid(url, container) {
+            log('Using hybrid method - combining multiple techniques', 'info');
+            
+            // Try to detect file type
+            const extension = url.split('.').pop().toLowerCase();
+            
+            if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
+                // Use Office/Google viewers
+                const viewers = [
+                    `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`,
+                    `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+                ];
+                
+                for (const viewerUrl of viewers) {
+                    try {
+                        container.innerHTML = `
+                            <iframe 
+                                src="${viewerUrl}"
+                                width="100%"
+                                height="100%"
+                                frameborder="0"
+                                class="w-full h-full">
+                            </iframe>
+                        `;
+                        log(`Using viewer service: ${viewerUrl}`, 'success');
+                        break;
+                    } catch (error) {
+                        log(`Viewer failed: ${error.message}`, 'warning');
+                    }
+                }
+            } else {
+                // Use proxy chain for other content
+                await embedProxyChain(url, container);
+            }
+        }
+
+        // Method 7: Extension info
+        function showExtensionInfo(container) {
+            container.innerHTML = `
+                <div class="p-8">
+                    <h3 class="text-xl mb-4">Browser Extension Method</h3>
+                    <p class="mb-4">Install one of these extensions to remove X-Frame-Options:</p>
+                    <ul class="space-y-2 mb-6">
+                        <li>• <a href="https://chrome.google.com/webstore/detail/ignore-x-frame-headers/gleekbfjekiniecknbkamfmkohkpodhe" 
+                                 target="_blank" class="text-blue-400 hover:underline">
+                                 Ignore X-Frame headers (Chrome)
+                              </a></li>
+                        <li>• <a href="https://addons.mozilla.org/en-US/firefox/addon/ignore-x-frame-options/" 
+                                 target="_blank" class="text-blue-400 hover:underline">
+                                 Ignore X-Frame Options (Firefox)
+                              </a></li>
+                    </ul>
+                    <div class="bg-yellow-900 border border-yellow-700 rounded-lg p-4">
+                        <p class="text-yellow-300 text-sm">
+                            ⚠️ Use extensions only for testing. They modify browser security.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Method 8: WebSocket streaming
+        function embedWebSocket(url, container) {
+            container.innerHTML = `
+                <div class="p-8">
+                    <h3 class="text-xl mb-4">WebSocket Streaming</h3>
+                    <p class="mb-4">This method streams content through WebSocket to bypass restrictions.</p>
+                    <pre class="bg-black p-4 rounded-lg overflow-x-auto text-xs mb-4">
+// Server-side WebSocket proxy
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 8080 });
+
+wss.on('connection', (ws) => {
+    ws.on('message', async (message) => {
+        const { url } = JSON.parse(message);
+        const response = await fetch(url);
+        const content = await response.text();
+        ws.send(JSON.stringify({ content }));
+    });
+});
+</pre>
+                    <button onclick="connectWebSocket('${url}')" 
+                            class="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg">
+                        Connect WebSocket
+                    </button>
+                </div>
+            `;
+        }
+
+        // Helper: Fetch and inject content
+        async function fetchAndInject(url) {
+            try {
+                const proxyUrl = PROXIES[0].url + encodeURIComponent(url);
+                const response = await fetch(proxyUrl);
+                const content = await response.text();
+                
+                const container = document.getElementById('injectedContent');
+                
+                // Create a sandboxed iframe with srcdoc
+                const iframe = document.createElement('iframe');
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.sandbox = 'allow-scripts allow-same-origin';
+                
+                // Inject base tag for relative URLs
+                const baseUrl = new URL(url).origin;
+                const modifiedContent = content.replace(
+                    '<head>',
+                    `<head><base href="${baseUrl}/">`
+                );
+                
+                iframe.srcdoc = modifiedContent;
+                container.innerHTML = '';
+                container.appendChild(iframe);
+                
+                log('Content injected successfully', 'success');
+            } catch (error) {
+                log(`Injection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Helper: Monitor frame loading
+        function monitorFrame() {
+            clearInterval(frameCheckInterval);
+            
+            frameCheckInterval = setInterval(() => {
+                const iframe = document.querySelector('#viewerContainer iframe');
+                if (iframe) {
+                    try {
+                        // Try to access the iframe
+                        const test = iframe.contentWindow.location.href;
+                        log('Frame loaded successfully', 'success');
+                        clearInterval(frameCheckInterval);
+                    } catch (e) {
+                        // Can't access, but check if loaded
+                        if (iframe.contentDocument) {
+                            log('Frame loaded (cross-origin)', 'success');
+                            clearInterval(frameCheckInterval);
+                        }
+                    }
+                }
+            }, 1000);
+            
+            // Stop checking after 10 seconds
+            setTimeout(() => clearInterval(frameCheckInterval), 10000);
+        }
+
+        // Test all methods
+        async function testAllMethods() {
+            const url = document.getElementById('docUrl').value;
+            if (!url) {
+                log('Please enter a URL', 'error');
+                return;
+            }
+
+            const methods = ['direct', 'proxy1', 'hybrid', 'inject'];
+            const results = {};
+            
+            for (let i = 0; i < methods.length; i++) {
+                setStatus(`Testing method ${i + 1}/${methods.length}...`, 'loading', (i + 1) / methods.length * 100);
+                results[methods[i]] = await tryMethod(methods[i], url);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Show results
+            const working = Object.entries(results).filter(([_, works]) => works);
+            if (working.length > 0) {
+                setStatus(`Found ${working.length} working methods!`, 'success');
+                log(`Working methods: ${working.map(([m]) => m).join(', ')}`, 'success');
+                
+                // Use the first working method
+                useMethod(working[0][0]);
+            } else {
+                setStatus('No automatic methods worked - try manual options', 'warning');
+            }
+        }
+
+        // Helper functions
+        function toggleAdvanced() {
+            const advanced = document.getElementById('advancedOptions');
+            advanced.classList.toggle('hidden');
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div class="text-green-400">Console cleared</div>';
+        }
+
+        function fullscreen() {
+            const container = document.getElementById('viewerContainer');
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            }
+        }
+
+        async function downloadFrame() {
+            const url = document.getElementById('docUrl').value;
+            if (!url) return;
+            
+            try {
+                const proxyUrl = PROXIES[0].url + encodeURIComponent(url);
+                const response = await fetch(proxyUrl);
+                const blob = await response.blob();
+                
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = url.split('/').pop();
+                a.click();
+                
+                log('Download started', 'success');
+            } catch (error) {
+                log(`Download failed: ${error.message}`, 'error');
+            }
+        }
+
+        function tryCustomProxy(url) {
+            const customProxy = document.getElementById('customProxy').value;
+            if (!customProxy) {
+                log('Please enter a custom proxy URL', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('viewerContainer');
+            container.innerHTML = `
+                <iframe 
+                    src="${customProxy}?url=${encodeURIComponent(url)}"
+                    width="100%"
+                    height="100%"
+                    frameborder="0"
+                    class="w-full h-full">
+                </iframe>
+            `;
+        }
+
+        // Service Worker installation
+        async function installServiceWorker(url) {
+            if ('serviceWorker' in navigator) {
+                try {
+                    // Create service worker code
+                    const swCode = `
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        fetch(event.request).then((response) => {
+            const newHeaders = new Headers(response.headers);
+            newHeaders.delete('X-Frame-Options');
+            newHeaders.delete('Content-Security-Policy');
+            
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: newHeaders
+            });
+        })
+    );
+});
+                    `;
+                    
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    
+                    await navigator.serviceWorker.register(swUrl);
+                    log('Service Worker installed', 'success');
+                    
+                    // Reload with service worker
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } catch (error) {
+                    log(`Service Worker failed: ${error.message}`, 'error');
+                }
+            } else {
+                log('Service Workers not supported', 'error');
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket(url) {
+            log('WebSocket connection would require a server implementation', 'info');
+            log('See the code example above for server setup', 'info');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const docUrl = urlParams.get('url');
+            if (docUrl) {
+                document.getElementById('docUrl').value = docUrl;
+                autoDetectAndEmbed();
+            }
+        });
+    </script>
+
+    <style>
+        .method-pill {
+            @apply px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105;
+        }
+        
+        .method-pill:active {
+            @apply scale-95;
+        }
+        
+        /* Custom scrollbar for console */
+        #console::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #console::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        #console::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        
+        #console::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+    </style>
+</body>
+</html>
