@@ -1819,8 +1819,14 @@
     }
 
     function safeShellEscape(str) {
-        return "'" + String(str).replace(/'/g, "'\"'\"'") + "'";
-    }
+    // Use double quotes and escape special characters
+    return '"' + String(str)
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
+        .replace(/"/g, '\\"')    // Escape double quotes
+        .replace(/\$/g, '\\$')   // Escape dollar signs
+        .replace(/`/g, '\\`')    // Escape backticks
+        + '"';
+}
 
     // Initialize application
     document.addEventListener('DOMContentLoaded', () => {
@@ -3510,5 +3516,444 @@
     console.log('💡 Tip: Use Ctrl+Enter to generate commands quickly!');
     console.log('🔒 Remember: Only test applications you have permission to test!');
     </script>
+    
+    
+    
+    <script>
+// Custom Payload Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add custom payload button handler
+    const addCustomPayloadBtn = document.getElementById('add-custom-payload-btn');
+    
+    if (addCustomPayloadBtn) {
+        addCustomPayloadBtn.addEventListener('click', function() {
+            showCustomPayloadModal();
+        });
+    }
+    
+    // Create and append the custom payload modal to the body
+    const customPayloadModal = document.createElement('div');
+    customPayloadModal.id = 'custom-payload-modal';
+    customPayloadModal.className = 'modal';
+    customPayloadModal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Custom Payload</h2>
+                <button class="modal-close" onclick="hideModal('custom-payload-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Payload Category</label>
+                    <select id="custom-payload-category" class="form-select">
+                        <option value="custom">Custom</option>
+                        <option value="xss">XSS</option>
+                        <option value="sqli">SQL Injection</option>
+                        <option value="xxe">XXE</option>
+                        <option value="cmd">Command Injection</option>
+                        <option value="path">Path Traversal</option>
+                        <option value="ssti">SSTI</option>
+                        <option value="ssrf">SSRF</option>
+                        <option value="nosql">NoSQL</option>
+                        <option value="lfi">LFI</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Payload Name/Description</label>
+                    <input type="text" id="custom-payload-name" class="form-input" placeholder="e.g., Custom XSS for React Apps">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Payload Content</label>
+                    <textarea id="custom-payload-content" class="form-textarea" placeholder="Enter your custom payload here..." style="min-height: 150px; font-family: 'Monaco', 'Consolas', monospace;"></textarea>
+                </div>
+                
+                <div class="help-tip" style="margin-bottom: 1rem;">
+                    <i class="fas fa-info-circle icon"></i>
+                    <div>Custom payloads are stored locally in your browser and will persist across sessions.</div>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="hideModal('custom-payload-modal')">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn btn-primary" onclick="saveCustomPayload()">
+                        <i class="fas fa-save"></i> Save Payload
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(customPayloadModal);
+    
+    // Load custom payloads on startup
+    loadCustomPayloads();
+});
+
+// Function to show custom payload modal
+function showCustomPayloadModal() {
+    const modal = document.getElementById('custom-payload-modal');
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Clear form
+        document.getElementById('custom-payload-name').value = '';
+        document.getElementById('custom-payload-content').value = '';
+        document.getElementById('custom-payload-category').value = 'custom';
+        
+        // Focus on name input
+        setTimeout(() => {
+            document.getElementById('custom-payload-name').focus();
+        }, 100);
+    }
+}
+
+// Function to save custom payload
+function saveCustomPayload() {
+    const name = document.getElementById('custom-payload-name').value.trim();
+    const content = document.getElementById('custom-payload-content').value.trim();
+    const category = document.getElementById('custom-payload-category').value;
+    
+    if (!name) {
+        showToast('Please enter a payload name!', 'warning');
+        return;
+    }
+    
+    if (!content) {
+        showToast('Please enter payload content!', 'warning');
+        return;
+    }
+    
+    // Get existing custom payloads
+    let customPayloads = JSON.parse(localStorage.getItem('customPayloads') || '[]');
+    
+    // Add new payload
+    const newPayload = {
+        id: Date.now(),
+        name: name,
+        content: content,
+        category: category,
+        timestamp: new Date().toISOString()
+    };
+    
+    customPayloads.unshift(newPayload);
+    
+    // Limit to 500 custom payloads
+    if (customPayloads.length > 500) {
+        customPayloads = customPayloads.slice(0, 500);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('customPayloads', JSON.stringify(customPayloads));
+    
+    // Close modal
+    hideModal('custom-payload-modal');
+    
+    // Refresh payload display if on custom category
+    if (currentCategory === 'all' || currentCategory === 'custom' || currentCategory === category) {
+        displayPayloadsWithCustom(currentCategory);
+    }
+    
+    showToast('Custom payload saved successfully!', 'success');
+}
+
+// Function to load and display custom payloads
+function loadCustomPayloads() {
+    // Override the original displayPayloads function to include custom payloads
+    window.displayPayloadsWithCustom = function(category) {
+        const container = document.getElementById('payload-list');
+        const countBadge = document.getElementById('payload-count');
+        container.innerHTML = '';
+        
+        let allPayloads = [];
+        
+        // Get built-in payloads
+        if (category === 'all') {
+            for (const cat in payloadDatabase) {
+                allPayloads = allPayloads.concat(
+                    payloadDatabase[cat].map(encodedPayload => ({
+                        category: cat,
+                        payload: decodePayload(encodedPayload),
+                        isCustom: false
+                    }))
+                );
+            }
+        } else if (payloadDatabase[category]) {
+            allPayloads = payloadDatabase[category].map(encodedPayload => ({
+                category: category,
+                payload: decodePayload(encodedPayload),
+                isCustom: false
+            }));
+        }
+        
+        // Add custom payloads
+        const customPayloads = JSON.parse(localStorage.getItem('customPayloads') || '[]');
+        if (category === 'all' || category === 'custom') {
+            customPayloads.forEach(cp => {
+                allPayloads.push({
+                    category: cp.category,
+                    payload: cp.content,
+                    isCustom: true,
+                    customId: cp.id,
+                    customName: cp.name
+                });
+            });
+        } else {
+            customPayloads.filter(cp => cp.category === category).forEach(cp => {
+                allPayloads.push({
+                    category: cp.category,
+                    payload: cp.content,
+                    isCustom: true,
+                    customId: cp.id,
+                    customName: cp.name
+                });
+            });
+        }
+        
+        countBadge.textContent = allPayloads.length;
+        
+        if (allPayloads.length === 0) {
+            container.innerHTML = `
+                <div style="padding: 1.5rem; text-align: center; color: var(--gray-500);">
+                    <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i><br>
+                    No payloads found<br>
+                    <small>Try selecting a different category or add custom payloads</small>
+                </div>
+            `;
+            return;
+        }
+        
+        allPayloads.forEach((item, index) => {
+            const element = document.createElement('div');
+            element.className = 'payload-item';
+            if (item.isCustom) {
+                element.style.background = 'linear-gradient(to right, var(--primary-light), transparent)';
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'payload-text';
+            textDiv.textContent = item.payload;
+            textDiv.title = item.customName ? 
+                `${item.customName} (${item.category.toUpperCase()})` : 
+                `${item.category.toUpperCase()}: ${item.payload}`;
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'payload-actions';
+            
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = item.isCustom ? 'badge badge-success' : 'badge badge-primary';
+            categoryBadge.textContent = item.isCustom ? 'CUSTOM' : item.category.toUpperCase();
+            categoryBadge.style.fontSize = '0.6rem';
+            categoryBadge.style.marginRight = '0.5rem';
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn btn-sm btn-secondary';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.title = 'Copy payload';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(item.payload).then(() => {
+                    showToast(`${item.isCustom ? 'Custom' : item.category.toUpperCase()} payload copied!`, 'success');
+                });
+            };
+            
+            const useBtn = document.createElement('button');
+            useBtn.className = 'btn btn-sm btn-primary';
+            useBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            useBtn.title = 'Add to request body';
+            useBtn.onclick = () => {
+                document.getElementById('body').value = item.payload;
+                generateCurl();
+                showToast(`${item.isCustom ? 'Custom' : item.category.toUpperCase()} payload added to request body!`, 'success');
+            };
+            
+            actionsDiv.appendChild(categoryBadge);
+            actionsDiv.appendChild(copyBtn);
+            actionsDiv.appendChild(useBtn);
+            
+            // Add delete button for custom payloads
+            if (item.isCustom) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.title = 'Delete custom payload';
+                deleteBtn.onclick = () => {
+                    if (confirm('Delete this custom payload?')) {
+                        deleteCustomPayload(item.customId);
+                    }
+                };
+                actionsDiv.appendChild(deleteBtn);
+            }
+            
+            element.appendChild(textDiv);
+            element.appendChild(actionsDiv);
+            container.appendChild(element);
+        });
+    };
+    
+    // Replace the original displayPayloads with our enhanced version
+    window.displayPayloads = window.displayPayloadsWithCustom;
+    
+    // Add custom category button if it doesn't exist
+    if (!document.querySelector('[data-category="custom"]')) {
+        const categoriesContainer = document.querySelector('.payload-categories');
+        const customCatBtn = document.createElement('button');
+        customCatBtn.className = 'payload-cat-btn';
+        customCatBtn.setAttribute('data-category', 'custom');
+        customCatBtn.title = 'Custom payloads';
+        customCatBtn.textContent = 'Custom';
+        customCatBtn.addEventListener('click', () => {
+            document.querySelectorAll('.payload-cat-btn').forEach(btn => btn.classList.remove('active'));
+            customCatBtn.classList.add('active');
+            currentCategory = 'custom';
+            displayPayloads('custom');
+        });
+        categoriesContainer.appendChild(customCatBtn);
+    }
+}
+
+// Function to delete custom payload
+function deleteCustomPayload(id) {
+    let customPayloads = JSON.parse(localStorage.getItem('customPayloads') || '[]');
+    customPayloads = customPayloads.filter(cp => cp.id !== id);
+    localStorage.setItem('customPayloads', JSON.stringify(customPayloads));
+    
+    // Refresh display
+    displayPayloadsWithCustom(currentCategory);
+    showToast('Custom payload deleted!', 'success');
+}
+
+// Update search to include custom payloads
+const originalSearchPayloads = window.searchPayloads;
+window.searchPayloads = function(query) {
+    if (!query.trim()) {
+        displayPayloads(currentCategory);
+        return;
+    }
+    
+    query = query.toLowerCase();
+    
+    let allPayloads = [];
+    
+    // Search built-in payloads
+    for (const cat in payloadDatabase) {
+        if (currentCategory === 'all' || currentCategory === cat) {
+            allPayloads = allPayloads.concat(
+                payloadDatabase[cat]
+                    .map(encodedPayload => decodePayload(encodedPayload))
+                    .filter(payload => 
+                        payload.toLowerCase().includes(query) || 
+                        cat.toLowerCase().includes(query)
+                    )
+                    .map(payload => ({ category: cat, payload, isCustom: false }))
+            );
+        }
+    }
+    
+    // Search custom payloads
+    const customPayloads = JSON.parse(localStorage.getItem('customPayloads') || '[]');
+    if (currentCategory === 'all' || currentCategory === 'custom') {
+        customPayloads
+            .filter(cp => 
+                cp.content.toLowerCase().includes(query) || 
+                cp.name.toLowerCase().includes(query) ||
+                cp.category.toLowerCase().includes(query)
+            )
+            .forEach(cp => {
+                allPayloads.push({
+                    category: cp.category,
+                    payload: cp.content,
+                    isCustom: true,
+                    customId: cp.id,
+                    customName: cp.name
+                });
+            });
+    }
+    
+    const container = document.getElementById('payload-list');
+    const countBadge = document.getElementById('payload-count');
+    
+    countBadge.textContent = allPayloads.length;
+    container.innerHTML = '';
+    
+    if (allPayloads.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 1.5rem; text-align: center; color: var(--gray-500);">
+                <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i><br>
+                No matching payloads found<br>
+                <small>Try different search terms</small>
+            </div>
+        `;
+        return;
+    }
+    
+    // Display filtered results (reuse the display logic from displayPayloadsWithCustom)
+    allPayloads.forEach((item) => {
+        const element = document.createElement('div');
+        element.className = 'payload-item';
+        if (item.isCustom) {
+            element.style.background = 'linear-gradient(to right, var(--primary-light), transparent)';
+        }
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'payload-text';
+        textDiv.textContent = item.payload;
+        textDiv.title = item.customName ? 
+            `${item.customName} (${item.category.toUpperCase()})` : 
+            `${item.category.toUpperCase()}: ${item.payload}`;
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'payload-actions';
+        
+        const categoryBadge = document.createElement('span');
+        categoryBadge.className = item.isCustom ? 'badge badge-success' : 'badge badge-primary';
+        categoryBadge.textContent = item.isCustom ? 'CUSTOM' : item.category.toUpperCase();
+        categoryBadge.style.fontSize = '0.6rem';
+        categoryBadge.style.marginRight = '0.5rem';
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-sm btn-secondary';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+        copyBtn.title = 'Copy payload';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(item.payload).then(() => {
+                showToast(`${item.isCustom ? 'Custom' : item.category.toUpperCase()} payload copied!`, 'success');
+            });
+        };
+        
+        const useBtn = document.createElement('button');
+        useBtn.className = 'btn btn-sm btn-primary';
+        useBtn.innerHTML = '<i class="fas fa-plus"></i>';
+        useBtn.title = 'Add to request body';
+        useBtn.onclick = () => {
+            document.getElementById('body').value = item.payload;
+            generateCurl();
+            showToast(`${item.isCustom ? 'Custom' : item.category.toUpperCase()} payload added to request body!`, 'success');
+        };
+        
+        actionsDiv.appendChild(categoryBadge);
+        actionsDiv.appendChild(copyBtn);
+        actionsDiv.appendChild(useBtn);
+        
+        if (item.isCustom) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-sm btn-danger';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = 'Delete custom payload';
+            deleteBtn.onclick = () => {
+                if (confirm('Delete this custom payload?')) {
+                    deleteCustomPayload(item.customId);
+                }
+            };
+            actionsDiv.appendChild(deleteBtn);
+        }
+        
+        element.appendChild(textDiv);
+        element.appendChild(actionsDiv);
+        container.appendChild(element);
+    });
+};
+</script>
+    
 </body>
 </html>
