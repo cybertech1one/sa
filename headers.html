@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete HTTP Security Headers Audit Platform - Enterprise Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        
+        .view-toggle {
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+            display: inline-flex;
+            gap: 4px;
+        }
+        
+        .view-toggle button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .view-toggle button.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .headers-list-view {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .header-list-item:hover {
+            background: #f9fafb;
+            padding-left: 28px;
+        }
+        
+        .header-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .alphabetical-section {
+            background: #f9fafb;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .alphabet-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .alphabet-nav button {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        
+        .alphabet-nav button:hover {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+        }
+        
+        .alphabet-nav button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .alphabet-nav button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .header-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .header-card:hover::before {
+            transform: translateX(0);
+        }
+        
+        .header-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-color: #667eea;
+        }
+        
+        .header-card.highlight {
+            animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); }
+        }
+        
+        .risk-critical {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #7f1d1d;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+        }
+        
+        .risk-high {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+            color: #7c2d12;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(251, 146, 60, 0.1);
+        }
+        
+        .risk-medium {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #78350f;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(251, 191, 36, 0.1);
+        }
+        
+        .risk-low {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #064e3b;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+        }
+        
+        .risk-info {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e3a8a;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+        }
+        
+        .deprecated-badge {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #374151;
+            font-weight: 500;
+            text-decoration: line-through;
+        }
+        
+        .implementation-tab {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .implementation-tab:hover {
+            background: #f3f4f6;
+        }
+        
+        .implementation-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .code-content {
+            padding: 60px 24px 24px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+        
+        .copy-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .copy-button.copied {
+            background: #10b981;
+            color: white;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Enhanced Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center shadow-lg">
+                        <i class="fas fa-shield-alt text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">HTTP Security Headers</h1>
+                        <p class="text-xs text-gray-500">Complete A-Z Implementation Guide</p>
+                    </div>
+                </div>
+                
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button id="cardViewBtn" class="active" onclick="app.switchView('cards')">
+                        <i class="fas fa-th-large mr-2"></i>Cards
+                    </button>
+                    <button id="listViewBtn" onclick="app.switchView('list')">
+                        <i class="fas fa-list mr-2"></i>List
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button onclick="app.scanCurrentPage()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2">
+                        <i class="fas fa-radar"></i>
+                        Scan Current Page
+                    </button>
+                    <button onclick="app.showBulkConfig()" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-all flex items-center gap-2">
+                        <i class="fas fa-cogs"></i>
+                        Bulk Configure
+                    </button>
+                    <button onclick="app.exportFullReport()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2">
+                        <i class="fas fa-file-export"></i>
+                        Export Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Progress Dashboard -->
+    <div class="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Overall Score -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <svg class="w-16 h-16">
+                                <circle cx="32" cy="32" r="28" stroke="#e5e7eb" stroke-width="4" fill="none"></circle>
+                                <circle cx="32" cy="32" r="28" stroke="url(#progress-gradient)" stroke-width="4" fill="none"
+                                        stroke-dasharray="176" stroke-dashoffset="44" class="progress-ring"></circle>
+                                <defs>
+                                    <linearGradient id="progress-gradient">
+                                        <stop offset="0%" stop-color="#667eea"/>
+                                        <stop offset="100%" stop-color="#764ba2"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-gray-900" id="overallScore">0%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Security Score</p>
+                            <p class="font-semibold text-gray-900">Overall Grade</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-red-600" id="criticalCount">0</p>
+                            <p class="text-sm text-gray-600">Critical Issues</p>
+                        </div>
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-amber-600" id="highCount">0</p>
+                            <p class="text-sm text-gray-600">High Priority</p>
+                        </div>
+                        <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-circle text-amber-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-green-600" id="implementedCount">0</p>
+                            <p class="text-sm text-gray-600">Implemented</p>
+                        </div>
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold text-purple-600" id="totalCount">0</p>
+                            <p class="text-sm text-gray-600">Total Headers</p>
+                        </div>
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-list text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Search and Filters -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1 relative">
+                    <input type="text" id="searchInput" placeholder="Search headers by name, description, or implementation..." 
+                           class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                           oninput="app.handleSearch(this.value)">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                </div>
+                
+                <select id="platformFilter" onchange="app.filterByPlatform(this.value)" 
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <option value="all">All Platforms</option>
+                    <option value="nginx">Nginx</option>
+                    <option value="apache">Apache</option>
+                    <option value="iis">IIS</option>
+                    <option value="nodejs">Node.js / Express</option>
+                    <option value="haproxy">HAProxy</option>
+                    <option value="cloudflare">Cloudflare</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- List View (Initially Hidden) -->
+        <div id="listView" class="hidden">
+            <!-- Alphabet Navigation -->
+            <div class="alphabet-nav">
+                <!-- Alphabet buttons will be dynamically generated -->
+            </div>
+            
+            <!-- Headers List -->
+            <div class="headers-list-view">
+                <!-- List items will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div id="cardView">
+            <!-- Headers Container -->
+            <div id="headersContainer" class="space-y-6">
+                <!-- Headers will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="configModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900">Bulk Configuration Generator</h2>
+                <p class="text-gray-600 mt-1">Select headers and generate configuration for your platform</p>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="bulkConfigContent"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex gap-4">
+                <button onclick="app.closeBulkConfig()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all">
+                    Cancel
+                </button>
+                <button onclick="app.generateBulkConfig()" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg hover:shadow-lg transition-all">
+                    Generate Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complete Headers Database - Now includes ALL headers A-Z
+        const headersDB = [
+            // A - Access Control Headers
+            {
+                name: "Access-Control-Allow-Origin",
+                category: "cors",
+                risk: "high",
+                description: "Controls which origins can access the resource. Part of CORS mechanism.",
+                shortDescription: "CORS - who may talk to your server",
+                implementation: {
+                    nginx: `# Specific origin (recommended)
+add_header Access-Control-Allow-Origin "https://trusted-site.com" always;`,
+                    apache: `Header always set Access-Control-Allow-Origin "https://trusted-site.com"`,
+                    nodejs: `res.setHeader('Access-Control-Allow-Origin', 'https://trusted-site.com');`,
+                    iis: `<add name="Access-Control-Allow-Origin" value="https://trusted-site.com" />`,
+                    haproxy: `http-response set-header Access-Control-Allow-Origin "https://trusted-site.com"`,
+                    cloudflare: `newHeaders.set('Access-Control-Allow-Origin', 'https://trusted-site.com')`
+                },
+                bestPractices: [
+                    "Never use wildcard (*) with credentials",
+                    "Validate origin against a whitelist",
+                    "Be specific with allowed origins"
+                ],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Allow-Methods",
+                category: "cors",
+                risk: "medium",
+                description: "Specifies which HTTP methods are allowed when accessing the resource.",
+                shortDescription: "CORS - allowed HTTP methods",
+                implementation: {
+                    nginx: `add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;`,
+                    apache: `Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"`,
+                    nodejs: `res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');`,
+                    iis: `<add name="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS" />`,
+                    haproxy: `http-response set-header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"`,
+                    cloudflare: `newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')`
+                },
+                bestPractices: ["Only allow methods you actually use", "Always include OPTIONS for preflight"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Allow-Headers",
+                category: "cors",
+                risk: "medium",
+                description: "Indicates which headers can be used during the actual request.",
+                shortDescription: "CORS - allowed request headers",
+                implementation: {
+                    nginx: `add_header Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With" always;`,
+                    apache: `Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"`,
+                    nodejs: `res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');`,
+                    iis: `<add name="Access-Control-Allow-Headers" value="Content-Type, Authorization, X-Requested-With" />`,
+                    haproxy: `http-response set-header Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"`,
+                    cloudflare: `newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')`
+                },
+                bestPractices: ["Only allow required headers", "Avoid using wildcard"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Allow-Credentials",
+                category: "cors",
+                risk: "high",
+                description: "Indicates whether the response can be exposed when credentials flag is true.",
+                shortDescription: "CORS - allow cookies/auth",
+                implementation: {
+                    nginx: `add_header Access-Control-Allow-Credentials "true" always;`,
+                    apache: `Header always set Access-Control-Allow-Credentials "true"`,
+                    nodejs: `res.setHeader('Access-Control-Allow-Credentials', 'true');`,
+                    iis: `<add name="Access-Control-Allow-Credentials" value="true" />`,
+                    haproxy: `http-response set-header Access-Control-Allow-Credentials "true"`,
+                    cloudflare: `newHeaders.set('Access-Control-Allow-Credentials', 'true')`
+                },
+                bestPractices: ["Only use when necessary", "Never combine with wildcard origin"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Expose-Headers",
+                category: "cors",
+                risk: "low",
+                description: "Whitelists headers that browsers are allowed to access.",
+                shortDescription: "CORS - exposed response headers",
+                implementation: {
+                    nginx: `add_header Access-Control-Expose-Headers "X-Total-Count, X-Page-Number" always;`,
+                    apache: `Header always set Access-Control-Expose-Headers "X-Total-Count, X-Page-Number"`,
+                    nodejs: `res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count, X-Page-Number');`,
+                    iis: `<add name="Access-Control-Expose-Headers" value="X-Total-Count, X-Page-Number" />`,
+                    haproxy: `http-response set-header Access-Control-Expose-Headers "X-Total-Count, X-Page-Number"`,
+                    cloudflare: `newHeaders.set('Access-Control-Expose-Headers', 'X-Total-Count, X-Page-Number')`
+                },
+                bestPractices: ["Only expose necessary headers", "Don't expose sensitive information"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Max-Age",
+                category: "cors",
+                risk: "low",
+                description: "Indicates how long browsers can cache preflight response.",
+                shortDescription: "CORS - preflight cache duration",
+                implementation: {
+                    nginx: `add_header Access-Control-Max-Age "86400" always;`,
+                    apache: `Header always set Access-Control-Max-Age "86400"`,
+                    nodejs: `res.setHeader('Access-Control-Max-Age', '86400');`,
+                    iis: `<add name="Access-Control-Max-Age" value="86400" />`,
+                    haproxy: `http-response set-header Access-Control-Max-Age "86400"`,
+                    cloudflare: `newHeaders.set('Access-Control-Max-Age', '86400')`
+                },
+                bestPractices: ["Use reasonable cache times (86400 = 24 hours)"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Request-Method",
+                category: "cors",
+                risk: "info",
+                description: "Used by browsers in preflight requests to indicate which method will be used.",
+                shortDescription: "CORS preflight - method indicator",
+                implementation: {
+                    nginx: `# This is a request header sent by browsers, not set by server`,
+                    apache: `# This is a request header sent by browsers, not set by server`,
+                    nodejs: `// Access via: req.headers['access-control-request-method']`,
+                    iis: `<!-- This is a request header sent by browsers -->`,
+                    haproxy: `# This is a request header sent by browsers`,
+                    cloudflare: `// Access via: request.headers.get('Access-Control-Request-Method')`
+                },
+                bestPractices: ["Don't set this header manually", "Use it to validate preflight requests"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Access-Control-Request-Headers",
+                category: "cors",
+                risk: "info",
+                description: "Used by browsers in preflight requests to indicate which headers will be used.",
+                shortDescription: "CORS preflight - headers indicator",
+                implementation: {
+                    nginx: `# This is a request header sent by browsers, not set by server`,
+                    apache: `# This is a request header sent by browsers, not set by server`,
+                    nodejs: `// Access via: req.headers['access-control-request-headers']`,
+                    iis: `<!-- This is a request header sent by browsers -->`,
+                    haproxy: `# This is a request header sent by browsers`,
+                    cloudflare: `// Access via: request.headers.get('Access-Control-Request-Headers')`
+                },
+                bestPractices: ["Don't set this header manually", "Use it to validate preflight requests"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Authentication-Info",
+                category: "authentication",
+                risk: "low",
+                description: "Carries digest-auth parameters; prevents replay/timeout issues.",
+                shortDescription: "Digest auth parameters & replay prevention",
+                implementation: {
+                    nginx: `# Used with digest authentication module`,
+                    apache: `# Automatically set when using digest authentication`,
+                    nodejs: `// Set with digest auth middleware`,
+                    iis: `<!-- Configure in IIS Manager under Authentication -->`,
+                    haproxy: `# HAProxy doesn't directly support digest auth`,
+                    cloudflare: `// Implement custom digest auth in Workers`
+                },
+                bestPractices: ["Use HTTPS to protect authentication headers", "Consider OAuth 2.0 for modern apps"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            
+            // C - Cache and Content Headers
+            {
+                name: "Cache-Control",
+                category: "caching",
+                risk: "medium",
+                description: "Controls caching behavior. Use no-store for sensitive data.",
+                shortDescription: "Caching directives for security",
+                implementation: {
+                    nginx: `# For sensitive data
+add_header Cache-Control "no-store, no-cache, must-revalidate, private" always;`,
+                    apache: `Header always set Cache-Control "no-store, no-cache, must-revalidate, private"`,
+                    nodejs: `res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');`,
+                    iis: `<add name="Cache-Control" value="no-store, no-cache, must-revalidate, private" />`,
+                    haproxy: `http-response set-header Cache-Control "no-store, no-cache, must-revalidate, private"`,
+                    cloudflare: `newHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, private')`
+                },
+                bestPractices: ["Use no-store for sensitive data", "Set private for user-specific content"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Clear-Site-Data",
+                category: "caching",
+                risk: "low",
+                description: "Instructs browser to clear cookies, storage, cache after logout.",
+                shortDescription: "Clear browser data on demand",
+                implementation: {
+                    nginx: `# On logout endpoint
+location /logout {
+    add_header Clear-Site-Data '"cache", "cookies", "storage"' always;
+}`,
+                    apache: `<Location "/logout">
+    Header always set Clear-Site-Data '"cache", "cookies", "storage"'
+</Location>`,
+                    nodejs: `app.post('/logout', (req, res) => {
+    res.setHeader('Clear-Site-Data', '"cache", "cookies", "storage"');
+    res.redirect('/login');
+});`,
+                    iis: `<location path="logout">
+    <add name="Clear-Site-Data" value="&quot;cache&quot;, &quot;cookies&quot;, &quot;storage&quot;" />
+</location>`,
+                    haproxy: `http-response set-header Clear-Site-Data '"cache", "cookies", "storage"' if { path /logout }`,
+                    cloudflare: `if (request.url.includes('/logout')) {
+    newHeaders.set('Clear-Site-Data', '"cache", "cookies", "storage"')
+}`
+                },
+                bestPractices: ["Use on logout endpoints", "Be specific about what to clear"],
+                browserSupport: { chrome: true, firefox: true, safari: false, edge: true, ie: false }
+            },
+            {
+                name: "Content-Security-Policy",
+                category: "security",
+                risk: "critical",
+                description: "Whitelists valid sources for scripts, styles, images, etc. The most powerful XSS defense.",
+                shortDescription: "XSS prevention via source whitelisting",
+                implementation: {
+                    nginx: `# Comprehensive CSP
+add_header Content-Security-Policy "
+    default-src 'self';
+    script-src 'self' 'nonce-$request_id';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    font-src 'self';
+    connect-src 'self';
+    frame-ancestors 'none';
+    base-uri 'self';
+    form-action 'self';
+    upgrade-insecure-requests;
+" always;`,
+                    apache: `Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'nonce-%{UNIQUE_ID}e'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"`,
+                    nodejs: `app.use(helmet.contentSecurityPolicy({
+    directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", (req, res) => \`'nonce-\${res.locals.nonce}'\`],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: []
+    }
+}));`,
+                    iis: `<add name="Content-Security-Policy" value="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;" />`,
+                    haproxy: `http-response set-header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"`,
+                    cloudflare: `newHeaders.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'nonce-' + nonce; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;")`
+                },
+                bestPractices: ["Start with report-only mode", "Use nonces instead of unsafe-inline", "Test thoroughly before enforcing"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 11 }
+            },
+            {
+                name: "Content-Security-Policy-Report-Only",
+                category: "security",
+                risk: "info",
+                description: "CSP in report-only mode. Logs violations without blocking.",
+                shortDescription: "CSP testing mode - logs violations",
+                implementation: {
+                    nginx: `add_header Content-Security-Policy-Report-Only "default-src 'self'; report-uri /csp-reports/" always;`,
+                    apache: `Header always set Content-Security-Policy-Report-Only "default-src 'self'; report-uri /csp-reports/"`,
+                    nodejs: `res.setHeader('Content-Security-Policy-Report-Only', "default-src 'self'; report-uri /csp-reports/");`,
+                    iis: `<add name="Content-Security-Policy-Report-Only" value="default-src 'self'; report-uri /csp-reports/" />`,
+                    haproxy: `http-response set-header Content-Security-Policy-Report-Only "default-src 'self'; report-uri /csp-reports/"`,
+                    cloudflare: `newHeaders.set('Content-Security-Policy-Report-Only', "default-src 'self'; report-uri /csp-reports/")`
+                },
+                bestPractices: ["Use before enforcing CSP", "Monitor reports for 1-2 weeks"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 11 }
+            },
+            {
+                name: "Content-Type",
+                category: "security",
+                risk: "high",
+                description: "Indicates media type of resource. Must be set correctly to prevent XSS.",
+                shortDescription: "MIME type declaration for security",
+                implementation: {
+                    nginx: `# Set correct content types
+location ~* \\.json$ {
+    add_header Content-Type "application/json; charset=UTF-8" always;
+}`,
+                    apache: `<FilesMatch "\\.json$">
+    Header set Content-Type "application/json; charset=UTF-8"
+</FilesMatch>`,
+                    nodejs: `res.setHeader('Content-Type', 'application/json; charset=UTF-8');`,
+                    iis: `<staticContent>
+    <mimeMap fileExtension=".json" mimeType="application/json" />
+</staticContent>`,
+                    haproxy: `http-response set-header Content-Type "application/json; charset=UTF-8" if { path_end .json }`,
+                    cloudflare: `if (url.pathname.endsWith('.json')) {
+    newHeaders.set('Content-Type', 'application/json; charset=UTF-8')
+}`
+                },
+                bestPractices: ["Always include charset for text types", "Set correctly for all responses"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Cross-Origin-Embedder-Policy",
+                category: "security",
+                risk: "medium",
+                description: "Requires cross-origin resources to explicitly grant permission. Enables SharedArrayBuffer.",
+                shortDescription: "COEP - cross-origin embedding control",
+                implementation: {
+                    nginx: `add_header Cross-Origin-Embedder-Policy "require-corp" always;`,
+                    apache: `Header always set Cross-Origin-Embedder-Policy "require-corp"`,
+                    nodejs: `res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');`,
+                    iis: `<add name="Cross-Origin-Embedder-Policy" value="require-corp" />`,
+                    haproxy: `http-response set-header Cross-Origin-Embedder-Policy "require-corp"`,
+                    cloudflare: `newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp')`
+                },
+                bestPractices: ["Required for SharedArrayBuffer access", "Test all third-party resources"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            {
+                name: "Cross-Origin-Opener-Policy",
+                category: "security",
+                risk: "high",
+                description: "Isolates browsing context. Prevents window.opener access and Spectre-like attacks.",
+                shortDescription: "COOP - window isolation for Spectre defense",
+                implementation: {
+                    nginx: `add_header Cross-Origin-Opener-Policy "same-origin" always;`,
+                    apache: `Header always set Cross-Origin-Opener-Policy "same-origin"`,
+                    nodejs: `res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');`,
+                    iis: `<add name="Cross-Origin-Opener-Policy" value="same-origin" />`,
+                    haproxy: `http-response set-header Cross-Origin-Opener-Policy "same-origin"`,
+                    cloudflare: `newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin')`
+                },
+                bestPractices: ["Use 'same-origin' for maximum isolation", "Test popup and OAuth flows"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            {
+                name: "Cross-Origin-Resource-Policy",
+                category: "security",
+                risk: "medium",
+                description: "Prevents other origins from loading your resources. Protects against Spectre attacks.",
+                shortDescription: "CORP - resource loading restrictions",
+                implementation: {
+                    nginx: `add_header Cross-Origin-Resource-Policy "same-origin" always;`,
+                    apache: `Header always set Cross-Origin-Resource-Policy "same-origin"`,
+                    nodejs: `res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');`,
+                    iis: `<add name="Cross-Origin-Resource-Policy" value="same-origin" />`,
+                    haproxy: `http-response set-header Cross-Origin-Resource-Policy "same-origin"`,
+                    cloudflare: `newHeaders.set('Cross-Origin-Resource-Policy', 'same-origin')`
+                },
+                bestPractices: ["Use 'same-origin' for sensitive resources", "Use 'cross-origin' for public CDN assets"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            
+            // E - Expect Headers
+            {
+                name: "Expect-CT",
+                category: "security",
+                risk: "info",
+                deprecated: true,
+                description: "DEPRECATED - Enforced Certificate Transparency. Obsolete in modern browsers.",
+                shortDescription: "Certificate Transparency (deprecated)",
+                implementation: {
+                    nginx: `# DEPRECATED - Remove from existing configs`,
+                    apache: `# DEPRECATED - Remove from existing configs`,
+                    nodejs: `// DEPRECATED - Remove from existing code`,
+                    iis: `<!-- DEPRECATED - Remove from existing configs -->`,
+                    haproxy: `# DEPRECATED - Remove from existing configs`,
+                    cloudflare: `// DEPRECATED - Remove from existing code`
+                },
+                bestPractices: ["Do not use - deprecated", "Modern browsers enforce CT by default"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: false, ie: false }
+            },
+            
+            // F - Feature Policy
+            {
+                name: "Feature-Policy",
+                category: "privacy",
+                risk: "info",
+                deprecated: true,
+                description: "DEPRECATED - Superseded by Permissions-Policy. Controls browser features.",
+                shortDescription: "Browser features control (deprecated)",
+                implementation: {
+                    nginx: `# DEPRECATED - Use Permissions-Policy instead`,
+                    apache: `# DEPRECATED - Use Permissions-Policy instead`,
+                    nodejs: `// DEPRECATED - Use Permissions-Policy instead`,
+                    iis: `<!-- DEPRECATED - Use Permissions-Policy instead -->`,
+                    haproxy: `# DEPRECATED - Use Permissions-Policy instead`,
+                    cloudflare: `// DEPRECATED - Use Permissions-Policy instead`
+                },
+                bestPractices: ["Migrate to Permissions-Policy", "Remove Feature-Policy headers"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: false, ie: false }
+            },
+            
+            // N - NEL
+            {
+                name: "NEL",
+                category: "security",
+                risk: "low",
+                description: "Network Error Logging - Reports network failures to help detect issues.",
+                shortDescription: "Network error reporting",
+                implementation: {
+                    nginx: `add_header NEL '{"report_to":"network-errors","max_age":31536000}' always;`,
+                    apache: `Header always set NEL '{"report_to":"network-errors","max_age":31536000}'`,
+                    nodejs: `res.setHeader('NEL', '{"report_to":"network-errors","max_age":31536000}');`,
+                    iis: `<add name="NEL" value='{"report_to":"network-errors","max_age":31536000}' />`,
+                    haproxy: `http-response set-header NEL '{"report_to":"network-errors","max_age":31536000}'`,
+                    cloudflare: `newHeaders.set('NEL', '{"report_to":"network-errors","max_age":31536000}')`
+                },
+                bestPractices: ["Configure Report-To endpoint first", "Monitor report volume"],
+                browserSupport: { chrome: true, firefox: false, safari: false, edge: true, ie: false }
+            },
+            
+            // O - Origin Headers
+            {
+                name: "Origin-Agent-Cluster",
+                category: "security",
+                risk: "low",
+                description: "Opts into origin-keyed agent clusters for better isolation against Spectre.",
+                shortDescription: "Process isolation for Spectre defense",
+                implementation: {
+                    nginx: `add_header Origin-Agent-Cluster "?1" always;`,
+                    apache: `Header always set Origin-Agent-Cluster "?1"`,
+                    nodejs: `res.setHeader('Origin-Agent-Cluster', '?1');`,
+                    iis: `<add name="Origin-Agent-Cluster" value="?1" />`,
+                    haproxy: `http-response set-header Origin-Agent-Cluster "?1"`,
+                    cloudflare: `newHeaders.set('Origin-Agent-Cluster', '?1')`
+                },
+                bestPractices: ["Use for additional Spectre protection", "Low overhead to implement"],
+                browserSupport: { chrome: true, firefox: false, safari: false, edge: true, ie: false }
+            },
+            
+            // P - Permissions and Public Key Headers
+            {
+                name: "Permissions-Policy",
+                category: "privacy",
+                risk: "medium",
+                description: "Controls which browser features and APIs can be used. Reduces attack surface.",
+                shortDescription: "Fine-grained browser feature control",
+                implementation: {
+                    nginx: `add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;`,
+                    apache: `Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"`,
+                    nodejs: `res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');`,
+                    iis: `<add name="Permissions-Policy" value="camera=(), microphone=(), geolocation=(), payment=()" />`,
+                    haproxy: `http-response set-header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"`,
+                    cloudflare: `newHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()')`
+                },
+                bestPractices: ["Disable all unused features", "Include interest-cohort=() for FLoC opt-out"],
+                browserSupport: { chrome: true, firefox: true, safari: false, edge: true, ie: false }
+            },
+            {
+                name: "Proxy-Authenticate",
+                category: "authentication",
+                risk: "info",
+                description: "Similar to WWW-Authenticate but for proxy servers.",
+                shortDescription: "Proxy authentication scheme",
+                implementation: {
+                    nginx: `# In proxy context`,
+                    apache: `Header always set Proxy-Authenticate "Basic realm=\"Proxy\""`,
+                    nodejs: `res.setHeader('Proxy-Authenticate', 'Basic realm="Proxy"');`,
+                    iis: `<add name="Proxy-Authenticate" value="Basic realm=&quot;Proxy&quot;" />`,
+                    haproxy: `http-response set-header Proxy-Authenticate "Basic realm=\"Proxy\"" if { status 407 }`,
+                    cloudflare: `if (response.status === 407) {
+    newHeaders.set('Proxy-Authenticate', 'Basic realm="Proxy"')
+}`
+                },
+                bestPractices: ["Use with 407 status code", "Implement proper proxy authentication"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Public-Key-Pins",
+                category: "security",
+                risk: "info",
+                deprecated: true,
+                description: "DEPRECATED - Was used for certificate pinning. Too dangerous, can brick sites.",
+                shortDescription: "Certificate pinning (deprecated - dangerous)",
+                implementation: {
+                    nginx: `# DEPRECATED - DO NOT USE`,
+                    apache: `# DEPRECATED - DO NOT USE`,
+                    nodejs: `// DEPRECATED - DO NOT USE`,
+                    iis: `<!-- DEPRECATED - DO NOT USE -->`,
+                    haproxy: `# DEPRECATED - DO NOT USE`,
+                    cloudflare: `// DEPRECATED - DO NOT USE`
+                },
+                bestPractices: ["DO NOT IMPLEMENT", "Can cause permanent site breakage"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: false, ie: false }
+            },
+            
+            // R - Referrer and Report Headers
+            {
+                name: "Referrer-Policy",
+                category: "privacy",
+                risk: "medium",
+                description: "Controls how much referrer information is sent with requests. Protects user privacy.",
+                shortDescription: "Referrer information control",
+                implementation: {
+                    nginx: `add_header Referrer-Policy "strict-origin-when-cross-origin" always;`,
+                    apache: `Header always set Referrer-Policy "strict-origin-when-cross-origin"`,
+                    nodejs: `res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');`,
+                    iis: `<add name="Referrer-Policy" value="strict-origin-when-cross-origin" />`,
+                    haproxy: `http-response set-header Referrer-Policy "strict-origin-when-cross-origin"`,
+                    cloudflare: `newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin')`
+                },
+                bestPractices: ["Use 'strict-origin-when-cross-origin' for balance", "Test analytics and affiliate links"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 11 }
+            },
+            {
+                name: "Report-To",
+                category: "security",
+                risk: "info",
+                description: "Defines endpoints for browser to send reports (CSP, NEL, COEP violations).",
+                shortDescription: "Violation reporting endpoints",
+                implementation: {
+                    nginx: `add_header Report-To '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}' always;`,
+                    apache: `Header always set Report-To '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}'`,
+                    nodejs: `res.setHeader('Report-To', '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}');`,
+                    iis: `<add name="Report-To" value='{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}' />`,
+                    haproxy: `http-response set-header Report-To '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}'`,
+                    cloudflare: `newHeaders.set('Report-To', '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://example.com/reports"}]}')`
+                },
+                bestPractices: ["Implement secure reporting endpoint", "Rate limit incoming reports"],
+                browserSupport: { chrome: true, firefox: false, safari: false, edge: true, ie: false }
+            },
+            
+            // S - Security Headers
+            {
+                name: "Sec-Fetch-Site",
+                category: "security",
+                risk: "info",
+                description: "Request header indicating the relationship between request initiator and target.",
+                shortDescription: "Request origin relationship indicator",
+                implementation: {
+                    nginx: `# This is a request header - use it for validation
+if ($http_sec_fetch_site = "cross-site") {
+    # Additional validation
+}`,
+                    apache: `RewriteCond %{HTTP:Sec-Fetch-Site} cross-site`,
+                    nodejs: `const secFetchSite = req.headers['sec-fetch-site'];`,
+                    iis: `<!-- Use URL Rewrite module to check -->`,
+                    haproxy: `http-request deny if { hdr(sec-fetch-site) -m str cross-site }`,
+                    cloudflare: `if (request.headers.get('Sec-Fetch-Site') === 'cross-site') { }`
+                },
+                bestPractices: ["Use for additional CSRF protection", "Don't rely solely on these headers"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            {
+                name: "Sec-Fetch-Mode",
+                category: "security",
+                risk: "info",
+                description: "Request header indicating the mode of the request (navigate, cors, no-cors, etc).",
+                shortDescription: "Request mode indicator",
+                implementation: {
+                    nginx: `if ($http_sec_fetch_mode = "navigate") { }`,
+                    apache: `RewriteCond %{HTTP:Sec-Fetch-Mode} navigate`,
+                    nodejs: `const secFetchMode = req.headers['sec-fetch-mode'];`,
+                    iis: `<!-- Check via URL Rewrite -->`,
+                    haproxy: `use_backend api_backend if { hdr(sec-fetch-mode) -m str cors }`,
+                    cloudflare: `const mode = request.headers.get('Sec-Fetch-Mode')`
+                },
+                bestPractices: ["Use for request type validation", "Helpful for CSRF protection"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            {
+                name: "Sec-Fetch-Dest",
+                category: "security",
+                risk: "info",
+                description: "Request header indicating the destination of the request (document, script, image, etc).",
+                shortDescription: "Request destination type",
+                implementation: {
+                    nginx: `if ($http_sec_fetch_dest = "script") { }`,
+                    apache: `RewriteCond %{HTTP:Sec-Fetch-Dest} script`,
+                    nodejs: `const dest = req.headers['sec-fetch-dest'];`,
+                    iis: `<!-- Validate via URL Rewrite -->`,
+                    haproxy: `http-request deny if { hdr(sec-fetch-dest) -m str script } { path_end .html }`,
+                    cloudflare: `const dest = request.headers.get('Sec-Fetch-Dest')`
+                },
+                bestPractices: ["Validate resource type matches destination", "Combine with Content-Type validation"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: false }
+            },
+            {
+                name: "Server",
+                category: "privacy",
+                risk: "low",
+                description: "Reveals server software details. Should be removed or genericized.",
+                shortDescription: "Server software disclosure",
+                implementation: {
+                    nginx: `server_tokens off;`,
+                    apache: `ServerTokens Prod
+ServerSignature Off`,
+                    nodejs: `app.disable('x-powered-by');`,
+                    iis: `<security>
+    <requestFiltering removeServerHeader="true" />
+</security>`,
+                    haproxy: `http-response del-header Server`,
+                    cloudflare: `newHeaders.delete('Server')`
+                },
+                bestPractices: ["Remove or use generic values", "Hide version information"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "Set-Cookie",
+                category: "security",
+                risk: "critical",
+                description: "Cookie security attributes: Secure, HttpOnly, SameSite are critical for session security.",
+                shortDescription: "Cookie security attributes",
+                implementation: {
+                    nginx: `# Using nginx with lua for cookie modification`,
+                    apache: `Header edit Set-Cookie ^(.*)$ "$1; Secure; HttpOnly; SameSite=Strict"`,
+                    nodejs: `res.cookie('sessionId', 'value', {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 3600000
+});`,
+                    iis: `<httpCookies httpOnlyCookies="true" requireSSL="true" sameSite="Strict" />`,
+                    haproxy: `http-response replace-header Set-Cookie (.*) \\1;\ Secure;\ HttpOnly;\ SameSite=Strict`,
+                    cloudflare: `// Modify cookies in Workers`
+                },
+                bestPractices: ["Always use Secure flag for HTTPS", "Always use HttpOnly for session cookies", "Use SameSite=Strict or Lax"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 11 }
+            },
+            {
+                name: "Strict-Transport-Security",
+                category: "security",
+                risk: "critical",
+                description: "Forces HTTPS for all future connections. Prevents SSL stripping attacks.",
+                shortDescription: "HSTS - Force HTTPS connections",
+                implementation: {
+                    nginx: `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;`,
+                    apache: `Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"`,
+                    nodejs: `res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');`,
+                    iis: `<add name="Strict-Transport-Security" value="max-age=31536000; includeSubDomains; preload" />`,
+                    haproxy: `http-response set-header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"`,
+                    cloudflare: `newHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')`
+                },
+                bestPractices: ["Start with low max-age for testing", "Ensure all subdomains support HTTPS", "Submit to hstspreload.org carefully"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 11 }
+            },
+            
+            // T - Timing Headers
+            {
+                name: "Timing-Allow-Origin",
+                category: "privacy",
+                risk: "low",
+                description: "Controls which origins can access resource timing information.",
+                shortDescription: "Resource timing access control",
+                implementation: {
+                    nginx: `add_header Timing-Allow-Origin "https://analytics.example.com" always;`,
+                    apache: `Header always set Timing-Allow-Origin "https://analytics.example.com"`,
+                    nodejs: `res.setHeader('Timing-Allow-Origin', 'https://analytics.example.com');`,
+                    iis: `<add name="Timing-Allow-Origin" value="https://analytics.example.com" />`,
+                    haproxy: `http-response set-header Timing-Allow-Origin "https://analytics.example.com"`,
+                    cloudflare: `newHeaders.set('Timing-Allow-Origin', 'https://analytics.example.com')`
+                },
+                bestPractices: ["Be restrictive with allowed origins", "Avoid wildcard in production"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 10 }
+            },
+            
+            // V - Vary Header
+            {
+                name: "Vary",
+                category: "caching",
+                risk: "low",
+                description: "Determines how to match future request headers to decide whether cached response can be used.",
+                shortDescription: "Cache variation control",
+                implementation: {
+                    nginx: `add_header Vary "Origin, Accept-Encoding" always;`,
+                    apache: `Header always set Vary "Origin, Accept-Encoding"`,
+                    nodejs: `res.setHeader('Vary', 'Origin, Accept-Encoding');`,
+                    iis: `<add name="Vary" value="Origin, Accept-Encoding" />`,
+                    haproxy: `http-response set-header Vary "Origin, Accept-Encoding"`,
+                    cloudflare: `newHeaders.set('Vary', 'Origin, Accept-Encoding')`
+                },
+                bestPractices: ["Include Origin for CORS responses", "Add Accept-Encoding for compression"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            
+            // W - WWW-Authenticate
+            {
+                name: "WWW-Authenticate",
+                category: "authentication",
+                risk: "info",
+                description: "Tells clients which authentication scheme is required.",
+                shortDescription: "Authentication scheme indicator",
+                implementation: {
+                    nginx: `# Basic authentication
+auth_basic "Restricted Area";`,
+                    apache: `AuthType Basic
+AuthName "Restricted Area"`,
+                    nodejs: `res.setHeader('WWW-Authenticate', 'Basic realm="Restricted Area"');
+res.status(401).send('Authentication required');`,
+                    iis: `<add name="WWW-Authenticate" value="Basic realm=&quot;Restricted Area&quot;" />`,
+                    haproxy: `http-response set-header WWW-Authenticate "Basic realm=\"Restricted Area\"" if { status 401 }`,
+                    cloudflare: `if (response.status === 401) {
+    newHeaders.set('WWW-Authenticate', 'Basic realm="Restricted Area"')
+}`
+                },
+                bestPractices: ["Use appropriate auth scheme", "Send with 401 status code"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            
+            // X Headers
+            {
+                name: "X-AspNet-Version",
+                category: "privacy",
+                risk: "low",
+                description: "Reveals ASP.NET version. Should be disabled to prevent version-specific attacks.",
+                shortDescription: ".NET version disclosure",
+                implementation: {
+                    nginx: `# Not applicable`,
+                    apache: `# Not applicable`,
+                    nodejs: `// Not applicable`,
+                    iis: `<system.web>
+    <httpRuntime enableVersionHeader="false" />
+</system.web>`,
+                    haproxy: `http-response del-header X-AspNet-Version`,
+                    cloudflare: `newHeaders.delete('X-AspNet-Version')`
+                },
+                bestPractices: ["Disable in web.config", "Part of .NET hardening"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "X-AspNetMvc-Version",
+                category: "privacy",
+                risk: "low",
+                description: "Reveals ASP.NET MVC version. Should be disabled in Global.asax.",
+                shortDescription: "MVC version disclosure",
+                implementation: {
+                    nginx: `# Not applicable`,
+                    apache: `# Not applicable`,
+                    nodejs: `// Not applicable`,
+                    iis: `// In Global.asax.cs
+MvcHandler.DisableMvcResponseHeader = true;`,
+                    haproxy: `http-response del-header X-AspNetMvc-Version`,
+                    cloudflare: `newHeaders.delete('X-AspNetMvc-Version')`
+                },
+                bestPractices: ["Disable in Global.asax", "Check after MVC updates"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "X-Content-Type-Options",
+                category: "security",
+                risk: "high",
+                description: "Prevents MIME type sniffing. Critical for sites with user uploads.",
+                shortDescription: "Block MIME-sniffing attacks",
+                implementation: {
+                    nginx: `add_header X-Content-Type-Options "nosniff" always;`,
+                    apache: `Header always set X-Content-Type-Options "nosniff"`,
+                    nodejs: `res.setHeader('X-Content-Type-Options', 'nosniff');`,
+                    iis: `<add name="X-Content-Type-Options" value="nosniff" />`,
+                    haproxy: `http-response set-header X-Content-Type-Options "nosniff"`,
+                    cloudflare: `newHeaders.set('X-Content-Type-Options', 'nosniff')`
+                },
+                bestPractices: ["Always use 'nosniff' value", "Apply to all responses"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "X-DNS-Prefetch-Control",
+                category: "privacy",
+                risk: "low",
+                description: "Controls DNS prefetching. Set to 'off' to prevent privacy leaks.",
+                shortDescription: "DNS prefetch privacy control",
+                implementation: {
+                    nginx: `add_header X-DNS-Prefetch-Control "off" always;`,
+                    apache: `Header always set X-DNS-Prefetch-Control "off"`,
+                    nodejs: `res.setHeader('X-DNS-Prefetch-Control', 'off');`,
+                    iis: `<add name="X-DNS-Prefetch-Control" value="off" />`,
+                    haproxy: `http-response set-header X-DNS-Prefetch-Control "off"`,
+                    cloudflare: `newHeaders.set('X-DNS-Prefetch-Control', 'off')`
+                },
+                bestPractices: ["Set to 'off' for privacy-sensitive sites", "Consider performance impact"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: 9 }
+            },
+            {
+                name: "X-Download-Options",
+                category: "security",
+                risk: "low",
+                description: "IE/Edge specific. Prevents downloads from executing in site's context.",
+                shortDescription: "IE download execution prevention",
+                implementation: {
+                    nginx: `add_header X-Download-Options "noopen" always;`,
+                    apache: `Header always set X-Download-Options "noopen"`,
+                    nodejs: `res.setHeader('X-Download-Options', 'noopen');`,
+                    iis: `<add name="X-Download-Options" value="noopen" />`,
+                    haproxy: `http-response set-header X-Download-Options "noopen"`,
+                    cloudflare: `newHeaders.set('X-Download-Options', 'noopen')`
+                },
+                bestPractices: ["Always use 'noopen' value", "IE/Edge specific but harmless"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: true, ie: true }
+            },
+            {
+                name: "X-Frame-Options",
+                category: "security",
+                risk: "high",
+                description: "Prevents clickjacking by controlling if your site can be framed. Use CSP frame-ancestors instead.",
+                shortDescription: "Clickjacking prevention (legacy)",
+                implementation: {
+                    nginx: `add_header X-Frame-Options "DENY" always;`,
+                    apache: `Header always set X-Frame-Options "DENY"`,
+                    nodejs: `res.setHeader('X-Frame-Options', 'DENY');`,
+                    iis: `<add name="X-Frame-Options" value="DENY" />`,
+                    haproxy: `http-response set-header X-Frame-Options "DENY"`,
+                    cloudflare: `newHeaders.set('X-Frame-Options', 'DENY')`
+                },
+                bestPractices: ["Use CSP frame-ancestors for modern browsers", "DENY is more secure than SAMEORIGIN"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "X-Permitted-Cross-Domain-Policies",
+                category: "security",
+                risk: "low",
+                description: "Controls Adobe products' cross-domain access. Set to 'none' unless needed.",
+                shortDescription: "Adobe Flash/PDF cross-domain control",
+                implementation: {
+                    nginx: `add_header X-Permitted-Cross-Domain-Policies "none" always;`,
+                    apache: `Header always set X-Permitted-Cross-Domain-Policies "none"`,
+                    nodejs: `res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');`,
+                    iis: `<add name="X-Permitted-Cross-Domain-Policies" value="none" />`,
+                    haproxy: `http-response set-header X-Permitted-Cross-Domain-Policies "none"`,
+                    cloudflare: `newHeaders.set('X-Permitted-Cross-Domain-Policies', 'none')`
+                },
+                bestPractices: ["Use 'none' unless Adobe products required", "Important for PDF security"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: false, ie: false }
+            },
+            {
+                name: "X-Powered-By",
+                category: "privacy",
+                risk: "low",
+                description: "Reveals technology stack. Should always be removed.",
+                shortDescription: "Technology stack disclosure",
+                implementation: {
+                    nginx: `# Usually not sent by nginx`,
+                    apache: `Header unset X-Powered-By`,
+                    nodejs: `app.disable('x-powered-by');`,
+                    iis: `<httpProtocol>
+    <customHeaders>
+        <remove name="X-Powered-By" />
+    </customHeaders>
+</httpProtocol>`,
+                    haproxy: `http-response del-header X-Powered-By`,
+                    cloudflare: `newHeaders.delete('X-Powered-By')`
+                },
+                bestPractices: ["Always remove this header", "No benefit to keeping it"],
+                browserSupport: { chrome: true, firefox: true, safari: true, edge: true, ie: true }
+            },
+            {
+                name: "X-Robots-Tag",
+                category: "privacy",
+                risk: "low",
+                description: "Controls search engine indexing at HTTP header level.",
+                shortDescription: "Search engine indexing control",
+                implementation: {
+                    nginx: `add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet" always;`,
+                    apache: `Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"`,
+                    nodejs: `res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');`,
+                    iis: `<add name="X-Robots-Tag" value="noindex, nofollow, noarchive, nosnippet" />`,
+                    haproxy: `http-response set-header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"`,
+                    cloudflare: `newHeaders.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')`
+                },
+                bestPractices: ["Use for non-HTML resources", "Apply to sensitive endpoints"],
+                browserSupport: { chrome: false, firefox: false, safari: false, edge: false, ie: false }
+            },
+            {
+                name: "X-XSS-Protection",
+                category: "security",
+                risk: "info",
+                deprecated: true,
+                description: "LEGACY - Controlled browser XSS filters. Can create vulnerabilities. Use CSP instead.",
+                shortDescription: "Legacy XSS filter control",
+                implementation: {
+                    nginx: `# Disable (recommended)
+add_header X-XSS-Protection "0" always;`,
+                    apache: `Header always set X-XSS-Protection "0"`,
+                    nodejs: `res.setHeader('X-XSS-Protection', '0');`,
+                    iis: `<add name="X-XSS-Protection" value="0" />`,
+                    haproxy: `http-response set-header X-XSS-Protection "0"`,
+                    cloudflare: `newHeaders.set('X-XSS-Protection', '0')`
+                },
+                bestPractices: ["Set to '0' to disable", "Use Content-Security-Policy instead"],
+                browserSupport: { chrome: false, firefox: false, safari: true, edge: false, ie: true }
+            }
+        ];
+
+        // Application Class
+        class SecurityHeadersApp {
+            constructor() {
+                this.headers = headersDB;
+                this.filteredHeaders = [...this.headers];
+                this.activeFilters = new Set();
+                this.auditState = this.loadAuditState();
+                this.currentView = 'cards';
+                this.init();
+            }
+
+            init() {
+                this.renderView();
+                this.updateStats();
+                this.attachEventListeners();
+                this.restoreAuditState();
+            }
+
+            renderView() {
+                if (this.currentView === 'cards') {
+                    this.renderCardView();
+                } else {
+                    this.renderListView();
+                }
+            }
+
+            renderCardView() {
+                const container = document.getElementById('headersContainer');
+                container.innerHTML = '';
+
+                this.filteredHeaders.forEach(header => {
+                    container.appendChild(this.createHeaderCard(header));
+                });
+            }
+
+            renderListView() {
+                // Generate alphabet navigation
+                const alphabetNav = document.querySelector('.alphabet-nav');
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+                const availableLetters = new Set(this.headers.map(h => h.name[0].toUpperCase()));
+                
+                alphabetNav.innerHTML = alphabet.map(letter => {
+                    const isAvailable = availableLetters.has(letter);
+                    return `<button 
+                        class="${isAvailable ? '' : 'opacity-30 cursor-not-allowed'}" 
+                        ${isAvailable ? `onclick="app.scrollToLetter('${letter}')"` : 'disabled'}
+                        >${letter}</button>`;
+                }).join('');
+
+                // Generate list view
+                const listContainer = document.querySelector('.headers-list-view');
+                listContainer.innerHTML = '';
+
+                // Group headers by first letter
+                const groupedHeaders = {};
+                this.filteredHeaders.forEach(header => {
+                    const firstLetter = header.name[0].toUpperCase();
+                    if (!groupedHeaders[firstLetter]) {
+                        groupedHeaders[firstLetter] = [];
+                    }
+                    groupedHeaders[firstLetter].push(header);
+                });
+
+                // Render grouped headers
+                Object.keys(groupedHeaders).sort().forEach(letter => {
+                    // Add letter section
+                    const section = document.createElement('div');
+                    section.innerHTML = `
+                        <div class="alphabetical-section" id="letter-${letter}">${letter}</div>
+                    `;
+                    listContainer.appendChild(section);
+
+                    // Add headers for this letter
+                    groupedHeaders[letter].forEach(header => {
+                        const item = document.createElement('div');
+                        item.className = 'header-list-item';
+                        item.onclick = () => this.navigateToHeader(header.name);
+                        
+                        const isImplemented = this.auditState[header.name] || false;
+                        const isDeprecated = header.deprecated || false;
+                        
+                        item.innerHTML = `
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3">
+                                    <h4 class="font-semibold text-gray-900 ${isDeprecated ? 'line-through opacity-60' : ''}">${header.name}</h4>
+                                    <span class="risk-${header.risk} px-2 py-0.5 rounded text-xs">
+                                        ${header.risk.toUpperCase()}
+                                    </span>
+                                    ${isDeprecated ? '<span class="text-xs text-gray-500">(Deprecated)</span>' : ''}
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">${header.shortDescription}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                ${isImplemented ? 
+                                    '<i class="fas fa-check-circle text-green-600 text-xl"></i>' : 
+                                    '<i class="fas fa-times-circle text-gray-300 text-xl"></i>'
+                                }
+                                <i class="fas fa-chevron-right text-gray-400"></i>
+                            </div>
+                        `;
+                        listContainer.appendChild(item);
+                    });
+                });
+            }
+
+            switchView(view) {
+                this.currentView = view;
+                
+                // Update UI
+                document.getElementById('cardView').classList.toggle('hidden', view !== 'cards');
+                document.getElementById('listView').classList.toggle('hidden', view !== 'list');
+                
+                // Update buttons
+                document.getElementById('cardViewBtn').classList.toggle('active', view === 'cards');
+                document.getElementById('listViewBtn').classList.toggle('active', view === 'list');
+                
+                this.renderView();
+            }
+
+            scrollToLetter(letter) {
+                const element = document.getElementById(`letter-${letter}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
+            navigateToHeader(headerName) {
+                // Switch to card view
+                this.switchView('cards');
+                
+                // Find and scroll to the header
+                setTimeout(() => {
+                    const card = document.querySelector(`[data-header="${headerName}"]`);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.classList.add('highlight');
+                        setTimeout(() => card.classList.remove('highlight'), 2000);
+                    }
+                }, 100);
+            }
+
+            createHeaderCard(header) {
+                const card = document.createElement('div');
+                card.className = 'header-card rounded-xl p-6';
+                card.dataset.header = header.name;
+                card.dataset.category = header.category;
+                card.dataset.risk = header.risk;
+
+                const isImplemented = this.auditState[header.name] || false;
+                const isDeprecated = header.deprecated || false;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-gray-900">${header.name}</h3>
+                                <span class="risk-${header.risk} px-3 py-1 rounded-full text-sm ${isDeprecated ? 'deprecated-badge' : ''}">
+                                    ${header.risk.toUpperCase()}${isDeprecated ? ' - DEPRECATED' : ''}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="status-dot ${isImplemented ? 'bg-green-500' : 'bg-gray-300'}"></span>
+                                    <span class="text-sm ${isImplemented ? 'text-green-600' : 'text-gray-500'} font-medium">
+                                        ${isImplemented ? 'Implemented' : 'Not Implemented'}
+                                    </span>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 text-base">${header.description}</p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                ${header.shortDescription}
+                            </p>
+                        </div>
+                        <input type="checkbox" 
+                               class="audit-checkbox rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-purple-500"
+                               ${isImplemented ? 'checked' : ''}
+                               onchange="app.updateAuditState('${header.name}', this.checked)">
+                    </div>
+
+                    ${!isDeprecated ? `
+                        <!-- Browser Support -->
+                        <div class="mb-4">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">Browser Support:</span>
+                                <div class="browser-support">
+                                    ${this.getBrowserSupportIcons(header.browserSupport)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Implementation Tabs -->
+                        <div class="border-t border-gray-200 pt-4">
+                            <div class="flex flex-wrap gap-1 mb-4">
+                                ${Object.keys(header.implementation).map((platform, index) => `
+                                    <button class="implementation-tab px-4 py-2 text-sm font-medium rounded-t-lg ${index === 0 ? 'active' : ''}"
+                                            onclick="app.switchTab(this, '${header.name}', '${platform}')">
+                                        ${this.getPlatformLabel(platform)}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            
+                            ${Object.entries(header.implementation).map(([platform, code], index) => `
+                                <div class="implementation-content" data-platform="${platform}" style="display: ${index === 0 ? 'block' : 'none'}">
+                                    <div class="code-block">
+                                        <div class="absolute top-3 left-4 text-xs text-gray-400">
+                                            ${this.getPlatformLabel(platform)} Configuration
+                                        </div>
+                                        <button onclick="app.copyCode(this)" class="copy-button px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-purple-600 hover:text-white">
+                                            <i class="fas fa-copy mr-1"></i> Copy
+                                        </button>
+                                        <pre class="code-content"><code>${this.escapeHtml(code)}</code></pre>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Best Practices -->
+                        <div class="mt-6">
+                            <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                <i class="fas fa-lightbulb text-amber-500 mr-2"></i>
+                                Best Practices
+                            </h4>
+                            <ul class="space-y-2">
+                                ${header.bestPractices.map(practice => `
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check text-green-500 mr-2 mt-0.5"></i>
+                                        <span class="text-sm text-gray-700">${practice}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : `
+                        <div class="mt-4 p-4 bg-gray-100 rounded-lg">
+                            <p class="text-gray-700">
+                                <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>
+                                This header is deprecated and should not be used. ${header.bestPractices[0]}
+                            </p>
+                        </div>
+                    `}
+                `;
+
+                return card;
+            }
+
+            getBrowserSupportIcons(support) {
+                if (!support) return '';
+                
+                const browsers = [
+                    { name: 'Chrome', icon: 'fab fa-chrome', key: 'chrome' },
+                    { name: 'Firefox', icon: 'fab fa-firefox', key: 'firefox' },
+                    { name: 'Safari', icon: 'fab fa-safari', key: 'safari' },
+                    { name: 'Edge', icon: 'fab fa-edge', key: 'edge' },
+                    { name: 'IE', icon: 'fab fa-internet-explorer', key: 'ie' }
+                ];
+
+                return browsers.map(browser => {
+                    const isSupported = support[browser.key];
+                    const supportClass = isSupported ? 'supported text-green-600' : 'text-gray-300';
+                    const supportText = isSupported === true ? 'Supported' : 
+                                       isSupported === false ? 'Not Supported' : 
+                                       `Supported in IE ${isSupported}+`;
+                    
+                    return `<i class="${browser.icon} browser-icon ${supportClass}" title="${browser.name}: ${supportText}"></i>`;
+                }).join('');
+            }
+
+            getPlatformLabel(platform) {
+                const labels = {
+                    nginx: 'Nginx',
+                    apache: 'Apache',
+                    nodejs: 'Node.js',
+                    iis: 'IIS',
+                    haproxy: 'HAProxy',
+                    cloudflare: 'Cloudflare'
+                };
+                return labels[platform] || platform;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            switchTab(tabElement, headerName, platform) {
+                const card = document.querySelector(`[data-header="${headerName}"]`);
+                
+                // Update active tab
+                card.querySelectorAll('.implementation-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                tabElement.classList.add('active');
+
+                // Show corresponding content
+                card.querySelectorAll('.implementation-content').forEach(content => {
+                    content.style.display = content.dataset.platform === platform ? 'block' : 'none';
+                });
+            }
+
+            copyCode(button) {
+                const codeBlock = button.closest('.code-block');
+                const code = codeBlock.querySelector('code').textContent;
+
+                navigator.clipboard.writeText(code).then(() => {
+                    button.classList.add('copied');
+                    button.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
+                    
+                    setTimeout(() => {
+                        button.classList.remove('copied');
+                        button.innerHTML = '<i class="fas fa-copy mr-1"></i> Copy';
+                    }, 2000);
+                });
+            }
+
+            updateAuditState(headerName, isChecked) {
+                this.auditState[headerName] = isChecked;
+                this.saveAuditState();
+                this.updateStats();
+                
+                // Update list view if active
+                if (this.currentView === 'list') {
+                    this.renderListView();
+                }
+            }
+
+            saveAuditState() {
+                localStorage.setItem('securityHeadersAudit', JSON.stringify(this.auditState));
+            }
+
+            loadAuditState() {
+                const saved = localStorage.getItem('securityHeadersAudit');
+                return saved ? JSON.parse(saved) : {};
+            }
+
+            restoreAuditState() {
+                Object.entries(this.auditState).forEach(([header, checked]) => {
+                    const checkbox = document.querySelector(`[data-header="${header}"] .audit-checkbox`);
+                    if (checkbox) {
+                        checkbox.checked = checked;
+                    }
+                });
+            }
+
+            updateStats() {
+                const total = this.headers.length;
+                const implemented = Object.values(this.auditState).filter(v => v).length;
+                const critical = this.headers.filter(h => h.risk === 'critical' && !this.auditState[h.name]).length;
+                const high = this.headers.filter(h => h.risk === 'high' && !this.auditState[h.name]).length;
+                const score = total > 0 ? Math.round((implemented / total) * 100) : 0;
+
+                document.getElementById('totalCount').textContent = total;
+                document.getElementById('implementedCount').textContent = implemented;
+                document.getElementById('criticalCount').textContent = critical;
+                document.getElementById('highCount').textContent = high;
+                document.getElementById('overallScore').textContent = `${score}%`;
+
+                // Update progress ring
+                const ring = document.querySelector('.progress-ring');
+                if (ring) {
+                    const circumference = 2 * Math.PI * 28;
+                    const offset = circumference - (score / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+                }
+            }
+
+            handleSearch(query) {
+                if (!query) {
+                    this.filteredHeaders = [...this.headers];
+                    this.renderView();
+                    return;
+                }
+
+                const lowerQuery = query.toLowerCase();
+                this.filteredHeaders = this.headers.filter(header => {
+                    return header.name.toLowerCase().includes(lowerQuery) ||
+                           header.description.toLowerCase().includes(lowerQuery) ||
+                           header.shortDescription.toLowerCase().includes(lowerQuery) ||
+                           header.category.toLowerCase().includes(lowerQuery);
+                });
+
+                this.renderView();
+            }
+
+            filterByPlatform(platform) {
+                if (platform === 'all') {
+                    this.filteredHeaders = [...this.headers];
+                } else {
+                    this.filteredHeaders = this.headers.filter(header => 
+                        header.implementation && header.implementation[platform]
+                    );
+                }
+                this.renderView();
+            }
+
+            scanCurrentPage() {
+                // Simulate scanning
+                const scanBtn = event.target.closest('button');
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Scanning...';
+                scanBtn.disabled = true;
+
+                setTimeout(() => {
+                    scanBtn.innerHTML = '<i class="fas fa-radar mr-2"></i> Scan Current Page';
+                    scanBtn.disabled = false;
+                    this.showScanResults();
+                }, 2000);
+            }
+
+            showScanResults() {
+                // Implementation continues in the actual app
+                alert('Scan complete! Check console for results.');
+            }
+
+            showBulkConfig() {
+                const modal = document.getElementById('configModal');
+                const content = document.getElementById('bulkConfigContent');
+                
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Platform</label>
+                            <select id="bulkPlatform" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="nginx">Nginx</option>
+                                <option value="apache">Apache</option>
+                                <option value="nodejs">Node.js / Express</option>
+                                <option value="iis">IIS</option>
+                                <option value="haproxy">HAProxy</option>
+                                <option value="cloudflare">Cloudflare Workers</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Headers to Include</label>
+                            <div class="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                                ${this.headers.filter(h => !h.deprecated).map(header => `
+                                    <label class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                        <input type="checkbox" 
+                                               class="bulk-header-checkbox mt-1" 
+                                               value="${header.name}"
+                                               ${header.risk === 'critical' || header.risk === 'high' ? 'checked' : ''}>
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">${header.name}</div>
+                                            <div class="text-sm text-gray-600">${header.shortDescription}</div>
+                                            <span class="inline-block mt-1 risk-${header.risk} px-2 py-0.5 rounded text-xs">
+                                                ${header.risk.toUpperCase()}
+                                            </span>
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="app.selectAllHeaders()" class="text-sm text-purple-600 hover:text-purple-700">
+                                Select All
+                            </button>
+                            <button onclick="app.selectCriticalHeaders()" class="text-sm text-purple-600 hover:text-purple-700">
+                                Select Critical Only
+                            </button>
+                            <button onclick="app.deselectAllHeaders()" class="text-sm text-purple-600 hover:text-purple-700">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                modal.classList.remove('hidden');
+            }
+
+            closeBulkConfig() {
+                document.getElementById('configModal').classList.add('hidden');
+            }
+
+            selectAllHeaders() {
+                document.querySelectorAll('.bulk-header-checkbox').forEach(cb => cb.checked = true);
+            }
+
+            selectCriticalHeaders() {
+                document.querySelectorAll('.bulk-header-checkbox').forEach(cb => {
+                    const headerName = cb.value;
+                    const header = this.headers.find(h => h.name === headerName);
+                    cb.checked = header && (header.risk === 'critical' || header.risk === 'high');
+                });
+            }
+
+            deselectAllHeaders() {
+                document.querySelectorAll('.bulk-header-checkbox').forEach(cb => cb.checked = false);
+            }
+
+            generateBulkConfig() {
+                const platform = document.getElementById('bulkPlatform').value;
+                const selectedHeaders = Array.from(document.querySelectorAll('.bulk-header-checkbox:checked'))
+                    .map(cb => cb.value);
+
+                if (selectedHeaders.length === 0) {
+                    alert('Please select at least one header');
+                    return;
+                }
+
+                const config = this.generateConfigForPlatform(platform, selectedHeaders);
+                this.downloadConfig(config, platform);
+                this.closeBulkConfig();
+            }
+
+            generateConfigForPlatform(platform, selectedHeaders) {
+                const configs = selectedHeaders.map(headerName => {
+                    const header = this.headers.find(h => h.name === headerName);
+                    if (header && header.implementation[platform]) {
+                        return `# ${header.name}\n# ${header.shortDescription}\n${header.implementation[platform]}`;
+                    }
+                    return null;
+                }).filter(Boolean);
+
+                return `# Security Headers Configuration
+# Generated: ${new Date().toISOString()}
+# Platform: ${this.getPlatformLabel(platform)}
+
+${configs.join('\n\n')}`;
+            }
+
+            downloadConfig(content, platform) {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `security-headers-${platform}.conf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            exportFullReport() {
+                const report = this.generateFullReport();
+                const blob = new Blob([report], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `security-headers-audit-${new Date().toISOString().split('T')[0]}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            generateFullReport() {
+                const implemented = this.headers.filter(h => this.auditState[h.name]);
+                const notImplemented = this.headers.filter(h => !this.auditState[h.name]);
+                const score = Math.round((implemented.length / this.headers.length) * 100);
+
+                return `<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Headers Audit Report</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 40px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 12px; margin-bottom: 30px; }
+        .score { font-size: 72px; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .implemented { background: #d1fae5; }
+        .missing { background: #fee2e2; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f3f4f6; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Security Headers Audit Report</h1>
+        <div class="score">${score}%</div>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+    </div>
+    
+    <div class="grid">
+        <div class="card">
+            <h3>Total Headers</h3>
+            <p style="font-size: 36px; font-weight: bold;">${this.headers.length}</p>
+        </div>
+        <div class="card implemented">
+            <h3>Implemented</h3>
+            <p style="font-size: 36px; font-weight: bold;">${implemented.length}</p>
+        </div>
+        <div class="card missing">
+            <h3>Missing</h3>
+            <p style="font-size: 36px; font-weight: bold;">${notImplemented.length}</p>
+        </div>
+    </div>
+    
+    <h2>Header Implementation Status</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Header Name</th>
+                <th>Risk Level</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${this.headers.map(header => `
+                <tr>
+                    <td><strong>${header.name}</strong></td>
+                    <td><span style="color: ${header.risk === 'critical' ? '#dc2626' : header.risk === 'high' ? '#ea580c' : '#059669'}">${header.risk.toUpperCase()}</span></td>
+                    <td>${header.category}</td>
+                    <td>${this.auditState[header.name] ? '✅ Implemented' : '❌ Missing'}</td>
+                    <td>${header.shortDescription}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>`;
+            }
+
+            attachEventListeners() {
+                // Close modals on outside click
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('fixed') && e.target.classList.contains('bg-black')) {
+                        e.target.classList.add('hidden');
+                    }
+                });
+            }
+        }
+
+        // Initialize the application
+        window.app = new SecurityHeadersApp();
+    </script>
+</body>
+</html>
