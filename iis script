@@ -1,0 +1,598 @@
+<!-- Add this CSS to the existing <style> section -->
+<style>
+    .floating-powershell-btn {
+        position: fixed;
+        bottom: 100px;
+        right: 8px;
+        background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(0, 120, 212, 0.4);
+        cursor: pointer;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .floating-powershell-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 30px rgba(0, 120, 212, 0.6);
+    }
+    
+    .powershell-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        display: none;
+    }
+    
+    .powershell-output {
+        background: #012456;
+        color: #00ff00;
+        font-family: 'Cascadia Code', 'Consolas', monospace;
+        padding: 20px;
+        border-radius: 8px;
+        overflow-x: auto;
+        white-space: pre;
+        line-height: 1.6;
+        font-size: 13px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .ps-result-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2a4a7f 100%);
+        border: 1px solid #3a5a8f;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 10px 0;
+    }
+    
+    .ps-stats-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .ps-stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+</style>
+
+<!-- Add this floating button to the HTML body -->
+<button id="floatingPowerShellBtn" class="floating-powershell-btn" onclick="generateEnhancedPowerShell()" title="Generate Enhanced PowerShell Script">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">
+        <path d="M21.83 4c.49 0 .8.4.67.87l-8 24c-.13.47-.67.67-1.07.4l-6.93-4.67L3.17 21c-.4-.27-.5-.8-.23-1.2l18-16c.2-.2.53-.27.8-.13.27.13.47.4.47.73zm-11.5 15.5l3.5 2.33L19.5 6.5 7.33 18.33l2.5 1.17z"/>
+    </svg>
+</button>
+
+<!-- Enhanced PowerShell Modal -->
+<div id="powerShellModal" class="powershell-modal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-gradient-to-br from-gray-900 to-blue-900 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+                        <path d="M21.83 4c.49 0 .8.4.67.87l-8 24c-.13.47-.67.67-1.07.4l-6.93-4.67L3.17 21c-.4-.27-.5-.8-.23-1.2l18-16c.2-.2.53-.27.8-.13.27.13.47.4.47.73zm-11.5 15.5l3.5 2.33L19.5 6.5 7.33 18.33l2.5 1.17z"/>
+                    </svg>
+                    <h3 class="text-xl font-bold">🚀 Enhanced PowerShell IIS Security Scanner</h3>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="copyPowerShell()" class="px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition">
+                        <i class="fas fa-copy mr-2"></i>Copy Script
+                    </button>
+                    <button onclick="downloadPowerShell()" class="px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition">
+                        <i class="fas fa-download mr-2"></i>Download
+                    </button>
+                    <button onclick="closePowerShellModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="ps-stats-panel" id="psStatsPanel">
+                    <div class="ps-stat-card">
+                        <div class="text-3xl font-bold text-blue-300" id="psTestCount">0</div>
+                        <div class="text-sm text-gray-300">Total Tests</div>
+                    </div>
+                    <div class="ps-stat-card">
+                        <div class="text-3xl font-bold text-red-300" id="psCriticalCount">0</div>
+                        <div class="text-sm text-gray-300">Critical</div>
+                    </div>
+                    <div class="ps-stat-card">
+                        <div class="text-3xl font-bold text-orange-300" id="psHighCount">0</div>
+                        <div class="text-sm text-gray-300">High Risk</div>
+                    </div>
+                    <div class="ps-stat-card">
+                        <div class="text-3xl font-bold text-green-300" id="psTargetInfo">IIS</div>
+                        <div class="text-sm text-gray-300">Target Type</div>
+                    </div>
+                </div>
+                
+                <div class="powershell-output" id="powerShellOutput">
+                    <!-- PowerShell script will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this enhanced JavaScript for PowerShell generation -->
+<script>
+function generateEnhancedPowerShell() {
+    const selected = getSelectedTests();
+    if (selected.length === 0) {
+        alert('⚠️ Please select at least one test to generate PowerShell script.');
+        return;
+    }
+    
+    const targetUrl = document.getElementById('targetUrl').value;
+    const proxyUrl = document.getElementById('proxyUrl').value;
+    
+    // Update stats
+    document.getElementById('psTestCount').textContent = selected.length;
+    document.getElementById('psCriticalCount').textContent = selected.filter(t => t.test.severity === 'critical').length;
+    document.getElementById('psHighCount').textContent = selected.filter(t => t.test.severity === 'high').length;
+    
+    // Generate the enhanced PowerShell script
+    const script = generateAdvancedPowerShellScript(selected, targetUrl, proxyUrl);
+    
+    // Display the script
+    document.getElementById('powerShellOutput').textContent = script;
+    document.getElementById('powerShellModal').style.display = 'block';
+}
+
+function generateAdvancedPowerShellScript(tests, targetUrl, proxyUrl) {
+    return `<#
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║     🛡️  ADVANCED IIS SECURITY SCANNER - PowerShell Edition                  ║
+║     🎯  Target: ${targetUrl.padEnd(60)}║
+║     🧪  Tests: ${String(tests.length).padEnd(61)}║
+║     📅  Generated: ${new Date().toISOString().padEnd(56)}║
+║                                                                              ║
+║     ⚡  NO ADMIN REQUIRED - Copy & Paste Friendly                           ║
+║     📊  Detailed Vulnerability Analysis & Reporting                         ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+#>
+
+# Script Configuration
+$ErrorActionPreference = "Continue"
+$ProgressPreference = "SilentlyContinue"
+
+# Target Configuration
+$TARGET_URL = "${targetUrl}"
+${proxyUrl ? `$PROXY_URL = "${proxyUrl}"` : '# No proxy configured'}
+
+# Color Configuration for Better Output
+$colors = @{
+    Reset = "$([char]27)[0m"
+    Red = "$([char]27)[91m"
+    Green = "$([char]27)[92m"
+    Yellow = "$([char]27)[93m"
+    Blue = "$([char]27)[94m"
+    Magenta = "$([char]27)[95m"
+    Cyan = "$([char]27)[96m"
+    White = "$([char]27)[97m"
+    Bold = "$([char]27)[1m"
+}
+
+# Initialize Results Storage
+$global:ScanResults = @{
+    TotalTests = 0
+    Successful = 0
+    Failed = 0
+    Vulnerabilities = @()
+    CriticalFindings = @()
+    HighFindings = @()
+    MediumFindings = @()
+    LowFindings = @()
+    ServerInfo = @{}
+    Timestamps = @()
+}
+
+# Enhanced Test Execution Function
+function Invoke-IISSecurityTest {
+    param(
+        [string]$TestName,
+        [string]$Category,
+        [string]$Description,
+        [string]$Method,
+        [hashtable]$Headers,
+        [string]$Path,
+        [string]$Body,
+        [string]$Severity,
+        [int]$TestNumber,
+        [int]$TotalTests
+    )
+    
+    $url = "$TARGET_URL$Path"
+    $startTime = Get-Date
+    
+    # Display test info with colors
+    Write-Host ""
+    Write-Host "$($colors.Cyan)╔════════════════════════════════════════════════════════════════╗$($colors.Reset)"
+    Write-Host "$($colors.Cyan)║$($colors.Reset) Test [$TestNumber/$TotalTests]: $($colors.Yellow)$TestName$($colors.Reset)"
+    Write-Host "$($colors.Cyan)║$($colors.Reset) Category: $($colors.Blue)$Category$($colors.Reset)"
+    Write-Host "$($colors.Cyan)║$($colors.Reset) Severity: $(Get-SeverityColor $Severity)$Severity$($colors.Reset)"
+    Write-Host "$($colors.Cyan)╚════════════════════════════════════════════════════════════════╝$($colors.Reset)"
+    
+    try {
+        # Build request parameters
+        $requestParams = @{
+            Uri = $url
+            Method = $Method
+            Headers = if ($Headers) { $Headers } else { @{} }
+            UseBasicParsing = $true
+            TimeoutSec = 30
+            ErrorAction = 'Stop'
+        }
+        
+        # Add User-Agent if not present
+        if (-not $requestParams.Headers.ContainsKey('User-Agent')) {
+            $requestParams.Headers['User-Agent'] = 'PowerShell-IIS-Scanner/3.0'
+        }
+        
+        # Add body if present
+        if ($Body) {
+            $requestParams['Body'] = $Body
+            if (-not $requestParams.Headers.ContainsKey('Content-Type')) {
+                $requestParams.Headers['Content-Type'] = 'application/x-www-form-urlencoded'
+            }
+        }
+        
+        # Add proxy if configured
+        ${proxyUrl ? `if ($PROXY_URL) { $requestParams['Proxy'] = $PROXY_URL }` : ''}
+        
+        # Execute the request
+        $response = Invoke-WebRequest @requestParams
+        $elapsedTime = ((Get-Date) - $startTime).TotalSeconds
+        
+        # Analyze response
+        $statusCode = $response.StatusCode
+        $responseSize = $response.RawContent.Length
+        $responseHeaders = $response.Headers
+        
+        # Status emoji and color
+        $statusEmoji = Get-StatusEmoji $statusCode
+        $statusColor = Get-StatusColor $statusCode
+        
+        Write-Host "$statusEmoji Status: $statusColor$statusCode$($colors.Reset) | Time: $($colors.Cyan)$([math]::Round($elapsedTime, 3))s$($colors.Reset) | Size: $($colors.Magenta)$responseSize bytes$($colors.Reset)"
+        
+        # Extract server information
+        if ($responseHeaders['Server']) {
+            $global:ScanResults.ServerInfo['Server'] = $responseHeaders['Server']
+            Write-Host "  $($colors.Green)►$($colors.Reset) Server: $($colors.Yellow)$($responseHeaders['Server'])$($colors.Reset)"
+        }
+        
+        if ($responseHeaders['X-Powered-By']) {
+            $global:ScanResults.ServerInfo['X-Powered-By'] = $responseHeaders['X-Powered-By']
+            Write-Host "  $($colors.Green)►$($colors.Reset) X-Powered-By: $($colors.Yellow)$($responseHeaders['X-Powered-By'])$($colors.Reset)"
+        }
+        
+        if ($responseHeaders['X-AspNet-Version']) {
+            $global:ScanResults.ServerInfo['X-AspNet-Version'] = $responseHeaders['X-AspNet-Version']
+            Write-Host "  $($colors.Green)►$($colors.Reset) ASP.NET Version: $($colors.Yellow)$($responseHeaders['X-AspNet-Version'])$($colors.Reset)"
+        }
+        
+        # Vulnerability Detection Logic
+        $isVulnerable = $false
+        $vulnerabilityIndicators = @()
+        
+        # Check for critical findings
+        if ($Severity -eq 'critical' -and $statusCode -eq 200) {
+            $isVulnerable = $true
+            $vulnerabilityIndicators += "Critical test returned 200 OK - Potential vulnerability!"
+            $global:ScanResults.CriticalFindings += @{
+                Test = $TestName
+                Category = $Category
+                Status = $statusCode
+                Path = $Path
+            }
+        }
+        
+        # Check for information disclosure
+        if ($response.RawContent -match '(password|connectionString|apiKey|secret|token)') {
+            $isVulnerable = $true
+            $vulnerabilityIndicators += "Potential sensitive information disclosure detected"
+        }
+        
+        # Check for error messages
+        if ($response.RawContent -match '(exception|error|stack trace|debug)' -and $statusCode -ge 500) {
+            $vulnerabilityIndicators += "Detailed error messages detected"
+        }
+        
+        # Check for successful directory traversal
+        if ($Path -match '\.\.' -and $statusCode -eq 200) {
+            $isVulnerable = $true
+            $vulnerabilityIndicators += "Directory traversal potentially successful"
+        }
+        
+        # Check for successful WebDAV methods
+        if ($Method -in @('PUT', 'DELETE', 'MOVE', 'COPY', 'PROPFIND') -and $statusCode -in @(200, 201, 204)) {
+            $isVulnerable = $true
+            $vulnerabilityIndicators += "WebDAV method $Method successful - Security risk!"
+        }
+        
+        # Display vulnerability indicators
+        if ($vulnerabilityIndicators.Count -gt 0) {
+            Write-Host "$($colors.Red)  🚨 SECURITY FINDINGS:$($colors.Reset)"
+            foreach ($indicator in $vulnerabilityIndicators) {
+                Write-Host "$($colors.Red)     • $indicator$($colors.Reset)"
+            }
+            
+            $global:ScanResults.Vulnerabilities += @{
+                Test = $TestName
+                Severity = $Severity
+                Indicators = $vulnerabilityIndicators
+            }
+        }
+        
+        # Content Analysis (first 500 chars)
+        if ($response.Content.Length -gt 0) {
+            $preview = $response.Content.Substring(0, [Math]::Min(500, $response.Content.Length))
+            
+            # Check for specific patterns
+            if ($preview -match '<title>(.*?)</title>') {
+                Write-Host "  $($colors.Blue)►$($colors.Reset) Page Title: $($colors.Cyan)$($Matches[1])$($colors.Reset)"
+            }
+            
+            if ($preview -match 'IIS (\d+\.\d+)') {
+                Write-Host "  $($colors.Yellow)►$($colors.Reset) IIS Version Detected: $($colors.Yellow)$($Matches[0])$($colors.Reset)"
+            }
+            
+            if ($preview -match '(ASP\.NET|\.NET Framework) ([\d\.]+)') {
+                Write-Host "  $($colors.Yellow)►$($colors.Reset) Framework Version: $($colors.Yellow)$($Matches[0])$($colors.Reset)"
+            }
+        }
+        
+        $global:ScanResults.Successful++
+        
+    } catch {
+        $elapsedTime = ((Get-Date) - $startTime).TotalSeconds
+        $errorMessage = $_.Exception.Message
+        
+        Write-Host "$($colors.Red)❌ Error:$($colors.Reset) $errorMessage"
+        
+        # Analyze error for security insights
+        if ($errorMessage -match '401|Unauthorized') {
+            Write-Host "  $($colors.Yellow)►$($colors.Reset) Authentication required - Testing authentication bypass failed"
+        } elseif ($errorMessage -match '403|Forbidden') {
+            Write-Host "  $($colors.Yellow)►$($colors.Reset) Access forbidden - Authorization controls in place"
+        } elseif ($errorMessage -match '404|Not Found') {
+            Write-Host "  $($colors.Green)►$($colors.Reset) Resource not found - Expected for security test"
+        } elseif ($errorMessage -match '500|Internal Server Error') {
+            Write-Host "  $($colors.Red)►$($colors.Reset) Server error - Potential DoS or injection point"
+            $global:ScanResults.Vulnerabilities += @{
+                Test = $TestName
+                Severity = 'medium'
+                Indicators = @('Server error triggered')
+            }
+        }
+        
+        $global:ScanResults.Failed++
+    }
+    
+    $global:ScanResults.TotalTests++
+}
+
+# Helper Functions
+function Get-SeverityColor {
+    param([string]$severity)
+    switch ($severity) {
+        'critical' { return $colors.Red }
+        'high' { return $colors.Yellow }
+        'medium' { return $colors.Blue }
+        'low' { return $colors.Green }
+        default { return $colors.White }
+    }
+}
+
+function Get-StatusEmoji {
+    param([int]$status)
+    switch ($status) {
+        { $_ -eq 200 } { return "$($colors.Green)✅$($colors.Reset)" }
+        { $_ -in 301,302,303,307,308 } { return "$($colors.Blue)🔄$($colors.Reset)" }
+        { $_ -eq 401 } { return "$($colors.Yellow)🔐$($colors.Reset)" }
+        { $_ -eq 403 } { return "$($colors.Yellow)🚫$($colors.Reset)" }
+        { $_ -eq 404 } { return "$($colors.Cyan)❓$($colors.Reset)" }
+        { $_ -ge 500 } { return "$($colors.Red)💥$($colors.Reset)" }
+        default { return "$($colors.White)ℹ️$($colors.Reset)" }
+    }
+}
+
+function Get-StatusColor {
+    param([int]$status)
+    switch ($status) {
+        { $_ -eq 200 } { return $colors.Green }
+        { $_ -in 301,302,303,307,308 } { return $colors.Blue }
+        { $_ -in 400,401,403,404 } { return $colors.Yellow }
+        { $_ -ge 500 } { return $colors.Red }
+        default { return $colors.White }
+    }
+}
+
+# Generate Final Report
+function Show-ScanReport {
+    Write-Host ""
+    Write-Host "$($colors.Bold)$($colors.Cyan)╔══════════════════════════════════════════════════════════════════╗$($colors.Reset)"
+    Write-Host "$($colors.Bold)$($colors.Cyan)║           🛡️  IIS SECURITY SCAN REPORT                          ║$($colors.Reset)"
+    Write-Host "$($colors.Bold)$($colors.Cyan)╚══════════════════════════════════════════════════════════════════╝$($colors.Reset)"
+    
+    Write-Host ""
+    Write-Host "$($colors.Yellow)📊 SCAN STATISTICS:$($colors.Reset)"
+    Write-Host "   Total Tests: $($colors.Cyan)$($global:ScanResults.TotalTests)$($colors.Reset)"
+    Write-Host "   Successful: $($colors.Green)$($global:ScanResults.Successful)$($colors.Reset)"
+    Write-Host "   Failed: $($colors.Red)$($global:ScanResults.Failed)$($colors.Reset)"
+    
+    if ($global:ScanResults.ServerInfo.Count -gt 0) {
+        Write-Host ""
+        Write-Host "$($colors.Yellow)🖥️ SERVER INFORMATION:$($colors.Reset)"
+        foreach ($info in $global:ScanResults.ServerInfo.GetEnumerator()) {
+            Write-Host "   $($info.Key): $($colors.Cyan)$($info.Value)$($colors.Reset)"
+        }
+    }
+    
+    if ($global:ScanResults.CriticalFindings.Count -gt 0) {
+        Write-Host ""
+        Write-Host "$($colors.Red)🚨 CRITICAL FINDINGS ($($global:ScanResults.CriticalFindings.Count)):$($colors.Reset)"
+        foreach ($finding in $global:ScanResults.CriticalFindings) {
+            Write-Host "$($colors.Red)   • [$($finding.Category)] $($finding.Test)$($colors.Reset)"
+            Write-Host "     Path: $($finding.Path) | Status: $($finding.Status)"
+        }
+    }
+    
+    if ($global:ScanResults.Vulnerabilities.Count -gt 0) {
+        Write-Host ""
+        Write-Host "$($colors.Yellow)⚠️ POTENTIAL VULNERABILITIES ($($global:ScanResults.Vulnerabilities.Count)):$($colors.Reset)"
+        foreach ($vuln in $global:ScanResults.Vulnerabilities) {
+            $severityColor = Get-SeverityColor $vuln.Severity
+            Write-Host "$severityColor   • $($vuln.Test) [$($vuln.Severity.ToUpper())]$($colors.Reset)"
+            foreach ($indicator in $vuln.Indicators) {
+                Write-Host "     - $indicator"
+            }
+        }
+    }
+    
+    # Risk Score Calculation
+    $riskScore = ($global:ScanResults.CriticalFindings.Count * 10) + 
+                 ($global:ScanResults.Vulnerabilities.Count * 5)
+    
+    $riskLevel = switch ($riskScore) {
+        { $_ -ge 50 } { "$($colors.Red)CRITICAL$($colors.Reset)" }
+        { $_ -ge 30 } { "$($colors.Yellow)HIGH$($colors.Reset)" }
+        { $_ -ge 15 } { "$($colors.Blue)MEDIUM$($colors.Reset)" }
+        { $_ -ge 5 } { "$($colors.Green)LOW$($colors.Reset)" }
+        default { "$($colors.Green)MINIMAL$($colors.Reset)" }
+    }
+    
+    Write-Host ""
+    Write-Host "$($colors.Bold)🎯 OVERALL RISK LEVEL: $riskLevel (Score: $riskScore)$($colors.Reset)"
+    
+    # Save results to file
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $reportFile = "IIS_Security_Report_$timestamp.json"
+    
+    $reportData = @{
+        ScanDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        Target = $TARGET_URL
+        Results = $global:ScanResults
+        RiskScore = $riskScore
+    }
+    
+    $reportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportFile -Encoding UTF8
+    
+    Write-Host ""
+    Write-Host "$($colors.Green)📄 Detailed report saved to: $reportFile$($colors.Reset)"
+    Write-Host ""
+    Write-Host "$($colors.Cyan)════════════════════════════════════════════════════════════════════$($colors.Reset)"
+}
+
+# Main Execution
+Write-Host "$($colors.Bold)$($colors.Cyan)╔══════════════════════════════════════════════════════════════════╗$($colors.Reset)"
+Write-Host "$($colors.Bold)$($colors.Cyan)║     🚀 STARTING IIS SECURITY ASSESSMENT                         ║$($colors.Reset)"
+Write-Host "$($colors.Bold)$($colors.Cyan)╚══════════════════════════════════════════════════════════════════╝$($colors.Reset)"
+Write-Host ""
+Write-Host "$($colors.Yellow)🎯 Target:$($colors.Reset) $($colors.Cyan)$TARGET_URL$($colors.Reset)"
+Write-Host "$($colors.Yellow)🧪 Tests:$($colors.Reset) $($colors.Cyan)${tests.length}$($colors.Reset)"
+Write-Host "$($colors.Yellow)📅 Started:$($colors.Reset) $($colors.Cyan)$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$($colors.Reset)"
+Write-Host ""
+
+# Security Test Definitions
+$testIndex = 1
+$totalTests = ${tests.length}
+
+${tests.map(({ category, test }) => {
+    const headers = test.headers || {};
+    const headersStr = Object.entries(headers).length > 0 
+        ? '@{' + Object.entries(headers).map(([k, v]) => `"${k}"="${v.replace(/"/g, '""')}"`).join('; ') + '}' 
+        : '@{}';
+    
+    const body = test.body ? `"${test.body.replace(/"/g, '""').replace(/\n/g, '`n')}"` : '$null';
+    
+    return `
+# Test ${testIndex}/${totalTests}
+Invoke-IISSecurityTest \`
+    -TestName "${test.name}" \`
+    -Category "${category}" \`
+    -Description "${test.description}" \`
+    -Method "${test.method || 'GET'}" \`
+    -Headers ${headersStr} \`
+    -Path "${test.path || '/'}" \`
+    -Body ${body} \`
+    -Severity "${test.severity}" \`
+    -TestNumber $testIndex \`
+    -TotalTests $totalTests
+
+$testIndex++
+
+# Small delay to avoid overwhelming the server
+Start-Sleep -Milliseconds 100
+`;
+}).join('')}
+
+# Generate Final Report
+Show-ScanReport
+
+Write-Host ""
+Write-Host "$($colors.Bold)$($colors.Green)✅ IIS Security Assessment Complete!$($colors.Reset)"
+Write-Host ""
+
+# Check if vulnerabilities were found
+if ($global:ScanResults.Vulnerabilities.Count -gt 0 -or $global:ScanResults.CriticalFindings.Count -gt 0) {
+    Write-Host "$($colors.Red)⚠️ SECURITY ISSUES DETECTED! Review the report above for details.$($colors.Reset)"
+    exit 1
+} else {
+    Write-Host "$($colors.Green)✅ No major security issues detected.$($colors.Reset)"
+    exit 0
+}
+`;
+}
+
+function closePowerShellModal() {
+    document.getElementById('powerShellModal').style.display = 'none';
+}
+
+function copyPowerShell() {
+    const content = document.getElementById('powerShellOutput').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+        btn.classList.add('bg-green-500');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('bg-green-500');
+        }, 2000);
+    });
+}
+
+function downloadPowerShell() {
+    const content = document.getElementById('powerShellOutput').textContent;
+    const timestamp = new Date().getTime();
+    const filename = `iis_security_enhanced_${timestamp}.ps1`;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
