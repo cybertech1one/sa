@@ -1,4 +1,4 @@
-// Add this simple, focused PowerShell generator function
+// COMPLETE PRODUCTION-READY POWERSHELL GENERATOR
 function generateEnhancedPowerShell() {
     const selected = getSelectedTests();
     if (selected.length === 0) {
@@ -9,99 +9,920 @@ function generateEnhancedPowerShell() {
     const targetUrl = document.getElementById('targetUrl').value;
     const proxyUrl = document.getElementById('proxyUrl').value;
     
-    // Create simple, working PowerShell script
-    let script = `# IIS Security Scanner - PowerShell
-# Target: ${targetUrl}
-# Tests: ${selected.length}
-# Generated: ${new Date().toISOString()}
+    // Update stats
+    document.getElementById('psTestCount').textContent = selected.length;
+    document.getElementById('psCriticalCount').textContent = selected.filter(t => t.test.severity === 'critical').length;
+    document.getElementById('psHighCount').textContent = selected.filter(t => t.test.severity === 'high').length;
+    
+    // Generate COMPLETE PowerShell script with ALL features
+    const script = generateCompleteProductionPowerShellScript(selected, targetUrl, proxyUrl);
+    
+    // Display the script
+    document.getElementById('powerShellOutput').textContent = script;
+    document.getElementById('powerShellModal').style.display = 'block';
+}
 
-$target = "${targetUrl}"
-$results = @()
-$vulnerabilities = @()
+function generateCompleteProductionPowerShellScript(tests, targetUrl, proxyUrl) {
+    // Build test definitions array
+    const testDefinitions = tests.map((item, index) => {
+        const test = item.test;
+        const category = item.category;
+        const testNum = index + 1;
+        
+        // Properly escape and format headers
+        const headers = test.headers || {};
+        const headersFormatted = Object.entries(headers).map(([k, v]) => {
+            return `        "${k}" = "${v.replace(/"/g, '`"').replace(/\\/g, '\\\\')}"`;
+        }).join("\n");
+        
+        // Properly escape body
+        const bodyEscaped = test.body ? 
+            test.body.replace(/"/g, '`"').replace(/\\/g, '\\\\').replace(/\n/g, '`n').replace(/\r/g, '`r') : 
+            '';
+        
+        return {
+            number: testNum,
+            name: test.name.replace(/"/g, '`"'),
+            category: category.replace(/"/g, '`"'),
+            description: test.description.replace(/"/g, '`"'),
+            method: test.method || 'GET',
+            path: test.path || '/',
+            headers: headersFormatted,
+            body: bodyEscaped,
+            severity: test.severity,
+            hasBody: !!test.body,
+            hasHeaders: Object.keys(headers).length > 0
+        };
+    });
 
-Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "IIS SECURITY SCANNER" -ForegroundColor Yellow
-Write-Host "Target: $target" -ForegroundColor Green
-Write-Host "Tests: ${selected.length}" -ForegroundColor Green
-Write-Host "================================================" -ForegroundColor Cyan
+    return `<#
+╔══════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                          ║
+║                    🛡️  ADVANCED IIS SECURITY SCANNER - PRODUCTION READY                  ║
+║                    🎯  Target: ${targetUrl.padEnd(57)}║
+║                    🧪  Tests: ${String(tests.length).padEnd(58)}║
+║                    📅  Generated: ${new Date().toISOString().padEnd(53)}║
+║                                                                                          ║
+║                    ⚡  FULL FEATURE SET - ALL FUNCTIONS DEFINED                          ║
+║                    📊  COMPLETE VULNERABILITY ANALYSIS & REPORTING                      ║
+║                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════╝
+#>
+
+# ============================================
+# SCRIPT CONFIGURATION
+# ============================================
+$ErrorActionPreference = "Continue"
+$ProgressPreference = "SilentlyContinue"
+$VerbosePreference = "SilentlyContinue"
+
+# Target Configuration
+$Script:TARGET_URL = "${targetUrl}"
+$Script:PROXY_URL = ${proxyUrl ? `"${proxyUrl}"` : '$null'}
+$Script:TIMEOUT = 30
+$Script:DELAY_MS = 100
+
+# ============================================
+# ANSI COLOR CODES FOR BEAUTIFUL OUTPUT
+# ============================================
+$Script:Colors = @{
+    Reset = "`e[0m"
+    Bold = "`e[1m"
+    Underline = "`e[4m"
+    
+    # Regular Colors
+    Black = "`e[30m"
+    Red = "`e[31m"
+    Green = "`e[32m"
+    Yellow = "`e[33m"
+    Blue = "`e[34m"
+    Magenta = "`e[35m"
+    Cyan = "`e[36m"
+    White = "`e[37m"
+    
+    # Bright Colors
+    BrightRed = "`e[91m"
+    BrightGreen = "`e[92m"
+    BrightYellow = "`e[93m"
+    BrightBlue = "`e[94m"
+    BrightMagenta = "`e[95m"
+    BrightCyan = "`e[96m"
+    BrightWhite = "`e[97m"
+    
+    # Background Colors
+    BgRed = "`e[41m"
+    BgGreen = "`e[42m"
+    BgYellow = "`e[43m"
+    BgBlue = "`e[44m"
+    BgMagenta = "`e[45m"
+    BgCyan = "`e[46m"
+}
+
+# ============================================
+# GLOBAL RESULTS STORAGE
+# ============================================
+$Global:ScanResults = @{
+    StartTime = Get-Date
+    EndTime = $null
+    TotalTests = 0
+    TestsExecuted = 0
+    TestsPassed = 0
+    TestsFailed = 0
+    TestsSkipped = 0
+    
+    # Categorized Results
+    Results = @()
+    Vulnerabilities = @()
+    CriticalFindings = @()
+    HighFindings = @()
+    MediumFindings = @()
+    LowFindings = @()
+    InfoFindings = @()
+    
+    # Server Information
+    ServerInfo = @{}
+    Technologies = @()
+    
+    # Response Statistics
+    ResponseTimes = @()
+    StatusCodes = @{}
+    
+    # Detailed Logs
+    DetailedLogs = @()
+    ErrorLogs = @()
+}
+
+# ============================================
+# HELPER FUNCTIONS - ALL DEFINED
+# ============================================
+
+function Write-ColoredOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White",
+        [switch]$NoNewline
+    )
+    
+    $colorCode = $Script:Colors[$Color]
+    if ($NoNewline) {
+        Write-Host "$colorCode$Message$($Script:Colors.Reset)" -NoNewline
+    } else {
+        Write-Host "$colorCode$Message$($Script:Colors.Reset)"
+    }
+}
+
+function Get-SeverityColor {
+    param([string]$Severity)
+    
+    switch ($Severity.ToLower()) {
+        "critical" { return "BrightRed" }
+        "high" { return "BrightMagenta" }
+        "medium" { return "BrightYellow" }
+        "low" { return "BrightBlue" }
+        "info" { return "BrightCyan" }
+        default { return "White" }
+    }
+}
+
+function Get-StatusEmoji {
+    param([int]$StatusCode)
+    
+    switch ($StatusCode) {
+        { $_ -eq 200 } { return "✅" }
+        { $_ -eq 201 } { return "✨" }
+        { $_ -eq 204 } { return "📭" }
+        { $_ -in 301,302,303,307,308 } { return "🔄" }
+        { $_ -eq 400 } { return "❌" }
+        { $_ -eq 401 } { return "🔐" }
+        { $_ -eq 403 } { return "🚫" }
+        { $_ -eq 404 } { return "❓" }
+        { $_ -eq 405 } { return "⛔" }
+        { $_ -eq 500 } { return "💥" }
+        { $_ -eq 502 } { return "🌉" }
+        { $_ -eq 503 } { return "🔧" }
+        default { return "ℹ️" }
+    }
+}
+
+function Format-Bytes {
+    param([long]$Bytes)
+    
+    if ($Bytes -ge 1GB) { return "{0:N2} GB" -f ($Bytes / 1GB) }
+    elseif ($Bytes -ge 1MB) { return "{0:N2} MB" -f ($Bytes / 1MB) }
+    elseif ($Bytes -ge 1KB) { return "{0:N2} KB" -f ($Bytes / 1KB) }
+    else { return "$Bytes B" }
+}
+
+function Format-Duration {
+    param([double]$Seconds)
+    
+    if ($Seconds -ge 1) { return "{0:N3}s" -f $Seconds }
+    else { return "{0:N0}ms" -f ($Seconds * 1000) }
+}
+
+function Test-VulnerabilityIndicators {
+    param(
+        [string]$Content,
+        [int]$StatusCode,
+        [string]$Path,
+        [string]$Method,
+        [string]$Severity,
+        [hashtable]$Headers
+    )
+    
+    $indicators = @()
+    
+    # Check for successful critical tests
+    if ($Severity -eq "critical" -and $StatusCode -eq 200) {
+        $indicators += "🚨 Critical test returned 200 OK - HIGH RISK vulnerability!"
+    }
+    
+    # Check for information disclosure
+    if ($Content -match '(?i)(password|pwd|passwd|connectionstring|apikey|api_key|secret|token|bearer|private)') {
+        $indicators += "🔓 Potential sensitive information disclosure detected"
+    }
+    
+    # Check for error messages
+    if ($Content -match '(?i)(exception|stack\s*trace|debug|error\s*in|warning|notice|fatal)') {
+        $indicators += "📋 Detailed error messages detected - Information leakage"
+    }
+    
+    # Check for successful directory traversal
+    if ($Path -match '\\.\\.' -and $StatusCode -eq 200) {
+        $indicators += "📁 Directory traversal attack successful!"
+    }
+    
+    # Check for successful WebDAV
+    if ($Method -in @('PUT','DELETE','MOVE','COPY','PROPFIND','PROPPATCH','MKCOL','LOCK','UNLOCK') -and $StatusCode -in @(200,201,204)) {
+        $indicators += "📝 WebDAV method $Method successful - Write access vulnerability!"
+    }
+    
+    # Check for XXE patterns
+    if ($Content -match '(?i)(<!ENTITY|SYSTEM|PUBLIC|DOCTYPE)') {
+        $indicators += "🎯 XML External Entity (XXE) patterns detected"
+    }
+    
+    # Check for SQL errors
+    if ($Content -match '(?i)(sql|syntax|mysql|mssql|oracle|postgresql|sqlite).*error') {
+        $indicators += "💉 SQL error messages detected - Possible SQL injection"
+    }
+    
+    # Check for version disclosure
+    if ($Content -match '(?i)(IIS[/\\s]+[\\d\\.]+|ASP\\.NET[/\\s]+[\\d\\.]+|PHP[/\\s]+[\\d\\.]+|Apache[/\\s]+[\\d\\.]+)') {
+        $indicators += "📌 Server version information disclosed"
+    }
+    
+    # Check for file paths
+    if ($Content -match '(?i)([C-Z]:\\\\|/etc/|/var/|/usr/|/home/)') {
+        $indicators += "📂 Server file paths exposed"
+    }
+    
+    return $indicators
+}
+
+function Invoke-IISSecurityTest {
+    param(
+        [int]$TestNumber,
+        [int]$TotalTests,
+        [string]$TestName,
+        [string]$Category,
+        [string]$Description,
+        [string]$Method,
+        [string]$Path,
+        [hashtable]$Headers,
+        [string]$Body,
+        [string]$Severity
+    )
+    
+    # Build full URL
+    $url = $Script:TARGET_URL.TrimEnd('/') + $Path
+    
+    # Display test header
+    Write-Host ""
+    Write-ColoredOutput ("=" * 80) "Cyan"
+    Write-ColoredOutput "[TEST $TestNumber/$TotalTests]" "BrightYellow" -NoNewline
+    Write-Host " $TestName"
+    Write-ColoredOutput ("=" * 80) "Cyan"
+    Write-ColoredOutput "Category    : $Category" "BrightBlue"
+    Write-ColoredOutput "Description : $Description" "White"
+    Write-ColoredOutput "Method      : $Method" "BrightCyan"
+    Write-ColoredOutput "Path        : $Path" "BrightCyan"
+    Write-ColoredOutput "Severity    : " "White" -NoNewline
+    Write-ColoredOutput $Severity.ToUpper() (Get-SeverityColor $Severity)
+    Write-ColoredOutput "URL         : $url" "Cyan"
+    
+    # Start timing
+    $startTime = Get-Date
+    
+    try {
+        # Build request parameters
+        $requestParams = @{
+            Uri = $url
+            Method = $Method
+            UseBasicParsing = $true
+            TimeoutSec = $Script:TIMEOUT
+            MaximumRedirection = 0
+            ErrorAction = 'Stop'
+        }
+        
+        # Add headers
+        if ($Headers -and $Headers.Count -gt 0) {
+            $requestParams['Headers'] = $Headers
+        } else {
+            $requestParams['Headers'] = @{}
+        }
+        
+        # Ensure User-Agent is set
+        if (-not $requestParams.Headers.ContainsKey('User-Agent')) {
+            $requestParams.Headers['User-Agent'] = 'IIS-Security-Scanner/4.0 (PowerShell)'
+        }
+        
+        # Add body if present
+        if ($Body -and $Body -ne '' -and $Body -ne '$null') {
+            $requestParams['Body'] = $Body
+            
+            # Set Content-Type if not already set
+            if (-not $requestParams.Headers.ContainsKey('Content-Type')) {
+                if ($Body -match '^<') {
+                    $requestParams.Headers['Content-Type'] = 'application/xml'
+                } elseif ($Body -match '^{') {
+                    $requestParams.Headers['Content-Type'] = 'application/json'
+                } else {
+                    $requestParams.Headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                }
+            }
+        }
+        
+        # Add proxy if configured
+        if ($Script:PROXY_URL) {
+            $requestParams['Proxy'] = $Script:PROXY_URL
+            $requestParams['ProxyUseDefaultCredentials'] = $true
+        }
+        
+        # Execute the request
+        $response = Invoke-WebRequest @requestParams
+        
+        # Calculate elapsed time
+        $elapsedTime = (Get-Date) - $startTime
+        $elapsedSeconds = $elapsedTime.TotalSeconds
+        
+        # Get response details
+        $statusCode = [int]$response.StatusCode
+        $statusDescription = $response.StatusDescription
+        $responseHeaders = $response.Headers
+        $responseContent = $response.Content
+        $contentLength = $responseContent.Length
+        
+        # Display status with emoji
+        $emoji = Get-StatusEmoji $statusCode
+        Write-Host ""
+        Write-ColoredOutput "RESPONSE:" "BrightGreen"
+        Write-Host "$emoji Status      : " -NoNewline
+        Write-ColoredOutput "$statusCode $statusDescription" "BrightGreen"
+        Write-ColoredOutput "Time        : $(Format-Duration $elapsedSeconds)" "BrightCyan"
+        Write-ColoredOutput "Size        : $(Format-Bytes $contentLength)" "BrightMagenta"
+        
+        # Extract and display important headers
+        Write-Host ""
+        Write-ColoredOutput "HEADERS:" "BrightYellow"
+        
+        $importantHeaders = @(
+            'Server',
+            'X-Powered-By',
+            'X-AspNet-Version',
+            'X-AspNetMvc-Version',
+            'X-Frame-Options',
+            'X-Content-Type-Options',
+            'X-XSS-Protection',
+            'Content-Security-Policy',
+            'Strict-Transport-Security',
+            'Set-Cookie',
+            'WWW-Authenticate',
+            'Allow',
+            'Public',
+            'DAV'
+        )
+        
+        foreach ($headerName in $importantHeaders) {
+            if ($responseHeaders.ContainsKey($headerName)) {
+                $headerValue = $responseHeaders[$headerName]
+                Write-ColoredOutput "  $headerName : $headerValue" "Cyan"
+                
+                # Store server info
+                if ($headerName -in @('Server','X-Powered-By','X-AspNet-Version','X-AspNetMvc-Version')) {
+                    $Global:ScanResults.ServerInfo[$headerName] = $headerValue
+                }
+            }
+        }
+        
+        # Check for vulnerability indicators
+        $vulnerabilityIndicators = Test-VulnerabilityIndicators -Content $responseContent -StatusCode $statusCode -Path $Path -Method $Method -Severity $Severity -Headers $responseHeaders
+        
+        if ($vulnerabilityIndicators.Count -gt 0) {
+            Write-Host ""
+            Write-ColoredOutput "⚠️  SECURITY FINDINGS:" "BrightRed"
+            foreach ($indicator in $vulnerabilityIndicators) {
+                Write-ColoredOutput "  $indicator" "BrightRed"
+            }
+            
+            # Add to vulnerabilities
+            $Global:ScanResults.Vulnerabilities += @{
+                TestNumber = $TestNumber
+                TestName = $TestName
+                Category = $Category
+                Severity = $Severity
+                StatusCode = $statusCode
+                Indicators = $vulnerabilityIndicators
+                Path = $Path
+                Method = $Method
+            }
+            
+            # Categorize by severity
+            switch ($Severity.ToLower()) {
+                "critical" { $Global:ScanResults.CriticalFindings += $TestName }
+                "high" { $Global:ScanResults.HighFindings += $TestName }
+                "medium" { $Global:ScanResults.MediumFindings += $TestName }
+                "low" { $Global:ScanResults.LowFindings += $TestName }
+                default { $Global:ScanResults.InfoFindings += $TestName }
+            }
+        }
+        
+        # Content analysis (first 1000 chars)
+        if ($responseContent.Length -gt 0) {
+            Write-Host ""
+            Write-ColoredOutput "CONTENT ANALYSIS:" "BrightBlue"
+            
+            $preview = $responseContent.Substring(0, [Math]::Min(1000, $responseContent.Length))
+            
+            # Check for title
+            if ($preview -match '<title>(.*?)</title>') {
+                Write-ColoredOutput "  Page Title: $($Matches[1])" "Cyan"
+            }
+            
+            # Check for technology fingerprints
+            $techPatterns = @{
+                'IIS' = 'IIS[/\\s]+([\\d\\.]+)'
+                'ASP.NET' = 'ASP\\.NET[/\\s]+([\\d\\.]+)'
+                'PHP' = 'PHP[/\\s]+([\\d\\.]+)'
+                'Apache' = 'Apache[/\\s]+([\\d\\.]+)'
+                'nginx' = 'nginx[/\\s]+([\\d\\.]+)'
+                'WordPress' = 'WordPress[/\\s]+([\\d\\.]+)'
+                'Joomla' = 'Joomla[!/\\s]+([\\d\\.]+)'
+                'Drupal' = 'Drupal[/\\s]+([\\d\\.]+)'
+            }
+            
+            foreach ($tech in $techPatterns.Keys) {
+                if ($preview -match $techPatterns[$tech]) {
+                    $version = $Matches[0]
+                    Write-ColoredOutput "  Technology: $version" "BrightYellow"
+                    $Global:ScanResults.Technologies += $version
+                }
+            }
+            
+            # Check for forms
+            $formCount = ([regex]::Matches($preview, '<form')).Count
+            if ($formCount -gt 0) {
+                Write-ColoredOutput "  Forms Found: $formCount" "Cyan"
+            }
+            
+            # Check for input fields
+            $inputCount = ([regex]::Matches($preview, '<input')).Count
+            if ($inputCount -gt 0) {
+                Write-ColoredOutput "  Input Fields: $inputCount" "Cyan"
+            }
+            
+            # Check for comments
+            if ($preview -match '<!--') {
+                Write-ColoredOutput "  HTML Comments: Present" "BrightYellow"
+            }
+        }
+        
+        # Store result
+        $Global:ScanResults.Results += @{
+            TestNumber = $TestNumber
+            TestName = $TestName
+            Category = $Category
+            Method = $Method
+            Path = $Path
+            StatusCode = $statusCode
+            ResponseTime = $elapsedSeconds
+            ContentLength = $contentLength
+            Success = $true
+            Severity = $Severity
+        }
+        
+        # Update statistics
+        $Global:ScanResults.TestsPassed++
+        $Global:ScanResults.ResponseTimes += $elapsedSeconds
+        
+        if (-not $Global:ScanResults.StatusCodes.ContainsKey($statusCode)) {
+            $Global:ScanResults.StatusCodes[$statusCode] = 0
+        }
+        $Global:ScanResults.StatusCodes[$statusCode]++
+        
+    } catch {
+        # Calculate elapsed time
+        $elapsedTime = (Get-Date) - $startTime
+        $elapsedSeconds = $elapsedTime.TotalSeconds
+        
+        # Parse error
+        $errorMessage = $_.Exception.Message
+        $errorType = $_.Exception.GetType().Name
+        
+        # Determine status from error
+        $statusCode = 0
+        $statusText = "Unknown Error"
+        
+        if ($errorMessage -match '(\\d{3})') {
+            $statusCode = [int]$Matches[1]
+            $statusText = switch ($statusCode) {
+                400 { "Bad Request" }
+                401 { "Unauthorized" }
+                403 { "Forbidden" }
+                404 { "Not Found" }
+                405 { "Method Not Allowed" }
+                500 { "Internal Server Error" }
+                502 { "Bad Gateway" }
+                503 { "Service Unavailable" }
+                default { "HTTP Error $statusCode" }
+            }
+        } elseif ($errorMessage -match 'timed?\\s*out|timeout' -or $errorType -match 'Timeout') {
+            $statusCode = 0
+            $statusText = "Timeout"
+        } elseif ($errorMessage -match 'connection|connect' -or $errorType -match 'Connection') {
+            $statusCode = 0
+            $statusText = "Connection Failed"
+        } elseif ($errorMessage -match 'ssl|tls|certificate' -or $errorType -match 'Certificate') {
+            $statusCode = 0
+            $statusText = "SSL/TLS Error"
+        }
+        
+        # Display error
+        Write-Host ""
+        Write-ColoredOutput "RESPONSE:" "BrightRed"
+        Write-ColoredOutput "❌ Error     : $statusText" "BrightRed"
+        Write-ColoredOutput "Time        : $(Format-Duration $elapsedSeconds)" "BrightCyan"
+        Write-ColoredOutput "Details     : $($errorMessage.Substring(0, [Math]::Min(200, $errorMessage.Length)))" "Red"
+        
+        # Analyze error for security insights
+        Write-Host ""
+        Write-ColoredOutput "SECURITY ANALYSIS:" "BrightYellow"
+        
+        if ($statusCode -eq 401) {
+            Write-ColoredOutput "  🔐 Authentication required - Testing for auth bypass failed" "Yellow"
+        } elseif ($statusCode -eq 403) {
+            Write-ColoredOutput "  🚫 Access forbidden - Authorization controls in place" "Yellow"
+        } elseif ($statusCode -eq 404) {
+            Write-ColoredOutput "  ✓ Resource not found - Expected for many security tests" "Green"
+        } elseif ($statusCode -eq 405) {
+            Write-ColoredOutput "  ⛔ Method not allowed - HTTP method restrictions in place" "Yellow"
+        } elseif ($statusCode -ge 500) {
+            Write-ColoredOutput "  💥 Server error - Potential DoS or injection vulnerability!" "BrightRed"
+            
+            # Add to vulnerabilities for 500 errors
+            $Global:ScanResults.Vulnerabilities += @{
+                TestNumber = $TestNumber
+                TestName = $TestName
+                Category = $Category
+                Severity = "medium"
+                StatusCode = $statusCode
+                Indicators = @("Server error triggered - Potential vulnerability")
+                Path = $Path
+                Method = $Method
+            }
+        } elseif ($statusText -eq "Timeout") {
+            Write-ColoredOutput "  ⏱️ Request timeout - Possible DoS vulnerability" "Yellow"
+        } elseif ($statusText -match "SSL|TLS") {
+            Write-ColoredOutput "  🔒 SSL/TLS error - Certificate or protocol issue" "Yellow"
+        }
+        
+        # Store result
+        $Global:ScanResults.Results += @{
+            TestNumber = $TestNumber
+            TestName = $TestName
+            Category = $Category
+            Method = $Method
+            Path = $Path
+            StatusCode = $statusCode
+            StatusText = $statusText
+            ResponseTime = $elapsedSeconds
+            Error = $errorMessage
+            Success = $false
+            Severity = $Severity
+        }
+        
+        # Update statistics
+        $Global:ScanResults.TestsFailed++
+        $Global:ScanResults.ResponseTimes += $elapsedSeconds
+        
+        # Store error
+        $Global:ScanResults.ErrorLogs += @{
+            TestNumber = $TestNumber
+            TestName = $TestName
+            Error = $errorMessage
+            Type = $errorType
+        }
+    }
+    
+    # Update test counter
+    $Global:ScanResults.TestsExecuted++
+}
+
+function Show-FinalReport {
+    Write-Host ""
+    Write-Host ""
+    Write-ColoredOutput ("=" * 80) "BrightCyan"
+    Write-ColoredOutput "                    🛡️  FINAL SECURITY ASSESSMENT REPORT" "BrightYellow"
+    Write-ColoredOutput ("=" * 80) "BrightCyan"
+    
+    # Calculate total time
+    $Global:ScanResults.EndTime = Get-Date
+    $totalTime = $Global:ScanResults.EndTime - $Global:ScanResults.StartTime
+    
+    # Basic Statistics
+    Write-Host ""
+    Write-ColoredOutput "📊 SCAN STATISTICS:" "BrightYellow"
+    Write-ColoredOutput ("─" * 40) "Cyan"
+    Write-ColoredOutput "  Target URL        : $Script:TARGET_URL" "White"
+    Write-ColoredOutput "  Start Time        : $($Global:ScanResults.StartTime.ToString('yyyy-MM-dd HH:mm:ss'))" "White"
+    Write-ColoredOutput "  End Time          : $($Global:ScanResults.EndTime.ToString('yyyy-MM-dd HH:mm:ss'))" "White"
+    Write-ColoredOutput "  Total Duration    : $($totalTime.ToString('hh\\:mm\\:ss'))" "BrightCyan"
+    Write-Host ""
+    Write-ColoredOutput "  Total Tests       : $($Global:ScanResults.TestsExecuted)" "White"
+    Write-ColoredOutput "  Passed            : $($Global:ScanResults.TestsPassed)" "BrightGreen"
+    Write-ColoredOutput "  Failed            : $($Global:ScanResults.TestsFailed)" "BrightRed"
+    
+    # Response Time Analysis
+    if ($Global:ScanResults.ResponseTimes.Count -gt 0) {
+        $avgTime = ($Global:ScanResults.ResponseTimes | Measure-Object -Average).Average
+        $minTime = ($Global:ScanResults.ResponseTimes | Measure-Object -Minimum).Minimum
+        $maxTime = ($Global:ScanResults.ResponseTimes | Measure-Object -Maximum).Maximum
+        
+        Write-Host ""
+        Write-ColoredOutput "⏱️ RESPONSE TIME ANALYSIS:" "BrightYellow"
+        Write-ColoredOutput ("─" * 40) "Cyan"
+        Write-ColoredOutput "  Average Time      : $(Format-Duration $avgTime)" "White"
+        Write-ColoredOutput "  Minimum Time      : $(Format-Duration $minTime)" "BrightGreen"
+        Write-ColoredOutput "  Maximum Time      : $(Format-Duration $maxTime)" "BrightRed"
+    }
+    
+    # Status Code Distribution
+    if ($Global:ScanResults.StatusCodes.Count -gt 0) {
+        Write-Host ""
+        Write-ColoredOutput "📈 STATUS CODE DISTRIBUTION:" "BrightYellow"
+        Write-ColoredOutput ("─" * 40) "Cyan"
+        
+        foreach ($code in ($Global:ScanResults.StatusCodes.Keys | Sort-Object)) {
+            $count = $Global:ScanResults.StatusCodes[$code]
+            $emoji = Get-StatusEmoji $code
+            $percentage = [math]::Round(($count / $Global:ScanResults.TestsExecuted) * 100, 1)
+            Write-Host "  $emoji $code : $count ($percentage%)"
+        }
+    }
+    
+    # Server Information
+    if ($Global:ScanResults.ServerInfo.Count -gt 0) {
+        Write-Host ""
+        Write-ColoredOutput "🖥️ SERVER INFORMATION DETECTED:" "BrightYellow"
+        Write-ColoredOutput ("─" * 40) "Cyan"
+        
+        foreach ($info in $Global:ScanResults.ServerInfo.GetEnumerator()) {
+            Write-ColoredOutput "  $($info.Key)" "BrightCyan" -NoNewline
+            Write-Host " : $($info.Value)"
+        }
+    }
+    
+    # Technologies Detected
+    if ($Global:ScanResults.Technologies.Count -gt 0) {
+        Write-Host ""
+        Write-ColoredOutput "🔧 TECHNOLOGIES DETECTED:" "BrightYellow"
+        Write-ColoredOutput ("─" * 40) "Cyan"
+        
+        $uniqueTech = $Global:ScanResults.Technologies | Select-Object -Unique
+        foreach ($tech in $uniqueTech) {
+            Write-ColoredOutput "  • $tech" "BrightMagenta"
+        }
+    }
+    
+    # Vulnerability Summary
+    Write-Host ""
+    Write-ColoredOutput "🚨 VULNERABILITY SUMMARY:" "BrightRed"
+    Write-ColoredOutput ("─" * 40) "Cyan"
+    
+    $criticalCount = $Global:ScanResults.CriticalFindings.Count
+    $highCount = $Global:ScanResults.HighFindings.Count
+    $mediumCount = $Global:ScanResults.MediumFindings.Count
+    $lowCount = $Global:ScanResults.LowFindings.Count
+    $infoCount = $Global:ScanResults.InfoFindings.Count
+    
+    Write-ColoredOutput "  CRITICAL          : $criticalCount" "BrightRed"
+    Write-ColoredOutput "  HIGH              : $highCount" "BrightMagenta"
+    Write-ColoredOutput "  MEDIUM            : $mediumCount" "BrightYellow"
+    Write-ColoredOutput "  LOW               : $lowCount" "BrightBlue"
+    Write-ColoredOutput "  INFO              : $infoCount" "BrightCyan"
+    
+    # Detailed Vulnerabilities
+    if ($Global:ScanResults.Vulnerabilities.Count -gt 0) {
+        Write-Host ""
+        Write-ColoredOutput "📋 DETAILED VULNERABILITY FINDINGS:" "BrightRed"
+        Write-ColoredOutput ("─" * 40) "Cyan"
+        
+        foreach ($vuln in $Global:ScanResults.Vulnerabilities) {
+            Write-Host ""
+            $severityColor = Get-SeverityColor $vuln.Severity
+            Write-ColoredOutput "  [$($vuln.Severity.ToUpper())] $($vuln.TestName)" $severityColor
+            Write-ColoredOutput "  Category: $($vuln.Category)" "White"
+            Write-ColoredOutput "  Method: $($vuln.Method) | Path: $($vuln.Path)" "Cyan"
+            
+            foreach ($indicator in $vuln.Indicators) {
+                Write-ColoredOutput "    → $indicator" "Yellow"
+            }
+        }
+    }
+    
+    # Risk Score Calculation
+    $riskScore = ($criticalCount * 10) + ($highCount * 5) + ($mediumCount * 3) + ($lowCount * 1)
+    
+    $riskLevel = if ($riskScore -ge 50) { 
+        @{ Level = "CRITICAL"; Color = "BrightRed" }
+    } elseif ($riskScore -ge 30) { 
+        @{ Level = "HIGH"; Color = "BrightMagenta" }
+    } elseif ($riskScore -ge 15) { 
+        @{ Level = "MEDIUM"; Color = "BrightYellow" }
+    } elseif ($riskScore -ge 5) { 
+        @{ Level = "LOW"; Color = "BrightBlue" }
+    } else { 
+        @{ Level = "MINIMAL"; Color = "BrightGreen" }
+    }
+    
+    Write-Host ""
+    Write-ColoredOutput "🎯 OVERALL RISK ASSESSMENT:" "BrightYellow"
+    Write-ColoredOutput ("─" * 40) "Cyan"
+    Write-ColoredOutput "  Risk Score        : $riskScore" "White"
+    Write-ColoredOutput "  Risk Level        : $($riskLevel.Level)" $riskLevel.Color
+    
+    # Recommendations
+    Write-Host ""
+    Write-ColoredOutput "💡 RECOMMENDATIONS:" "BrightYellow"
+    Write-ColoredOutput ("─" * 40) "Cyan"
+    
+    if ($criticalCount -gt 0) {
+        Write-ColoredOutput "  🔴 URGENT: Address $criticalCount CRITICAL vulnerabilities immediately!" "BrightRed"
+    }
+    if ($highCount -gt 0) {
+        Write-ColoredOutput "  🟠 HIGH PRIORITY: Fix $highCount HIGH severity issues" "BrightMagenta"
+    }
+    if ($Global:ScanResults.ServerInfo.Count -gt 0) {
+        Write-ColoredOutput "  🟡 Remove server version headers to prevent information disclosure" "BrightYellow"
+    }
+    if ($mediumCount -gt 0) {
+        Write-ColoredOutput "  🟢 Schedule fixes for $mediumCount MEDIUM severity issues" "BrightBlue"
+    }
+    
+    # Save Report to JSON
+    Write-Host ""
+    Write-ColoredOutput "💾 SAVING DETAILED REPORT..." "BrightCyan"
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $reportFile = "IIS_Security_Report_$timestamp.json"
+    
+    $reportData = @{
+        ScanInfo = @{
+            Target = $Script:TARGET_URL
+            StartTime = $Global:ScanResults.StartTime.ToString('yyyy-MM-dd HH:mm:ss')
+            EndTime = $Global:ScanResults.EndTime.ToString('yyyy-MM-dd HH:mm:ss')
+            Duration = $totalTime.ToString()
+            TotalTests = $Global:ScanResults.TestsExecuted
+        }
+        Statistics = @{
+            Passed = $Global:ScanResults.TestsPassed
+            Failed = $Global:ScanResults.TestsFailed
+            AverageResponseTime = if ($Global:ScanResults.ResponseTimes.Count -gt 0) { ($Global:ScanResults.ResponseTimes | Measure-Object -Average).Average } else { 0 }
+        }
+        ServerInfo = $Global:ScanResults.ServerInfo
+        Technologies = $Global:ScanResults.Technologies | Select-Object -Unique
+        Vulnerabilities = $Global:ScanResults.Vulnerabilities
+        RiskAssessment = @{
+            Score = $riskScore
+            Level = $riskLevel.Level
+            Critical = $criticalCount
+            High = $highCount
+            Medium = $mediumCount
+            Low = $lowCount
+        }
+        DetailedResults = $Global:ScanResults.Results
+    }
+    
+    try {
+        $reportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportFile -Encoding UTF8
+        Write-ColoredOutput "  ✅ Report saved to: $reportFile" "BrightGreen"
+    } catch {
+        Write-ColoredOutput "  ❌ Failed to save report: $_" "BrightRed"
+    }
+    
+    # Final Summary
+    Write-Host ""
+    Write-ColoredOutput ("=" * 80) "BrightCyan"
+    
+    if ($Global:ScanResults.Vulnerabilities.Count -gt 0) {
+        Write-ColoredOutput "⚠️  SECURITY ISSUES DETECTED - IMMEDIATE ACTION REQUIRED!" "BrightRed"
+    } else {
+        Write-ColoredOutput "✅ SCAN COMPLETE - No major security issues detected" "BrightGreen"
+    }
+    
+    Write-ColoredOutput ("=" * 80) "BrightCyan"
+}
+
+# ============================================
+# MAIN EXECUTION
+# ============================================
+
+Write-Host ""
+Write-ColoredOutput ("=" * 80) "BrightCyan"
+Write-ColoredOutput "                    🚀 STARTING IIS SECURITY ASSESSMENT" "BrightYellow"
+Write-ColoredOutput ("=" * 80) "BrightCyan"
+Write-Host ""
+Write-ColoredOutput "Target      : $Script:TARGET_URL" "BrightCyan"
+Write-ColoredOutput "Total Tests : ${tests.length}" "BrightCyan"
+Write-ColoredOutput "Started     : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" "BrightCyan"
+${proxyUrl ? `Write-ColoredOutput "Proxy       : $Script:PROXY_URL" "BrightCyan"` : ''}
 Write-Host ""
 
+# Set total test count
+$Global:ScanResults.TotalTests = ${tests.length}
+
+# ============================================
+# EXECUTE ALL TESTS
+# ============================================
+
+${testDefinitions.map(test => `
+# Execute Test ${test.number}
+Invoke-IISSecurityTest \`
+    -TestNumber ${test.number} \`
+    -TotalTests ${tests.length} \`
+    -TestName "${test.name}" \`
+    -Category "${test.category}" \`
+    -Description "${test.description}" \`
+    -Method "${test.method}" \`
+    -Path "${test.path}" \`
+    -Headers @{
+${test.hasHeaders ? test.headers : '        # No custom headers'}
+    } \`
+    -Body ${test.hasBody ? `"${test.body}"` : '$null'} \`
+    -Severity "${test.severity}"
+
+# Delay between tests
+Start-Sleep -Milliseconds $Script:DELAY_MS
+`).join('\n')}
+
+# ============================================
+# GENERATE FINAL REPORT
+# ============================================
+
+Show-FinalReport
+
+# Exit with appropriate code
+if ($Global:ScanResults.Vulnerabilities.Count -gt 0) {
+    exit 1  # Exit with error code if vulnerabilities found
+} else {
+    exit 0  # Exit successfully if no vulnerabilities
+}
 `;
+}
 
-    // Add each test as simple PowerShell code
-    selected.forEach((item, index) => {
-        const test = item.test;
-        const testNum = index + 1;
-        const headers = test.headers || {};
-        
-        script += `
-# Test ${testNum}: ${test.name}
-Write-Host "[${testNum}/${selected.length}] Testing: ${test.name}" -ForegroundColor Yellow
-Write-Host "  Severity: ${test.severity.toUpperCase()}" -ForegroundColor $(if ("${test.severity}" -eq "critical") {"Red"} elseif ("${test.severity}" -eq "high") {"Magenta"} else {"Cyan"})
+// Close and copy functions remain the same
+function closePowerShellModal() {
+    document.getElementById('powerShellModal').style.display = 'none';
+}
 
-try {
-    $url = $target + "${test.path || '/'}"
-    $headers = @{
-        "User-Agent" = "PowerShell-IIS-Scanner"`;
+function copyPowerShell() {
+    const content = document.getElementById('powerShellOutput').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+        btn.classList.add('bg-green-500');
         
-        // Add headers if they exist
-        Object.entries(headers).forEach(([key, value]) => {
-            script += `
-        "${key}" = "${value.replace(/"/g, '""')}"`;
-        });
-        
-        script += `
-    }
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('bg-green-500');
+        }, 2000);
+    });
+}
+
+function downloadPowerShell() {
+    const content = document.getElementById('powerShellOutput').textContent;
+    const timestamp = new Date().getTime();
+    const filename = `iis_security_production_${timestamp}.ps1`;
     
-    $params = @{
-        Uri = $url
-        Method = "${test.method || 'GET'}"
-        Headers = $headers
-        UseBasicParsing = $true
-        TimeoutSec = 10
-        ErrorAction = "Stop"
-    }
-    `;
-        
-        // Add body if exists
-        if (test.body) {
-            script += `
-    $params["Body"] = "${test.body.replace(/"/g, '""').replace(/\n/g, '`n')}"
-    `;
-        }
-        
-        // Add proxy if configured
-        if (proxyUrl) {
-            script += `
-    $params["Proxy"] = "${proxyUrl}"
-    `;
-        }
-        
-        script += `
-    $response = Invoke-WebRequest @params
-    
-    Write-Host "  ✓ Status: $($response.StatusCode)" -ForegroundColor Green
-    
-    # Check for vulnerabilities
-    if ($response.StatusCode -eq 200) {
-        if ("${test.severity}" -eq "critical") {
-            Write-Host "  🚨 CRITICAL: Test succeeded with 200 OK!" -ForegroundColor Red
-            $vulnerabilities += "${test.name}"
-        }
-        
-        # Check for server headers
-        if ($response.Headers["Server"]) {
-            Write-Host "  Server: $($response.Headers["Server"])" -ForegroundColor Cyan
-        }
-        if ($response.Headers["X-Powered-By"]) {
-            Write-Host "  Powered By: $($response.Headers["X-Powered-By"])" -ForegroundColor Cyan
-        }
-        if ($response.Headers["X-AspNet-Version"]) {
-            Write-Host "  ASP.NET: $($response.Headers["X-AspNet-Version"])" -ForegroundColor Cyan
-        }
-        
-        # Check content for patterns
-        $content = $response.Content
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}        $content = $response.Content
         if ($content -match "IIS") {
             Write-Host "  Found: IIS references in response" -ForegroundColor Yellow
         }
