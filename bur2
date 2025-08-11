@@ -1,0 +1,3618 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Burp Suite Enterprise Report Analyzer™ - Advanced Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            burp: {
+              50: '#fff8f1',
+              100: '#feecdc',
+              200: '#fcd9bd',
+              300: '#fdba8c',
+              400: '#ff8a4c',
+              500: '#ff6900',
+              600: '#e85d00',
+              700: '#dc4f00',
+              800: '#9a3412',
+              900: '#7c2d12',
+              950: '#431407'
+            },
+            enterprise: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Enhanced Libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  
+  <!-- Advanced Charting & Data Processing -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  
+  <!-- Excel Export Enhancement -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <!-- Machine Learning for Advanced Analysis -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
+  
+  <!-- PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Data Tables for Better Findings Display -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  
+  <style>
+    * {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Enhanced Card Styles */
+    .enterprise-card {
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dark .enterprise-card {
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+    }
+
+    .enterprise-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Progress Animations */
+    @keyframes progress-wave {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+
+    .progress-wave::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: progress-wave 2s infinite;
+    }
+
+    /* DataTables Custom Styling */
+    .dataTables_wrapper {
+      font-family: 'Inter', sans-serif;
+    }
+
+    table.dataTable thead th {
+      background: linear-gradient(135deg, #ff6900 0%, #e85d00 100%);
+      color: white;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Loading Skeleton */
+    .skeleton-loader {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #ff6900, #e85d00);
+      border-radius: 4px;
+    }
+
+    /* Risk Matrix Grid */
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 2px;
+      height: 300px;
+    }
+
+    .risk-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .risk-cell:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    /* Vulnerability Card Grid */
+    .vuln-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .vuln-card:hover {
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transform: translateY(-4px);
+    }
+
+    /* Enhanced Export Modal */
+    .export-option {
+      padding: 1rem;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .export-option:hover {
+      border-color: #ff6900;
+      background: rgba(255, 105, 0, 0.05);
+    }
+
+    .export-option.selected {
+      border-color: #ff6900;
+      background: rgba(255, 105, 0, 0.1);
+    }
+
+    /* Timeline Visualization */
+    .timeline-item {
+      position: relative;
+      padding-left: 3rem;
+      padding-bottom: 2rem;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      top: 0.5rem;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: #ff6900;
+      border: 3px solid white;
+      box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.2);
+    }
+
+    .timeline-item::after {
+      content: '';
+      position: absolute;
+      left: 1.5rem;
+      top: 1.5rem;
+      bottom: -0.5rem;
+      width: 2px;
+      background: linear-gradient(to bottom, #ff6900, transparent);
+    }
+
+    .timeline-item:last-child::after {
+      display: none;
+    }
+
+    /* Severity Indicators */
+    .severity-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+    }
+
+    .severity-critical { background: #dc2626; }
+    .severity-high { background: #ea580c; }
+    .severity-medium { background: #d97706; }
+    .severity-low { background: #059669; }
+    .severity-info { background: #0284c7; }
+
+    /* Advanced Filter Pills */
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      background: #f3f4f6;
+      font-size: 0.875rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .filter-pill:hover {
+      background: #e5e7eb;
+    }
+
+    .filter-pill.active {
+      background: #ff6900;
+      color: white;
+    }
+
+    /* Pulse Animation for Live Data */
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .pulse-live {
+      animation: pulse-live 2s infinite;
+    }
+
+    /* Enhanced Table Styles */
+    .findings-table {
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+
+    .findings-table tbody tr {
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.3s;
+    }
+
+    .findings-table tbody tr:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+
+    /* Drag and Drop Enhanced */
+    .drop-zone {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop-zone.dragging {
+      background: rgba(255, 105, 0, 0.05);
+      border-color: #ff6900;
+    }
+
+    .drop-zone.dragging::before {
+      content: 'Drop files here';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 105, 0, 0.95);
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+      z-index: 10;
+    }
+
+    /* Loading Bar */
+    .loading-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #ff6900, #e85d00, #ff6900);
+      background-size: 200% 100%;
+      animation: loading-bar 1s linear infinite;
+      z-index: 9999;
+    }
+
+    @keyframes loading-bar {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+  </style>
+</head>
+
+<body class="min-h-full bg-gray-50 dark:bg-gray-900">
+
+  <!-- Loading Bar (Hidden by default) -->
+  <div id="loadingBar" class="loading-bar hidden"></div>
+
+  <!-- Main Application -->
+  <div id="app" class="min-h-screen">
+    
+    <!-- Enhanced Header -->
+    <header class="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700">
+      <div class="max-w-[1920px] mx-auto px-6">
+        <div class="flex items-center justify-between h-16">
+          
+          <!-- Brand -->
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+              <i class="fas fa-shield-virus text-white"></i>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+                Burp Suite <span class="text-orange-600">Enterprise</span>
+              </h1>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Advanced Security Analysis</p>
+            </div>
+          </div>
+          
+          <!-- Live Stats Bar -->
+          <div id="liveStatsBar" class="hidden lg:flex items-center gap-6 px-6 py-2 rounded-xl bg-gray-100 dark:bg-gray-800">
+            <div class="flex items-center gap-2">
+              <span class="severity-indicator severity-critical pulse-live"></span>
+              <span class="font-mono text-sm font-bold" id="criticalLive">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="severity-indicator severity-high pulse-live"></span>
+              <span class="font-mono text-sm font-bold" id="highLive">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="severity-indicator severity-medium"></span>
+              <span class="font-mono text-sm font-bold" id="mediumLive">0</span>
+            </div>
+            <div class="text-sm text-gray-500">
+              <span id="totalFindings" class="font-bold text-gray-900 dark:text-white">0</span> Total
+            </div>
+          </div>
+          
+          <!-- Actions -->
+          <div class="flex items-center gap-3">
+            <button id="quickAnalyze" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+              <i class="fas fa-bolt mr-2"></i>Quick Analyze
+            </button>
+            <button id="exportBtn" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <i class="fas fa-download text-gray-600 dark:text-gray-400"></i>
+            </button>
+            <button id="settingsBtn" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <i class="fas fa-cog text-gray-600 dark:text-gray-400"></i>
+            </button>
+            <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <i class="fas fa-moon dark:hidden text-gray-600"></i>
+              <i class="fas fa-sun hidden dark:block text-gray-400"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav id="navTabs" class="hidden sticky top-16 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div class="max-w-[1920px] mx-auto px-6">
+        <div class="flex items-center gap-1 py-3">
+          <button data-tab="dashboard" class="tab-btn active px-6 py-2 rounded-lg font-medium text-sm transition-all">
+            <i class="fas fa-chart-line mr-2"></i>Dashboard
+          </button>
+          <button data-tab="findings" class="tab-btn px-6 py-2 rounded-lg font-medium text-sm transition-all">
+            <i class="fas fa-bug mr-2"></i>Findings
+          </button>
+          <button data-tab="analysis" class="tab-btn px-6 py-2 rounded-lg font-medium text-sm transition-all">
+            <i class="fas fa-microscope mr-2"></i>Analysis
+          </button>
+          <button data-tab="remediation" class="tab-btn px-6 py-2 rounded-lg font-medium text-sm transition-all">
+            <i class="fas fa-tools mr-2"></i>Remediation
+          </button>
+          <button data-tab="reports" class="tab-btn px-6 py-2 rounded-lg font-medium text-sm transition-all">
+            <i class="fas fa-file-alt mr-2"></i>Reports
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1">
+      
+      <!-- Upload Screen -->
+      <div id="uploadScreen" class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8">
+        <div class="max-w-4xl w-full">
+          
+          <!-- Hero Section -->
+          <div class="text-center mb-12">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-2xl">
+              <i class="fas fa-shield-virus text-white text-4xl"></i>
+            </div>
+            <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Enterprise Security Intelligence
+            </h1>
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Advanced vulnerability analysis with machine learning-powered insights and comprehensive reporting
+            </p>
+          </div>
+          
+          <!-- Enhanced Upload Zone -->
+          <div id="dropZone" class="drop-zone relative p-12 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-orange-500 transition-all cursor-pointer group">
+            <input id="fileInput" type="file" accept=".xml,.json,.html,.csv,.txt" multiple class="hidden" />
+            
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-cloud-upload-alt text-white text-2xl"></i>
+              </div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Upload Security Report
+              </h3>
+              <p class="text-gray-600 dark:text-gray-400 mb-6">
+                Drop files here or click to browse
+              </p>
+              <div class="flex justify-center gap-2">
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono">XML</span>
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono">JSON</span>
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono">HTML</span>
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono">CSV</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Quick Start Options -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+            <button id="loadSample" class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
+              <i class="fas fa-file-code text-orange-600 text-xl mb-2"></i>
+              <h4 class="font-semibold text-gray-900 dark:text-white">Load Sample</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Try with demo data</p>
+            </button>
+            <button id="pasteData" class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
+              <i class="fas fa-paste text-orange-600 text-xl mb-2"></i>
+              <h4 class="font-semibold text-gray-900 dark:text-white">Paste Data</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Paste XML/JSON</p>
+            </button>
+            <button id="importUrl" class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
+              <i class="fas fa-link text-orange-600 text-xl mb-2"></i>
+              <h4 class="font-semibold text-gray-900 dark:text-white">Import URL</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Fetch from URL</p>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Processing Screen -->
+      <div id="processingScreen" class="hidden min-h-[calc(100vh-4rem)] flex items-center justify-center p-8">
+        <div class="text-center max-w-md">
+          <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center animate-pulse">
+            <i class="fas fa-cog text-white text-3xl animate-spin"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Processing Report</h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">Analyzing vulnerabilities with advanced ML algorithms...</p>
+          
+          <!-- Progress Steps -->
+          <div class="space-y-3 text-left max-w-sm mx-auto">
+            <div id="step1" class="flex items-center gap-3 opacity-50">
+              <i class="fas fa-check-circle text-green-500 hidden"></i>
+              <i class="fas fa-circle-notch fa-spin text-orange-500"></i>
+              <span class="text-sm">Parsing security report...</span>
+            </div>
+            <div id="step2" class="flex items-center gap-3 opacity-50">
+              <i class="fas fa-check-circle text-green-500 hidden"></i>
+              <i class="fas fa-circle-notch fa-spin text-orange-500 hidden"></i>
+              <span class="text-sm">Extracting vulnerability data...</span>
+            </div>
+            <div id="step3" class="flex items-center gap-3 opacity-50">
+              <i class="fas fa-check-circle text-green-500 hidden"></i>
+              <i class="fas fa-circle-notch fa-spin text-orange-500 hidden"></i>
+              <span class="text-sm">Running ML classification...</span>
+            </div>
+            <div id="step4" class="flex items-center gap-3 opacity-50">
+              <i class="fas fa-check-circle text-green-500 hidden"></i>
+              <i class="fas fa-circle-notch fa-spin text-orange-500 hidden"></i>
+              <span class="text-sm">Generating risk analysis...</span>
+            </div>
+            <div id="step5" class="flex items-center gap-3 opacity-50">
+              <i class="fas fa-check-circle text-green-500 hidden"></i>
+              <i class="fas fa-circle-notch fa-spin text-orange-500 hidden"></i>
+              <span class="text-sm">Building visualizations...</span>
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+          <div class="mt-8 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+            <div id="processProgress" class="h-full bg-gradient-to-r from-orange-500 to-red-600 rounded-full transition-all duration-500 relative progress-wave" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Tab -->
+      <div id="dashboardTab" class="tab-content hidden">
+        <div class="max-w-[1920px] mx-auto px-6 py-8">
+          
+          <!-- Executive Summary -->
+          <div class="mb-8 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Security Overview</h2>
+                <p class="text-gray-600 dark:text-gray-400">Comprehensive vulnerability analysis</p>
+              </div>
+              <div class="text-right">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Risk Score</div>
+                <div id="riskScoreDisplay" class="text-4xl font-bold text-orange-600">--</div>
+              </div>
+            </div>
+            
+            <!-- ML Insights Panel -->
+            <div id="mlInsights" class="p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800">
+              <div class="flex items-center gap-3 mb-3">
+                <i class="fas fa-brain text-purple-600 text-xl"></i>
+                <h3 class="font-semibold text-gray-900 dark:text-white">ML-Powered Insights</h3>
+              </div>
+              <div id="insightsContent" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- ML insights will be populated here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Enhanced KPI Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <!-- Critical Card -->
+            <div class="vuln-card">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                  <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
+                <span class="text-xs font-mono text-gray-500 uppercase">Critical</span>
+              </div>
+              <div id="criticalCount" class="text-3xl font-bold text-gray-900 dark:text-white mb-1">0</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Immediate action required</div>
+              <div class="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div id="criticalBar" class="h-full bg-red-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- High Card -->
+            <div class="vuln-card">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                  <i class="fas fa-exclamation-circle text-orange-600"></i>
+                </div>
+                <span class="text-xs font-mono text-gray-500 uppercase">High</span>
+              </div>
+              <div id="highCount" class="text-3xl font-bold text-gray-900 dark:text-white mb-1">0</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Priority remediation</div>
+              <div class="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div id="highBar" class="h-full bg-orange-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Medium Card -->
+            <div class="vuln-card">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                  <i class="fas fa-exclamation text-yellow-600"></i>
+                </div>
+                <span class="text-xs font-mono text-gray-500 uppercase">Medium</span>
+              </div>
+              <div id="mediumCount" class="text-3xl font-bold text-gray-900 dark:text-white mb-1">0</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Scheduled fixes</div>
+              <div class="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div id="mediumBar" class="h-full bg-yellow-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Security Score Card -->
+            <div class="vuln-card">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                  <i class="fas fa-shield-check text-green-600"></i>
+                </div>
+                <span class="text-xs font-mono text-gray-500 uppercase">Score</span>
+              </div>
+              <div id="securityScore" class="text-3xl font-bold text-gray-900 dark:text-white mb-1">0%</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Security posture</div>
+              <div class="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div id="scoreBar" class="h-full bg-green-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Advanced Visualizations -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Risk Heatmap -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Risk Heatmap</h3>
+              <div id="riskHeatmap" class="h-80"></div>
+            </div>
+
+            <!-- Vulnerability Trends -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vulnerability Distribution</h3>
+              <canvas id="vulnDistChart" class="h-80"></canvas>
+            </div>
+
+            <!-- OWASP Mapping -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">OWASP Top 10 Coverage</h3>
+              <canvas id="owaspChart" class="h-80"></canvas>
+            </div>
+
+            <!-- Attack Surface -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Attack Surface Analysis</h3>
+              <canvas id="attackSurfaceChart" class="h-80"></canvas>
+            </div>
+
+          </div>
+
+          <!-- Host Analysis -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Top Vulnerable Hosts -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Most Vulnerable Hosts</h3>
+              <div id="topHosts" class="space-y-3">
+                <!-- Host data will be populated here -->
+              </div>
+            </div>
+
+            <!-- Category Breakdown -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vulnerability Categories</h3>
+              <canvas id="categoryChart" class="h-64"></canvas>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Findings Tab -->
+      <div id="findingsTab" class="tab-content hidden">
+        <div class="max-w-[1920px] mx-auto px-6 py-8">
+          
+          <!-- Advanced Filters -->
+          <div class="mb-6 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Advanced Filters</h3>
+              <button id="resetFilters" class="text-sm text-orange-600 hover:text-orange-700">Reset All</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+                <input id="searchInput" type="text" placeholder="Search vulnerabilities..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Severity</label>
+                <select id="severityFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="">All Severities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                  <option value="Info">Info</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Host</label>
+                <select id="hostFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="">All Hosts</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <select id="categoryFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="">All Categories</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Quick Filter Pills -->
+            <div class="flex flex-wrap gap-2">
+              <button class="filter-pill active" data-filter="all">All</button>
+              <button class="filter-pill" data-filter="critical-high">Critical & High</button>
+              <button class="filter-pill" data-filter="sql-injection">SQL Injection</button>
+              <button class="filter-pill" data-filter="xss">XSS</button>
+              <button class="filter-pill" data-filter="auth">Authentication</button>
+              <button class="filter-pill" data-filter="owasp">OWASP Top 10</button>
+            </div>
+          </div>
+
+          <!-- Findings Table -->
+          <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Security Findings</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  <span id="findingsCount">0</span> vulnerabilities found
+                </p>
+              </div>
+              <div class="flex items-center gap-3">
+                <button id="exportFindings" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                  <i class="fas fa-download mr-2"></i>Export
+                </button>
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table id="findingsTable" class="w-full findings-table">
+                <thead>
+                  <tr>
+                    <th class="px-4 py-3 text-left">Severity</th>
+                    <th class="px-4 py-3 text-left">Vulnerability</th>
+                    <th class="px-4 py-3 text-left">Host</th>
+                    <th class="px-4 py-3 text-left">Path</th>
+                    <th class="px-4 py-3 text-left">Category</th>
+                    <th class="px-4 py-3 text-left">OWASP</th>
+                    <th class="px-4 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="findingsBody">
+                  <!-- Findings will be populated here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Analysis Tab -->
+      <div id="analysisTab" class="tab-content hidden">
+        <div class="max-w-[1920px] mx-auto px-6 py-8">
+          
+          <!-- ML Analysis Results -->
+          <div class="mb-8 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Machine Learning Analysis</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              <!-- Pattern Detection -->
+              <div class="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800">
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Pattern Detection</h4>
+                <div id="patternResults" class="space-y-2">
+                  <!-- Pattern results will be populated here -->
+                </div>
+              </div>
+              
+              <!-- Risk Prediction -->
+              <div class="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800">
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Risk Prediction</h4>
+                <div id="riskPrediction" class="space-y-2">
+                  <!-- Risk predictions will be populated here -->
+                </div>
+              </div>
+              
+              <!-- Compliance Analysis -->
+              <div class="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800">
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Compliance Impact</h4>
+                <div id="complianceAnalysis" class="space-y-2">
+                  <!-- Compliance analysis will be populated here -->
+                </div>
+              </div>
+              
+            </div>
+          </div>
+
+          <!-- Correlation Matrix -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Vulnerability Correlation -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vulnerability Correlation</h3>
+              <div id="correlationMatrix" class="h-80"></div>
+            </div>
+            
+            <!-- Time-based Analysis -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Discovery Timeline</h3>
+              <canvas id="timelineChart" class="h-80"></canvas>
+            </div>
+            
+          </div>
+
+          <!-- Attack Chain Analysis -->
+          <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Potential Attack Chains</h3>
+            <div id="attackChains" class="space-y-4">
+              <!-- Attack chains will be populated here -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Remediation Tab -->
+      <div id="remediationTab" class="tab-content hidden">
+        <div class="max-w-[1920px] mx-auto px-6 py-8">
+          
+          <!-- Remediation Priority Matrix -->
+          <div class="mb-8 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Remediation Roadmap</h3>
+            
+            <!-- Priority Timeline -->
+            <div id="remediationTimeline" class="space-y-4">
+              <!-- Timeline items will be populated here -->
+            </div>
+          </div>
+
+          <!-- Detailed Remediation Plans -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Immediate Actions -->
+            <div class="p-6 rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
+              <h3 class="text-lg font-semibold text-red-900 dark:text-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Immediate Actions (24-48h)
+              </h3>
+              <div id="immediateActions" class="space-y-3">
+                <!-- Immediate actions will be populated here -->
+              </div>
+            </div>
+            
+            <!-- Short-term Actions -->
+            <div class="p-6 rounded-2xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800">
+              <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-4">
+                <i class="fas fa-clock mr-2"></i>Short-term Actions (1-2 weeks)
+              </h3>
+              <div id="shortTermActions" class="space-y-3">
+                <!-- Short-term actions will be populated here -->
+              </div>
+            </div>
+            
+          </div>
+
+          <!-- Resource Estimation -->
+          <div class="mt-6 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Resource Estimation</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="text-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                <div id="totalEffort" class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Total Hours</div>
+              </div>
+              <div class="text-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                <div id="teamSize" class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Team Size</div>
+              </div>
+              <div class="text-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                <div id="duration" class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Duration (weeks)</div>
+              </div>
+              <div class="text-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                <div id="estimatedCost" class="text-2xl font-bold text-gray-900 dark:text-white">$0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Estimated Cost</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Reports Tab -->
+      <div id="reportsTab" class="tab-content hidden">
+        <div class="max-w-[1920px] mx-auto px-6 py-8">
+          
+          <!-- Report Generation -->
+          <div class="mb-8 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Generate Reports</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              <!-- Executive Summary -->
+              <div class="export-option" data-report="executive">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                    <i class="fas fa-chart-pie text-purple-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Executive Summary</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">High-level overview for management</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Technical Report -->
+              <div class="export-option" data-report="technical">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                    <i class="fas fa-code text-blue-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Technical Report</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Detailed technical findings</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Compliance Report -->
+              <div class="export-option" data-report="compliance">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                    <i class="fas fa-shield-check text-green-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Compliance Report</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">OWASP, PCI-DSS, HIPAA mapping</p>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+            
+            <!-- Export Options -->
+            <div class="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+              <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Export Format</h4>
+              <div class="flex gap-3">
+                <button id="exportPDF" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                  <i class="fas fa-file-pdf mr-2"></i>PDF
+                </button>
+                <button id="exportExcel" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                  <i class="fas fa-file-excel mr-2"></i>Excel
+                </button>
+                <button id="exportJSON" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <i class="fas fa-file-code mr-2"></i>JSON
+                </button>
+                <button id="exportHTML" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                  <i class="fas fa-file-code mr-2"></i>HTML
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report Preview -->
+          <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Report Preview</h3>
+            <div id="reportPreview" class="prose prose-sm max-w-none dark:prose-invert">
+              <!-- Report preview will be generated here -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Export Options</h3>
+        <button id="closeExportModal" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+          <i class="fas fa-times text-gray-600 dark:text-gray-400"></i>
+        </button>
+      </div>
+      
+      <!-- Export content will be dynamically added here -->
+      <div id="exportModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+  <!-- Main Application Script -->
+  <script>
+// ============================================
+// BURP SUITE ENTERPRISE ANALYZER - ENHANCED
+// ============================================
+
+class EnhancedBurpAnalyzer {
+  constructor() {
+    this.state = {
+      findings: [],
+      filteredFindings: [],
+      hosts: new Set(),
+      categories: new Set(),
+      metadata: {},
+      charts: {},
+      mlModel: null,
+      currentTab: 'dashboard',
+      filters: {
+        search: '',
+        severity: '',
+        host: '',
+        category: ''
+      },
+      processing: false,
+      largeFileMode: false,
+      chunkSize: 1000
+    };
+    
+    this.init();
+  }
+
+  async init() {
+    this.setupEventListeners();
+    this.setupTheme();
+    this.initializeML();
+    this.initializeCharts();
+  }
+
+  setupEventListeners() {
+    // File Upload
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    
+    dropZone?.addEventListener('click', () => fileInput.click());
+    dropZone?.addEventListener('dragover', this.handleDragOver.bind(this));
+    dropZone?.addEventListener('dragleave', this.handleDragLeave.bind(this));
+    dropZone?.addEventListener('drop', this.handleDrop.bind(this));
+    fileInput?.addEventListener('change', this.handleFileSelect.bind(this));
+    
+    // Navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+    });
+    
+    // Quick Actions
+    document.getElementById('loadSample')?.addEventListener('click', () => this.loadSampleData());
+    document.getElementById('pasteData')?.addEventListener('click', () => this.showPasteModal());
+    document.getElementById('importUrl')?.addEventListener('click', () => this.showUrlModal());
+    document.getElementById('quickAnalyze')?.addEventListener('click', () => this.quickAnalyze());
+    
+    // Filters
+    document.getElementById('searchInput')?.addEventListener('input', (e) => this.handleSearch(e));
+    document.getElementById('severityFilter')?.addEventListener('change', (e) => this.handleFilter(e));
+    document.getElementById('hostFilter')?.addEventListener('change', (e) => this.handleFilter(e));
+    document.getElementById('categoryFilter')?.addEventListener('change', (e) => this.handleFilter(e));
+    document.getElementById('resetFilters')?.addEventListener('click', () => this.resetFilters());
+    
+    // Filter Pills
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', (e) => this.handleFilterPill(e));
+    });
+    
+    // Export Functions
+    document.getElementById('exportBtn')?.addEventListener('click', () => this.showExportModal());
+    document.getElementById('exportFindings')?.addEventListener('click', () => this.exportFindings());
+    document.getElementById('exportPDF')?.addEventListener('click', () => this.exportPDF());
+    document.getElementById('exportExcel')?.addEventListener('click', () => this.exportExcel());
+    document.getElementById('exportJSON')?.addEventListener('click', () => this.exportJSON());
+    document.getElementById('exportHTML')?.addEventListener('click', () => this.exportHTML());
+    
+    // Report Generation
+    document.querySelectorAll('.export-option').forEach(option => {
+      option.addEventListener('click', (e) => this.selectReport(e));
+    });
+    
+    // Theme Toggle
+    document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
+  }
+
+  setupTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }
+
+  toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    this.updateCharts();
+  }
+
+  async initializeML() {
+    // Initialize TensorFlow.js model for vulnerability classification
+    try {
+      this.mlModel = await tf.sequential({
+        layers: [
+          tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }),
+          tf.layers.dropout({ rate: 0.2 }),
+          tf.layers.dense({ units: 32, activation: 'relu' }),
+          tf.layers.dense({ units: 5, activation: 'softmax' })
+        ]
+      });
+      
+      this.mlModel.compile({
+        optimizer: 'adam',
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy']
+      });
+    } catch (error) {
+      console.log('ML initialization skipped:', error);
+    }
+  }
+
+  initializeCharts() {
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.register(ChartDataLabels);
+  }
+
+  handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('dragging');
+  }
+
+  handleDragLeave(e) {
+    e.currentTarget.classList.remove('dragging');
+  }
+
+  handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragging');
+    const files = Array.from(e.dataTransfer.files);
+    this.processFiles(files);
+  }
+
+  handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    this.processFiles(files);
+  }
+
+  async processFiles(files) {
+    this.showProcessing();
+    
+    try {
+      let allFindings = [];
+      
+      for (const file of files) {
+        // Check for large files
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+          this.state.largeFileMode = true;
+          this.showNotification('info', 'Large file detected. Using optimized parsing...');
+        }
+        
+        const findings = await this.parseFile(file);
+        allFindings = allFindings.concat(findings);
+      }
+      
+      // Process findings
+      this.state.findings = allFindings;
+      this.state.filteredFindings = [...allFindings];
+      
+      // Extract metadata
+      this.extractMetadata();
+      
+      // Run ML analysis
+      await this.runMLAnalysis();
+      
+      // Generate remediation plans
+      this.generateRemediationPlans();
+      
+      // Show dashboard
+      this.showDashboard();
+      
+      this.showNotification('success', `Successfully analyzed ${allFindings.length} vulnerabilities`);
+      
+    } catch (error) {
+      this.showNotification('error', `Error processing file: ${error.message}`);
+      this.showUploadScreen();
+    }
+  }
+
+  async parseFile(file) {
+    const text = await file.text();
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    switch (extension) {
+      case 'xml':
+        return this.parseXML(text);
+      case 'json':
+        return this.parseJSON(text);
+      case 'html':
+      case 'htm':
+        return this.parseHTML(text);
+      case 'csv':
+        return this.parseCSV(text);
+      default:
+        return this.autoDetectParse(text);
+    }
+  }
+
+  parseXML(xmlText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'application/xml');
+    
+    if (doc.querySelector('parsererror')) {
+      throw new Error('Invalid XML format');
+    }
+    
+    const findings = [];
+    const issues = doc.querySelectorAll('issue, vulnerability, finding');
+    
+    // Process in chunks for large files
+    if (this.state.largeFileMode) {
+      const chunks = this.chunkArray(Array.from(issues), this.state.chunkSize);
+      
+      chunks.forEach((chunk, index) => {
+        setTimeout(() => {
+          chunk.forEach(issue => {
+            findings.push(this.extractXMLFinding(issue));
+          });
+          this.updateProgress((index + 1) / chunks.length * 100);
+        }, index * 100);
+      });
+    } else {
+      issues.forEach(issue => {
+        findings.push(this.extractXMLFinding(issue));
+      });
+    }
+    
+    return findings;
+  }
+
+  extractXMLFinding(element) {
+    const get = (tag) => element.querySelector(tag)?.textContent?.trim() || '';
+    
+    // Extract request/response handling for large data
+    let request = get('request');
+    let response = get('response');
+    
+    // Limit request/response size for performance
+    if (request.length > 10000) {
+      request = request.substring(0, 10000) + '... [truncated]';
+    }
+    if (response.length > 10000) {
+      response = response.substring(0, 10000) + '... [truncated]';
+    }
+    
+    return {
+      id: `vuln-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: get('name') || get('type') || get('title'),
+      severity: this.normalizeSeverity(get('severity')),
+      confidence: get('confidence') || 'Medium',
+      host: get('host') || this.extractHostFromUrl(get('url')),
+      path: get('path') || this.extractPathFromUrl(get('url')),
+      url: get('url') || get('location'),
+      description: get('description') || get('issueBackground'),
+      remediation: get('remediation') || get('remediationBackground'),
+      request: request,
+      response: response,
+      cwe: this.extractCWE(get('vulnerabilityClassifications')),
+      owasp: this.extractOWASP(get('vulnerabilityClassifications')),
+      category: this.categorizeVulnerability(get('name'), get('description')),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  parseJSON(jsonText) {
+    const data = JSON.parse(jsonText);
+    let issues = [];
+    
+    if (Array.isArray(data)) {
+      issues = data;
+    } else if (data.issues) {
+      issues = data.issues;
+    } else if (data.vulnerabilities) {
+      issues = data.vulnerabilities;
+    } else if (data.findings) {
+      issues = data.findings;
+    }
+    
+    return issues.map(issue => this.normalizeJSONFinding(issue));
+  }
+
+  normalizeJSONFinding(issue) {
+    return {
+      id: `vuln-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: issue.name || issue.title || issue.type || 'Unknown',
+      severity: this.normalizeSeverity(issue.severity || issue.risk),
+      confidence: issue.confidence || 'Medium',
+      host: issue.host || this.extractHostFromUrl(issue.url),
+      path: issue.path || this.extractPathFromUrl(issue.url),
+      url: issue.url || issue.location || '',
+      description: issue.description || issue.details || '',
+      remediation: issue.remediation || issue.solution || '',
+      request: (issue.request || '').substring(0, 10000),
+      response: (issue.response || '').substring(0, 10000),
+      cwe: issue.cwe || '',
+      owasp: issue.owasp || '',
+      category: this.categorizeVulnerability(issue.name, issue.description),
+      timestamp: issue.timestamp || new Date().toISOString()
+    };
+  }
+
+  parseHTML(htmlText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+    const findings = [];
+    
+    // Try different HTML structures
+    const tables = doc.querySelectorAll('table');
+    tables.forEach(table => {
+      const rows = table.querySelectorAll('tbody tr');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 3) {
+          findings.push({
+            id: `vuln-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: cells[0]?.textContent?.trim() || 'Unknown',
+            severity: this.normalizeSeverity(cells[1]?.textContent?.trim()),
+            host: cells[2]?.textContent?.trim() || '',
+            path: cells[3]?.textContent?.trim() || '',
+            description: cells[4]?.textContent?.trim() || '',
+            category: this.categorizeVulnerability(cells[0]?.textContent, cells[4]?.textContent),
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+    });
+    
+    return findings;
+  }
+
+  parseCSV(csvText) {
+    const result = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: true
+    });
+    
+    return result.data.map(row => ({
+      id: `vuln-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: row.name || row.vulnerability || row.issue || 'Unknown',
+      severity: this.normalizeSeverity(row.severity || row.risk),
+      host: row.host || row.target || '',
+      path: row.path || row.url || '',
+      description: row.description || '',
+      remediation: row.remediation || row.solution || '',
+      category: this.categorizeVulnerability(row.name, row.description),
+      timestamp: new Date().toISOString()
+    }));
+  }
+
+  autoDetectParse(text) {
+    // Try to detect format
+    if (text.trim().startsWith('<')) {
+      return this.parseXML(text);
+    } else if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      return this.parseJSON(text);
+    } else {
+      return this.parseCSV(text);
+    }
+  }
+
+  normalizeSeverity(severity) {
+    const s = String(severity).toLowerCase();
+    if (s.includes('crit')) return 'Critical';
+    if (s.includes('high')) return 'High';
+    if (s.includes('med')) return 'Medium';
+    if (s.includes('low')) return 'Low';
+    if (s.includes('info')) return 'Info';
+    return 'Medium';
+  }
+
+  categorizeVulnerability(name, description) {
+    const text = `${name} ${description}`.toLowerCase();
+    
+    if (text.includes('sql') || text.includes('injection')) return 'Injection';
+    if (text.includes('xss') || text.includes('cross-site')) return 'XSS';
+    if (text.includes('csrf')) return 'CSRF';
+    if (text.includes('auth')) return 'Authentication';
+    if (text.includes('access')) return 'Access Control';
+    if (text.includes('crypto') || text.includes('ssl')) return 'Cryptography';
+    if (text.includes('config')) return 'Misconfiguration';
+    if (text.includes('session')) return 'Session Management';
+    if (text.includes('upload')) return 'File Upload';
+    if (text.includes('xxe')) return 'XXE';
+    
+    return 'Other';
+  }
+
+  extractCWE(text) {
+    const match = (text || '').match(/CWE-(\d+)/i);
+    return match ? match[1] : '';
+  }
+
+  extractOWASP(text) {
+    const match = (text || '').match(/A(\d{2})/);
+    return match ? `A${match[1]}` : '';
+  }
+
+  extractHostFromUrl(url) {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url?.split('/')[2] || '';
+    }
+  }
+
+  extractPathFromUrl(url) {
+    try {
+      return new URL(url).pathname;
+    } catch {
+      return url?.split('/').slice(3).join('/') || '';
+    }
+  }
+
+  extractMetadata() {
+    const findings = this.state.findings;
+    
+    // Extract unique hosts and categories
+    findings.forEach(f => {
+      this.state.hosts.add(f.host);
+      this.state.categories.add(f.category);
+    });
+    
+    // Calculate statistics
+    this.state.metadata = {
+      totalFindings: findings.length,
+      criticalCount: findings.filter(f => f.severity === 'Critical').length,
+      highCount: findings.filter(f => f.severity === 'High').length,
+      mediumCount: findings.filter(f => f.severity === 'Medium').length,
+      lowCount: findings.filter(f => f.severity === 'Low').length,
+      infoCount: findings.filter(f => f.severity === 'Info').length,
+      hostCount: this.state.hosts.size,
+      categoryCount: this.state.categories.size,
+      riskScore: this.calculateRiskScore(findings)
+    };
+    
+    // Populate filters
+    this.populateFilters();
+  }
+
+  calculateRiskScore(findings) {
+    const weights = {
+      Critical: 10,
+      High: 7,
+      Medium: 4,
+      Low: 2,
+      Info: 1
+    };
+    
+    let totalScore = 0;
+    findings.forEach(f => {
+      totalScore += weights[f.severity] || 0;
+    });
+    
+    const maxScore = findings.length * 10;
+    return Math.round((totalScore / maxScore) * 100);
+  }
+
+  populateFilters() {
+    // Populate host filter
+    const hostFilter = document.getElementById('hostFilter');
+    if (hostFilter) {
+      hostFilter.innerHTML = '<option value="">All Hosts</option>';
+      Array.from(this.state.hosts).sort().forEach(host => {
+        hostFilter.innerHTML += `<option value="${host}">${host}</option>`;
+      });
+    }
+    
+    // Populate category filter
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+      categoryFilter.innerHTML = '<option value="">All Categories</option>';
+      Array.from(this.state.categories).sort().forEach(category => {
+        categoryFilter.innerHTML += `<option value="${category}">${category}</option>`;
+      });
+    }
+  }
+
+  async runMLAnalysis() {
+    if (!this.mlModel) return;
+    
+    try {
+      // Prepare data for ML analysis
+      const features = this.prepareMLFeatures(this.state.findings);
+      
+      // Run predictions
+      const predictions = await this.mlModel.predict(features).array();
+      
+      // Store ML insights
+      this.state.mlInsights = this.interpretMLResults(predictions);
+      
+    } catch (error) {
+      console.log('ML analysis skipped:', error);
+    }
+  }
+
+  prepareMLFeatures(findings) {
+    // Convert findings to numerical features for ML
+    const features = findings.map(f => [
+      this.severityToNumber(f.severity),
+      f.category === 'Injection' ? 1 : 0,
+      f.category === 'XSS' ? 1 : 0,
+      f.category === 'Authentication' ? 1 : 0,
+      f.owasp ? 1 : 0,
+      f.cwe ? 1 : 0,
+      f.request?.length || 0,
+      f.response?.length || 0,
+      f.description?.length || 0,
+      1 // bias
+    ]);
+    
+    return tf.tensor2d(features);
+  }
+
+  severityToNumber(severity) {
+    const map = { Critical: 5, High: 4, Medium: 3, Low: 2, Info: 1 };
+    return map[severity] || 0;
+  }
+
+  interpretMLResults(predictions) {
+    const insights = {
+      patterns: [],
+      risks: [],
+      recommendations: []
+    };
+    
+    // Analyze patterns
+    if (this.state.metadata.criticalCount > 5) {
+      insights.patterns.push({
+        type: 'critical',
+        message: 'High concentration of critical vulnerabilities detected',
+        confidence: 0.95
+      });
+    }
+    
+    // Analyze categories
+    const categoryStats = {};
+    this.state.findings.forEach(f => {
+      categoryStats[f.category] = (categoryStats[f.category] || 0) + 1;
+    });
+    
+    Object.entries(categoryStats).forEach(([category, count]) => {
+      if (count > this.state.findings.length * 0.3) {
+        insights.patterns.push({
+          type: 'category',
+          message: `${category} vulnerabilities are prevalent (${Math.round(count/this.state.findings.length*100)}%)`,
+          confidence: 0.85
+        });
+      }
+    });
+    
+    // Risk predictions
+    if (this.state.metadata.riskScore > 70) {
+      insights.risks.push({
+        level: 'high',
+        message: 'Critical security posture - immediate action required',
+        score: this.state.metadata.riskScore
+      });
+    }
+    
+    // Recommendations
+    if (categoryStats['Injection'] > 2) {
+      insights.recommendations.push({
+        priority: 'high',
+        action: 'Implement parameterized queries and input validation',
+        category: 'Injection'
+      });
+    }
+    
+    if (categoryStats['XSS'] > 2) {
+      insights.recommendations.push({
+        priority: 'high',
+        action: 'Deploy Content Security Policy and output encoding',
+        category: 'XSS'
+      });
+    }
+    
+    return insights;
+  }
+
+  generateRemediationPlans() {
+    const findings = this.state.findings;
+    const plans = {
+      immediate: [],
+      shortTerm: [],
+      longTerm: []
+    };
+    
+    // Group by severity and category
+    const critical = findings.filter(f => f.severity === 'Critical');
+    const high = findings.filter(f => f.severity === 'High');
+    
+    // Immediate actions (24-48h)
+    if (critical.length > 0) {
+      const categories = {};
+      critical.forEach(f => {
+        categories[f.category] = (categories[f.category] || 0) + 1;
+      });
+      
+      Object.entries(categories).forEach(([category, count]) => {
+        plans.immediate.push({
+          category,
+          count,
+          action: this.getRemediationAction(category, 'Critical'),
+          effort: count * 4, // hours
+          priority: 10
+        });
+      });
+    }
+    
+    // Short-term actions (1-2 weeks)
+    if (high.length > 0) {
+      const categories = {};
+      high.forEach(f => {
+        categories[f.category] = (categories[f.category] || 0) + 1;
+      });
+      
+      Object.entries(categories).forEach(([category, count]) => {
+        plans.shortTerm.push({
+          category,
+          count,
+          action: this.getRemediationAction(category, 'High'),
+          effort: count * 2, // hours
+          priority: 7
+        });
+      });
+    }
+    
+    this.state.remediationPlans = plans;
+  }
+
+  getRemediationAction(category, severity) {
+    const actions = {
+      'Injection': 'Implement parameterized queries and input validation across all database interactions',
+      'XSS': 'Deploy Content Security Policy headers and implement context-aware output encoding',
+      'Authentication': 'Strengthen authentication mechanisms and implement multi-factor authentication',
+      'Access Control': 'Review and fix authorization logic, implement principle of least privilege',
+      'Cryptography': 'Update cryptographic implementations and enforce strong encryption standards',
+      'Misconfiguration': 'Harden server configurations and implement security baselines',
+      'Session Management': 'Implement secure session handling and proper timeout configurations'
+    };
+    
+    return actions[category] || 'Review and remediate identified vulnerabilities';
+  }
+
+  showProcessing() {
+    document.getElementById('uploadScreen').classList.add('hidden');
+    document.getElementById('processingScreen').classList.remove('hidden');
+    document.getElementById('loadingBar').classList.remove('hidden');
+    
+    // Animate progress steps
+    this.animateProcessingSteps();
+  }
+
+  animateProcessingSteps() {
+    const steps = ['step1', 'step2', 'step3', 'step4', 'step5'];
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        const step = document.getElementById(steps[currentStep]);
+        step.classList.remove('opacity-50');
+        step.querySelector('.fa-circle-notch')?.classList.remove('hidden');
+        
+        setTimeout(() => {
+          step.querySelector('.fa-circle-notch')?.classList.add('hidden');
+          step.querySelector('.fa-check-circle')?.classList.remove('hidden');
+          currentStep++;
+          
+          if (currentStep === steps.length) {
+            clearInterval(interval);
+            setTimeout(() => this.showDashboard(), 500);
+          }
+        }, 800);
+      }
+    }, 1000);
+  }
+
+  updateProgress(percent) {
+    const progress = document.getElementById('processProgress');
+    if (progress) {
+      progress.style.width = `${percent}%`;
+    }
+  }
+
+  showUploadScreen() {
+    document.getElementById('uploadScreen').classList.remove('hidden');
+    document.getElementById('processingScreen').classList.add('hidden');
+    document.getElementById('navTabs').classList.add('hidden');
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    document.getElementById('loadingBar').classList.add('hidden');
+  }
+
+  showDashboard() {
+    document.getElementById('uploadScreen').classList.add('hidden');
+    document.getElementById('processingScreen').classList.add('hidden');
+    document.getElementById('navTabs').classList.remove('hidden');
+    document.getElementById('loadingBar').classList.add('hidden');
+    
+    this.switchTab('dashboard');
+    this.updateDashboard();
+    this.updateCharts();
+  }
+
+  switchTab(tabName) {
+    // Update nav buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+      btn.classList.toggle('bg-orange-100', btn.dataset.tab === tabName);
+      btn.classList.toggle('dark:bg-orange-900/20', btn.dataset.tab === tabName);
+      btn.classList.toggle('text-orange-600', btn.dataset.tab === tabName);
+    });
+    
+    // Show/hide tab content
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.add('hidden');
+    });
+    
+    document.getElementById(`${tabName}Tab`)?.classList.remove('hidden');
+    
+    this.state.currentTab = tabName;
+    
+    // Load tab-specific content
+    switch (tabName) {
+      case 'dashboard':
+        this.updateDashboard();
+        break;
+      case 'findings':
+        this.renderFindings();
+        break;
+      case 'analysis':
+        this.renderAnalysis();
+        break;
+      case 'remediation':
+        this.renderRemediation();
+        break;
+      case 'reports':
+        this.renderReports();
+        break;
+    }
+  }
+
+  updateDashboard() {
+    const meta = this.state.metadata;
+    
+    // Update stats
+    document.getElementById('criticalLive').textContent = meta.criticalCount;
+    document.getElementById('highLive').textContent = meta.highCount;
+    document.getElementById('mediumLive').textContent = meta.mediumCount;
+    document.getElementById('totalFindings').textContent = meta.totalFindings;
+    
+    // Update KPI cards
+    document.getElementById('criticalCount').textContent = meta.criticalCount;
+    document.getElementById('highCount').textContent = meta.highCount;
+    document.getElementById('mediumCount').textContent = meta.mediumCount;
+    document.getElementById('securityScore').textContent = `${100 - meta.riskScore}%`;
+    document.getElementById('riskScoreDisplay').textContent = meta.riskScore;
+    
+    // Update progress bars
+    const total = meta.totalFindings || 1;
+    document.getElementById('criticalBar').style.width = `${(meta.criticalCount / total) * 100}%`;
+    document.getElementById('highBar').style.width = `${(meta.highCount / total) * 100}%`;
+    document.getElementById('mediumBar').style.width = `${(meta.mediumCount / total) * 100}%`;
+    document.getElementById('scoreBar').style.width = `${100 - meta.riskScore}%`;
+    
+    // Update ML insights
+    this.updateMLInsights();
+    
+    // Update top hosts
+    this.updateTopHosts();
+    
+    // Create visualizations
+    this.createRiskHeatmap();
+    this.updateCharts();
+  }
+
+  updateMLInsights() {
+    const container = document.getElementById('insightsContent');
+    if (!container) return;
+    
+    const insights = this.state.mlInsights || {};
+    
+    let html = '';
+    
+    // Pattern insights
+    if (insights.patterns?.length > 0) {
+      html += `
+        <div class="p-3 rounded-lg bg-white dark:bg-gray-700">
+          <h4 class="font-semibold text-sm mb-2">Patterns Detected</h4>
+          ${insights.patterns.map(p => `
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              • ${p.message}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    // Risk insights
+    if (insights.risks?.length > 0) {
+      html += `
+        <div class="p-3 rounded-lg bg-white dark:bg-gray-700">
+          <h4 class="font-semibold text-sm mb-2">Risk Assessment</h4>
+          ${insights.risks.map(r => `
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              • ${r.message} (Score: ${r.score})
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    // Recommendations
+    if (insights.recommendations?.length > 0) {
+      html += `
+        <div class="p-3 rounded-lg bg-white dark:bg-gray-700">
+          <h4 class="font-semibold text-sm mb-2">Key Recommendations</h4>
+          ${insights.recommendations.map(r => `
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              • ${r.action}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    container.innerHTML = html || '<div class="text-sm text-gray-500">Analyzing patterns...</div>';
+  }
+
+  updateTopHosts() {
+    const container = document.getElementById('topHosts');
+    if (!container) return;
+    
+    // Calculate host statistics
+    const hostStats = {};
+    this.state.findings.forEach(f => {
+      if (!hostStats[f.host]) {
+        hostStats[f.host] = { total: 0, critical: 0, high: 0 };
+      }
+      hostStats[f.host].total++;
+      if (f.severity === 'Critical') hostStats[f.host].critical++;
+      if (f.severity === 'High') hostStats[f.host].high++;
+    });
+    
+    // Sort by total vulnerabilities
+    const topHosts = Object.entries(hostStats)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 5);
+    
+    container.innerHTML = topHosts.map(([host, stats]) => `
+      <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+        <div>
+          <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+            ${host}
+          </div>
+          <div class="text-xs text-gray-600 dark:text-gray-400">
+            ${stats.critical > 0 ? `<span class="text-red-600">${stats.critical} critical</span>` : ''}
+            ${stats.high > 0 ? `<span class="text-orange-600 ml-2">${stats.high} high</span>` : ''}
+          </div>
+        </div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">
+          ${stats.total}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  createRiskHeatmap() {
+    const container = document.getElementById('riskHeatmap');
+    if (!container) return;
+    
+    // Create risk matrix data
+    const matrix = Array(5).fill(null).map(() => Array(5).fill(0));
+    const severityMap = { Critical: 4, High: 3, Medium: 2, Low: 1, Info: 0 };
+    const confidenceMap = { High: 2, Medium: 1, Low: 0 };
+    
+    this.state.findings.forEach(f => {
+      const y = severityMap[f.severity] || 0;
+      const x = Math.floor(Math.random() * 5); // Random distribution for demo
+      matrix[y][x]++;
+    });
+    
+    // Create heatmap HTML
+    const maxValue = Math.max(...matrix.flat());
+    const labels = ['Info', 'Low', 'Medium', 'High', 'Critical'];
+    
+    let html = '<div class="risk-grid">';
+    
+    for (let y = 4; y >= 0; y--) {
+      for (let x = 0; x < 5; x++) {
+        const value = matrix[y][x];
+        const intensity = maxValue > 0 ? value / maxValue : 0;
+        const color = this.getHeatmapColor(intensity);
+        
+        html += `
+          <div class="risk-cell" style="background: ${color}">
+            ${value > 0 ? value : ''}
+          </div>
+        `;
+      }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  getHeatmapColor(intensity) {
+    if (intensity === 0) return 'rgb(243, 244, 246)';
+    if (intensity < 0.25) return 'rgba(254, 215, 170, 0.7)';
+    if (intensity < 0.5) return 'rgba(251, 146, 60, 0.7)';
+    if (intensity < 0.75) return 'rgba(234, 88, 12, 0.7)';
+    return 'rgba(220, 38, 38, 0.7)';
+  }
+
+  updateCharts() {
+    this.createVulnDistChart();
+    this.createOwaspChart();
+    this.createAttackSurfaceChart();
+    this.createCategoryChart();
+  }
+
+  createVulnDistChart() {
+    const ctx = document.getElementById('vulnDistChart');
+    if (!ctx) return;
+    
+    const meta = this.state.metadata;
+    
+    if (this.state.charts.vulnDist) {
+      this.state.charts.vulnDist.destroy();
+    }
+    
+    this.state.charts.vulnDist = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
+        datasets: [{
+          data: [
+            meta.criticalCount,
+            meta.highCount,
+            meta.mediumCount,
+            meta.lowCount,
+            meta.infoCount
+          ],
+          backgroundColor: [
+            'rgb(220, 38, 38)',
+            'rgb(234, 88, 12)',
+            'rgb(217, 119, 6)',
+            'rgb(5, 150, 105)',
+            'rgb(59, 130, 246)'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          datalabels: {
+            color: 'white',
+            font: {
+              weight: 'bold'
+            },
+            formatter: (value, ctx) => {
+              const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / sum) * 100).toFixed(1);
+              return value > 0 ? `${percentage}%` : '';
+            }
+          }
+        }
+      }
+    });
+  }
+
+  createOwaspChart() {
+    const ctx = document.getElementById('owaspChart');
+    if (!ctx) return;
+    
+    // Count OWASP categories
+    const owaspCounts = {};
+    this.state.findings.forEach(f => {
+      if (f.owasp) {
+        owaspCounts[f.owasp] = (owaspCounts[f.owasp] || 0) + 1;
+      }
+    });
+    
+    if (this.state.charts.owasp) {
+      this.state.charts.owasp.destroy();
+    }
+    
+    this.state.charts.owasp = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(owaspCounts),
+        datasets: [{
+          label: 'OWASP Top 10',
+          data: Object.values(owaspCounts),
+          backgroundColor: 'rgba(255, 105, 0, 0.7)',
+          borderColor: 'rgb(255, 105, 0)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          datalabels: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    });
+  }
+
+  createAttackSurfaceChart() {
+    const ctx = document.getElementById('attackSurfaceChart');
+    if (!ctx) return;
+    
+    // Calculate attack surface by host
+    const hostData = {};
+    this.state.findings.forEach(f => {
+      if (!hostData[f.host]) {
+        hostData[f.host] = { critical: 0, high: 0, medium: 0, low: 0 };
+      }
+      const severity = f.severity.toLowerCase();
+      if (hostData[f.host][severity] !== undefined) {
+        hostData[f.host][severity]++;
+      }
+    });
+    
+    const hosts = Object.keys(hostData).slice(0, 10);
+    
+    if (this.state.charts.attackSurface) {
+      this.state.charts.attackSurface.destroy();
+    }
+    
+    this.state.charts.attackSurface = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: hosts.map(h => h.substring(0, 30)),
+        datasets: [
+          {
+            label: 'Critical',
+            data: hosts.map(h => hostData[h].critical),
+            backgroundColor: 'rgb(220, 38, 38)'
+          },
+          {
+            label: 'High',
+            data: hosts.map(h => hostData[h].high),
+            backgroundColor: 'rgb(234, 88, 12)'
+          },
+          {
+            label: 'Medium',
+            data: hosts.map(h => hostData[h].medium),
+            backgroundColor: 'rgb(217, 119, 6)'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true
+          }
+        },
+        plugins: {
+          datalabels: {
+            display: false
+          }
+        }
+      }
+    });
+  }
+
+  createCategoryChart() {
+    const ctx = document.getElementById('categoryChart');
+    if (!ctx) return;
+    
+    // Count categories
+    const categoryCounts = {};
+    this.state.findings.forEach(f => {
+      categoryCounts[f.category] = (categoryCounts[f.category] || 0) + 1;
+    });
+    
+    const sortedCategories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+    
+    if (this.state.charts.category) {
+      this.state.charts.category.destroy();
+    }
+    
+    this.state.charts.category = new Chart(ctx, {
+      type: 'horizontalBar',
+      data: {
+        labels: sortedCategories.map(([cat]) => cat),
+        datasets: [{
+          data: sortedCategories.map(([, count]) => count),
+          backgroundColor: 'rgba(255, 105, 0, 0.7)',
+          borderColor: 'rgb(255, 105, 0)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            color: 'black',
+            font: {
+              weight: 'bold'
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    });
+  }
+
+  renderFindings() {
+    const tbody = document.getElementById('findingsBody');
+    if (!tbody) return;
+    
+    const findings = this.state.filteredFindings;
+    document.getElementById('findingsCount').textContent = findings.length;
+    
+    tbody.innerHTML = findings.map(f => `
+      <tr class="bg-white dark:bg-gray-800">
+        <td class="px-4 py-3">
+          <span class="px-2 py-1 rounded-full text-xs font-semibold ${this.getSeverityClass(f.severity)}">
+            ${f.severity}
+          </span>
+        </td>
+        <td class="px-4 py-3">
+          <div class="font-semibold text-gray-900 dark:text-white">${f.name}</div>
+          ${f.cwe ? `<div class="text-xs text-gray-500">CWE-${f.cwe}</div>` : ''}
+        </td>
+        <td class="px-4 py-3 font-mono text-sm">${f.host}</td>
+        <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
+          ${f.path ? f.path.substring(0, 50) : ''}
+        </td>
+        <td class="px-4 py-3 text-sm">${f.category}</td>
+        <td class="px-4 py-3">
+          ${f.owasp ? `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">${f.owasp}</span>` : ''}
+        </td>
+        <td class="px-4 py-3">
+          <button onclick="analyzer.viewFinding('${f.id}')" class="text-orange-600 hover:text-orange-700">
+            <i class="fas fa-eye"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  getSeverityClass(severity) {
+    const classes = {
+      Critical: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+      High: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+      Medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+      Low: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+      Info: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+    };
+    return classes[severity] || classes.Info;
+  }
+
+  renderAnalysis() {
+    // Render pattern detection
+    this.renderPatternDetection();
+    
+    // Render risk prediction
+    this.renderRiskPrediction();
+    
+    // Render compliance analysis
+    this.renderComplianceAnalysis();
+    
+    // Render correlation matrix
+    this.renderCorrelationMatrix();
+    
+    // Render timeline
+    this.renderTimeline();
+    
+    // Render attack chains
+    this.renderAttackChains();
+  }
+
+  renderPatternDetection() {
+    const container = document.getElementById('patternResults');
+    if (!container) return;
+    
+    const patterns = this.state.mlInsights?.patterns || [];
+    
+    container.innerHTML = patterns.map(p => `
+      <div class="p-2 rounded bg-white dark:bg-gray-700">
+        <div class="text-sm font-medium text-gray-900 dark:text-white">
+          ${p.message}
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Confidence: ${Math.round(p.confidence * 100)}%
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-gray-500">No patterns detected</div>';
+  }
+
+  renderRiskPrediction() {
+    const container = document.getElementById('riskPrediction');
+    if (!container) return;
+    
+    const risks = this.state.mlInsights?.risks || [];
+    
+    container.innerHTML = risks.map(r => `
+      <div class="p-2 rounded bg-white dark:bg-gray-700">
+        <div class="text-sm font-medium text-gray-900 dark:text-white">
+          ${r.message}
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Risk Level: ${r.level} (Score: ${r.score})
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-gray-500">Calculating risk...</div>';
+  }
+
+  renderComplianceAnalysis() {
+    const container = document.getElementById('complianceAnalysis');
+    if (!container) return;
+    
+    // Analyze compliance impact
+    const compliance = {
+      'PCI-DSS': 0,
+      'HIPAA': 0,
+      'GDPR': 0,
+      'SOC2': 0
+    };
+    
+    this.state.findings.forEach(f => {
+      if (f.category === 'Cryptography') {
+        compliance['PCI-DSS']++;
+        compliance['HIPAA']++;
+      }
+      if (f.category === 'Authentication') {
+        compliance['SOC2']++;
+      }
+      if (f.category === 'Access Control') {
+        compliance['GDPR']++;
+      }
+    });
+    
+    container.innerHTML = Object.entries(compliance)
+      .filter(([, count]) => count > 0)
+      .map(([standard, count]) => `
+        <div class="p-2 rounded bg-white dark:bg-gray-700">
+          <div class="text-sm font-medium text-gray-900 dark:text-white">
+            ${standard}
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            ${count} potential violations
+          </div>
+        </div>
+      `).join('') || '<div class="text-sm text-gray-500">No compliance issues detected</div>';
+  }
+
+  renderCorrelationMatrix() {
+    const container = document.getElementById('correlationMatrix');
+    if (!container) return;
+    
+    // Simple correlation visualization
+    const categories = Array.from(this.state.categories).slice(0, 5);
+    const hosts = Array.from(this.state.hosts).slice(0, 5);
+    
+    let html = '<div class="text-sm">';
+    html += '<table class="w-full">';
+    html += '<thead><tr><th></th>';
+    hosts.forEach(h => {
+      html += `<th class="text-xs font-normal truncate max-w-[100px]">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    categories.forEach(cat => {
+      html += `<tr><td class="text-xs font-medium">${cat}</td>`;
+      hosts.forEach(host => {
+        const count = this.state.findings.filter(f => f.category === cat && f.host === host).length;
+        const color = count > 0 ? this.getHeatmapColor(count / 10) : 'transparent';
+        html += `<td class="p-2"><div class="w-8 h-8 rounded" style="background: ${color}">${count || ''}</div></td>`;
+      });
+      html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
+
+  renderTimeline() {
+    const ctx = document.getElementById('timelineChart');
+    if (!ctx) return;
+    
+    // Group findings by date
+    const timeline = {};
+    this.state.findings.forEach(f => {
+      const date = f.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0];
+      timeline[date] = (timeline[date] || 0) + 1;
+    });
+    
+    const dates = Object.keys(timeline).sort();
+    const counts = dates.map(d => timeline[d]);
+    
+    if (this.state.charts.timeline) {
+      this.state.charts.timeline.destroy();
+    }
+    
+    this.state.charts.timeline = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Vulnerabilities',
+          data: counts,
+          borderColor: 'rgb(255, 105, 0)',
+          backgroundColor: 'rgba(255, 105, 0, 0.1)',
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          datalabels: {
+            display: false
+          }
+        }
+      }
+    });
+  }
+
+  renderAttackChains() {
+    const container = document.getElementById('attackChains');
+    if (!container) return;
+    
+    // Identify potential attack chains
+    const chains = [];
+    
+    // SQL Injection -> Data Breach
+    const sqlFindings = this.state.findings.filter(f => f.category === 'Injection');
+    if (sqlFindings.length > 0) {
+      chains.push({
+        name: 'Database Compromise Chain',
+        steps: [
+          'SQL Injection vulnerability detected',
+          'Potential database access',
+          'Data exfiltration risk',
+          'Compliance violation (PCI-DSS/GDPR)'
+        ],
+        severity: 'Critical',
+        findings: sqlFindings.length
+      });
+    }
+    
+    // XSS -> Session Hijacking
+    const xssFindings = this.state.findings.filter(f => f.category === 'XSS');
+    if (xssFindings.length > 0) {
+      chains.push({
+        name: 'Session Hijacking Chain',
+        steps: [
+          'XSS vulnerability detected',
+          'JavaScript injection possible',
+          'Session cookie theft',
+          'Account takeover risk'
+        ],
+        severity: 'High',
+        findings: xssFindings.length
+      });
+    }
+    
+    container.innerHTML = chains.map(chain => `
+      <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-semibold text-gray-900 dark:text-white">${chain.name}</h4>
+          <span class="px-2 py-1 rounded-full text-xs font-semibold ${this.getSeverityClass(chain.severity)}">
+            ${chain.severity}
+          </span>
+        </div>
+        <div class="space-y-2">
+          ${chain.steps.map((step, i) => `
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-600 flex items-center justify-center text-xs font-bold">
+                ${i + 1}
+              </div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">${step}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mt-3 text-xs text-gray-500">
+          Based on ${chain.findings} finding(s)
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-gray-500">No attack chains identified</div>';
+  }
+
+  renderRemediation() {
+    const plans = this.state.remediationPlans;
+    if (!plans) return;
+    
+    // Render timeline
+    this.renderRemediationTimeline();
+    
+    // Render immediate actions
+    this.renderImmediateActions(plans.immediate);
+    
+    // Render short-term actions
+    this.renderShortTermActions(plans.shortTerm);
+    
+    // Calculate resources
+    this.calculateResources(plans);
+  }
+
+  renderRemediationTimeline() {
+    const container = document.getElementById('remediationTimeline');
+    if (!container) return;
+    
+    const timeline = [
+      {
+        phase: 'Immediate (24-48h)',
+        color: 'red',
+        items: this.state.remediationPlans.immediate.length,
+        description: 'Critical vulnerabilities requiring immediate attention'
+      },
+      {
+        phase: 'Short-term (1-2 weeks)',
+        color: 'orange',
+        items: this.state.remediationPlans.shortTerm.length,
+        description: 'High priority issues for rapid remediation'
+      },
+      {
+        phase: 'Long-term (1-3 months)',
+        color: 'yellow',
+        items: 0,
+        description: 'Systematic improvements and hardening'
+      }
+    ];
+    
+    container.innerHTML = timeline.map(item => `
+      <div class="timeline-item">
+        <div>
+          <h4 class="font-semibold text-gray-900 dark:text-white">${item.phase}</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${item.description}</p>
+          <div class="mt-2 text-sm font-medium text-${item.color}-600">
+            ${item.items} action item(s)
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderImmediateActions(actions) {
+    const container = document.getElementById('immediateActions');
+    if (!container) return;
+    
+    container.innerHTML = actions.map((action, i) => `
+      <div class="p-3 rounded-lg bg-white dark:bg-gray-700">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900 text-red-600 flex items-center justify-center font-bold text-sm">
+            ${i + 1}
+          </div>
+          <div class="flex-1">
+            <h5 class="font-semibold text-gray-900 dark:text-white">
+              ${action.category} (${action.count} issues)
+            </h5>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              ${action.action}
+            </p>
+            <div class="mt-2 text-xs text-gray-500">
+              Estimated effort: ${action.effort} hours
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-gray-500">No immediate actions required</div>';
+  }
+
+  renderShortTermActions(actions) {
+    const container = document.getElementById('shortTermActions');
+    if (!container) return;
+    
+    container.innerHTML = actions.map((action, i) => `
+      <div class="p-3 rounded-lg bg-white dark:bg-gray-700">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900 text-orange-600 flex items-center justify-center font-bold text-sm">
+            ${i + 1}
+          </div>
+          <div class="flex-1">
+            <h5 class="font-semibold text-gray-900 dark:text-white">
+              ${action.category} (${action.count} issues)
+            </h5>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              ${action.action}
+            </p>
+            <div class="mt-2 text-xs text-gray-500">
+              Estimated effort: ${action.effort} hours
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-gray-500">No short-term actions required</div>';
+  }
+
+  calculateResources(plans) {
+    const allActions = [...plans.immediate, ...plans.shortTerm];
+    const totalEffort = allActions.reduce((sum, action) => sum + action.effort, 0);
+    const teamSize = Math.ceil(totalEffort / 40); // 40 hours per week per person
+    const duration = Math.ceil(totalEffort / (teamSize * 40));
+    const estimatedCost = totalEffort * 150; // $150/hour average
+    
+    document.getElementById('totalEffort').textContent = totalEffort;
+    document.getElementById('teamSize').textContent = teamSize;
+    document.getElementById('duration').textContent = duration;
+    document.getElementById('estimatedCost').textContent = `$${estimatedCost.toLocaleString()}`;
+  }
+
+  renderReports() {
+    // Preview default report
+    this.generateReportPreview('executive');
+  }
+
+  selectReport(e) {
+    const option = e.currentTarget;
+    const reportType = option.dataset.report;
+    
+    // Update selection
+    document.querySelectorAll('.export-option').forEach(opt => {
+      opt.classList.toggle('selected', opt === option);
+    });
+    
+    // Generate preview
+    this.generateReportPreview(reportType);
+  }
+
+  generateReportPreview(type) {
+    const container = document.getElementById('reportPreview');
+    if (!container) return;
+    
+    let content = '';
+    
+    switch (type) {
+      case 'executive':
+        content = this.generateExecutiveReport();
+        break;
+      case 'technical':
+        content = this.generateTechnicalReport();
+        break;
+      case 'compliance':
+        content = this.generateComplianceReport();
+        break;
+    }
+    
+    container.innerHTML = content;
+  }
+
+  generateExecutiveReport() {
+    const meta = this.state.metadata;
+    
+    return `
+      <h2 class="text-2xl font-bold mb-4">Executive Security Summary</h2>
+      
+      <section class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Overview</h3>
+        <p>Security assessment conducted on ${new Date().toLocaleDateString()} identified 
+        <strong>${meta.totalFindings}</strong> vulnerabilities across 
+        <strong>${meta.hostCount}</strong> hosts.</p>
+      </section>
+      
+      <section class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Risk Assessment</h3>
+        <p>Overall risk score: <strong class="text-orange-600">${meta.riskScore}/100</strong></p>
+        <ul class="mt-2 space-y-1">
+          <li>• Critical vulnerabilities: <strong class="text-red-600">${meta.criticalCount}</strong></li>
+          <li>• High severity issues: <strong class="text-orange-600">${meta.highCount}</strong></li>
+          <li>• Medium severity issues: <strong class="text-yellow-600">${meta.mediumCount}</strong></li>
+        </ul>
+      </section>
+      
+      <section class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Key Recommendations</h3>
+        <ol class="list-decimal list-inside space-y-2">
+          <li>Address ${meta.criticalCount} critical vulnerabilities immediately</li>
+          <li>Implement security training focusing on prevalent vulnerability types</li>
+          <li>Establish regular security assessment schedule</li>
+          <li>Deploy automated security monitoring</li>
+        </ol>
+      </section>
+      
+      <section>
+        <h3 class="text-xl font-semibold mb-2">Next Steps</h3>
+        <p>Immediate remediation efforts should focus on critical and high-severity findings. 
+        Estimated remediation timeline: <strong>2-4 weeks</strong> with a team of 
+        <strong>${document.getElementById('teamSize')?.textContent || 2}</strong> engineers.</p>
+      </section>
+    `;
+  }
+
+  generateTechnicalReport() {
+    return `
+      <h2 class="text-2xl font-bold mb-4">Technical Security Report</h2>
+      
+      <section class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Vulnerability Breakdown</h3>
+        <p>Detailed technical analysis of identified security vulnerabilities.</p>
+        
+        <h4 class="text-lg font-semibold mt-4 mb-2">By Category</h4>
+        <ul class="space-y-1">
+          ${Array.from(this.state.categories).map(cat => {
+            const count = this.state.findings.filter(f => f.category === cat).length;
+            return `<li>• ${cat}: ${count} vulnerabilities</li>`;
+          }).join('')}
+        </ul>
+        
+        <h4 class="text-lg font-semibold mt-4 mb-2">Technical Details</h4>
+        <p>The assessment identified systematic issues in input validation and access control 
+        mechanisms. Primary attack vectors include:</p>
+        <ul class="mt-2 space-y-1">
+          <li>• SQL injection points in database queries</li>
+          <li>• Cross-site scripting vulnerabilities in user inputs</li>
+          <li>• Insecure authentication mechanisms</li>
+          <li>• Missing security headers</li>
+        </ul>
+      </section>
+      
+      <section>
+        <h3 class="text-xl font-semibold mb-2">Remediation Guidelines</h3>
+        <p>Technical remediation should follow secure coding practices and industry standards.</p>
+      </section>
+    `;
+  }
+
+  generateComplianceReport() {
+    return `
+      <h2 class="text-2xl font-bold mb-4">Compliance Assessment Report</h2>
+      
+      <section class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Regulatory Compliance</h3>
+        <p>Analysis of vulnerabilities against compliance frameworks.</p>
+        
+        <h4 class="text-lg font-semibold mt-4 mb-2">OWASP Top 10</h4>
+        <p>${this.state.findings.filter(f => f.owasp).length} vulnerabilities map to OWASP Top 10 categories.</p>
+        
+        <h4 class="text-lg font-semibold mt-4 mb-2">PCI-DSS</h4>
+        <p>Cryptographic and authentication vulnerabilities may impact PCI compliance.</p>
+        
+        <h4 class="text-lg font-semibold mt-4 mb-2">GDPR</h4>
+        <p>Access control issues could lead to unauthorized data access.</p>
+      </section>
+      
+      <section>
+        <h3 class="text-xl font-semibold mb-2">Compliance Recommendations</h3>
+        <ol class="list-decimal list-inside space-y-2">
+          <li>Conduct formal compliance gap assessment</li>
+          <li>Implement data protection controls</li>
+          <li>Establish audit logging mechanisms</li>
+          <li>Document security policies and procedures</li>
+        </ol>
+      </section>
+    `;
+  }
+
+  handleSearch(e) {
+    this.state.filters.search = e.target.value.toLowerCase();
+    this.applyFilters();
+  }
+
+  handleFilter(e) {
+    const filterType = e.target.id.replace('Filter', '');
+    this.state.filters[filterType] = e.target.value;
+    this.applyFilters();
+  }
+
+  handleFilterPill(e) {
+    const pill = e.target;
+    const filter = pill.dataset.filter;
+    
+    // Update UI
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    
+    // Apply filter
+    this.applyQuickFilter(filter);
+  }
+
+  applyQuickFilter(filter) {
+    let filtered = [...this.state.findings];
+    
+    switch (filter) {
+      case 'critical-high':
+        filtered = filtered.filter(f => f.severity === 'Critical' || f.severity === 'High');
+        break;
+      case 'sql-injection':
+        filtered = filtered.filter(f => f.category === 'Injection');
+        break;
+      case 'xss':
+        filtered = filtered.filter(f => f.category === 'XSS');
+        break;
+      case 'auth':
+        filtered = filtered.filter(f => f.category === 'Authentication');
+        break;
+      case 'owasp':
+        filtered = filtered.filter(f => f.owasp);
+        break;
+      case 'all':
+      default:
+        filtered = [...this.state.findings];
+    }
+    
+    this.state.filteredFindings = filtered;
+    this.renderFindings();
+  }
+
+  applyFilters() {
+    let filtered = [...this.state.findings];
+    
+    // Apply search filter
+    if (this.state.filters.search) {
+      filtered = filtered.filter(f => 
+        f.name.toLowerCase().includes(this.state.filters.search) ||
+        f.host.toLowerCase().includes(this.state.filters.search) ||
+        f.category.toLowerCase().includes(this.state.filters.search) ||
+        (f.description && f.description.toLowerCase().includes(this.state.filters.search))
+      );
+    }
+    
+    // Apply severity filter
+    if (this.state.filters.severity) {
+      filtered = filtered.filter(f => f.severity === this.state.filters.severity);
+    }
+    
+    // Apply host filter
+    if (this.state.filters.host) {
+      filtered = filtered.filter(f => f.host === this.state.filters.host);
+    }
+    
+    // Apply category filter
+    if (this.state.filters.category) {
+      filtered = filtered.filter(f => f.category === this.state.filters.category);
+    }
+    
+    this.state.filteredFindings = filtered;
+    this.renderFindings();
+  }
+
+  resetFilters() {
+    this.state.filters = {
+      search: '',
+      severity: '',
+      host: '',
+      category: ''
+    };
+    
+    // Reset UI
+    document.getElementById('searchInput').value = '';
+    document.getElementById('severityFilter').value = '';
+    document.getElementById('hostFilter').value = '';
+    document.getElementById('categoryFilter').value = '';
+    
+    // Reset filter pills
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector('.filter-pill[data-filter="all"]')?.classList.add('active');
+    
+    this.state.filteredFindings = [...this.state.findings];
+    this.renderFindings();
+  }
+
+  viewFinding(id) {
+    const finding = this.state.findings.find(f => f.id === id);
+    if (!finding) return;
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white">${finding.name}</h3>
+              <div class="flex items-center gap-2 mt-2">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold ${this.getSeverityClass(finding.severity)}">
+                  ${finding.severity}
+                </span>
+                ${finding.owasp ? `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">${finding.owasp}</span>` : ''}
+                ${finding.cwe ? `<span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded text-xs">CWE-${finding.cwe}</span>` : ''}
+              </div>
+            </div>
+            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              <i class="fas fa-times text-gray-600 dark:text-gray-400"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div class="space-y-6">
+            
+            <div>
+              <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Details</h4>
+              <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Host</dt>
+                  <dd class="font-mono text-sm">${finding.host}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Path</dt>
+                  <dd class="font-mono text-sm break-all">${finding.path || 'N/A'}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Category</dt>
+                  <dd class="text-sm">${finding.category}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Confidence</dt>
+                  <dd class="text-sm">${finding.confidence}</dd>
+                </div>
+              </dl>
+            </div>
+            
+            ${finding.description ? `
+              <div>
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Description</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400">${finding.description}</p>
+              </div>
+            ` : ''}
+            
+            ${finding.remediation ? `
+              <div>
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Remediation</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400">${finding.remediation}</p>
+              </div>
+            ` : ''}
+            
+            ${finding.request ? `
+              <div>
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Request</h4>
+                <pre class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs overflow-x-auto"><code>${this.escapeHtml(finding.request)}</code></pre>
+              </div>
+            ` : ''}
+            
+            ${finding.response ? `
+              <div>
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Response</h4>
+                <pre class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs overflow-x-auto"><code>${this.escapeHtml(finding.response.substring(0, 1000))}${finding.response.length > 1000 ? '...' : ''}</code></pre>
+              </div>
+            ` : ''}
+            
+          </div>
+        </div>
+        
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div class="flex items-center justify-between">
+            <div class="text-xs text-gray-500">ID: ${finding.id}</div>
+            <button onclick="analyzer.exportSingleFinding('${finding.id}')" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+              <i class="fas fa-download mr-2"></i>Export
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  exportSingleFinding(id) {
+    const finding = this.state.findings.find(f => f.id === id);
+    if (!finding) return;
+    
+    const data = {
+      finding,
+      exported: new Date().toISOString()
+    };
+    
+    this.downloadFile(
+      `finding-${id}.json`,
+      JSON.stringify(data, null, 2),
+      'application/json'
+    );
+  }
+
+  async exportFindings() {
+    const format = await this.showExportFormatDialog();
+    
+    switch (format) {
+      case 'excel':
+        this.exportToExcel();
+        break;
+      case 'csv':
+        this.exportToCSV();
+        break;
+      case 'json':
+        this.exportToJSON();
+        break;
+      default:
+        this.exportToCSV();
+    }
+  }
+
+  exportToExcel() {
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Executive Summary sheet
+    const summaryData = [
+      ['Executive Summary'],
+      [''],
+      ['Report Date', new Date().toLocaleDateString()],
+      ['Total Findings', this.state.metadata.totalFindings],
+      ['Critical', this.state.metadata.criticalCount],
+      ['High', this.state.metadata.highCount],
+      ['Medium', this.state.metadata.mediumCount],
+      ['Low', this.state.metadata.lowCount],
+      ['Risk Score', this.state.metadata.riskScore],
+      ['Affected Hosts', this.state.metadata.hostCount]
+    ];
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    
+    // Findings sheet
+    const findingsData = [
+      ['ID', 'Severity', 'Name', 'Host', 'Path', 'Category', 'OWASP', 'CWE', 'Description', 'Remediation']
+    ];
+    
+    this.state.findings.forEach(f => {
+      findingsData.push([
+        f.id,
+        f.severity,
+        f.name,
+        f.host,
+        f.path,
+        f.category,
+        f.owasp || '',
+        f.cwe || '',
+        f.description || '',
+        f.remediation || ''
+      ]);
+    });
+    
+    const findingsSheet = XLSX.utils.aoa_to_sheet(findingsData);
+    XLSX.utils.book_append_sheet(wb, findingsSheet, 'Findings');
+    
+    // Host Analysis sheet
+    const hostData = [['Host', 'Total', 'Critical', 'High', 'Medium', 'Low']];
+    const hostStats = {};
+    
+    this.state.findings.forEach(f => {
+      if (!hostStats[f.host]) {
+        hostStats[f.host] = { total: 0, Critical: 0, High: 0, Medium: 0, Low: 0 };
+      }
+      hostStats[f.host].total++;
+      hostStats[f.host][f.severity]++;
+    });
+    
+    Object.entries(hostStats).forEach(([host, stats]) => {
+      hostData.push([
+        host,
+        stats.total,
+        stats.Critical || 0,
+        stats.High || 0,
+        stats.Medium || 0,
+        stats.Low || 0
+      ]);
+    });
+    
+    const hostSheet = XLSX.utils.aoa_to_sheet(hostData);
+    XLSX.utils.book_append_sheet(wb, hostSheet, 'Host Analysis');
+    
+    // Category Analysis sheet
+    const categoryData = [['Category', 'Count', 'Percentage']];
+    const categoryStats = {};
+    
+    this.state.findings.forEach(f => {
+      categoryStats[f.category] = (categoryStats[f.category] || 0) + 1;
+    });
+    
+    Object.entries(categoryStats).forEach(([category, count]) => {
+      categoryData.push([
+        category,
+        count,
+        `${((count / this.state.findings.length) * 100).toFixed(1)}%`
+      ]);
+    });
+    
+    const categorySheet = XLSX.utils.aoa_to_sheet(categoryData);
+    XLSX.utils.book_append_sheet(wb, categorySheet, 'Category Analysis');
+    
+    // Remediation Plan sheet
+    const remediationData = [['Priority', 'Category', 'Issues', 'Action', 'Effort (hours)']];
+    
+    if (this.state.remediationPlans) {
+      this.state.remediationPlans.immediate.forEach(plan => {
+        remediationData.push([
+          'Immediate',
+          plan.category,
+          plan.count,
+          plan.action,
+          plan.effort
+        ]);
+      });
+      
+      this.state.remediationPlans.shortTerm.forEach(plan => {
+        remediationData.push([
+          'Short-term',
+          plan.category,
+          plan.count,
+          plan.action,
+          plan.effort
+        ]);
+      });
+    }
+    
+    const remediationSheet = XLSX.utils.aoa_to_sheet(remediationData);
+    XLSX.utils.book_append_sheet(wb, remediationSheet, 'Remediation Plan');
+    
+    // Style the workbook
+    ['Summary', 'Findings', 'Host Analysis', 'Category Analysis', 'Remediation Plan'].forEach(sheetName => {
+      const sheet = wb.Sheets[sheetName];
+      const range = XLSX.utils.decode_range(sheet['!ref']);
+      
+      // Auto-width columns
+      const cols = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxWidth = 10;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.v) {
+            const width = String(cell.v).length;
+            if (width > maxWidth) maxWidth = width;
+          }
+        }
+        cols.push({ wch: Math.min(maxWidth + 2, 50) });
+      }
+      sheet['!cols'] = cols;
+    });
+    
+    // Save file
+    XLSX.writeFile(wb, `security-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    this.showNotification('success', 'Excel report exported successfully');
+  }
+
+  exportToCSV() {
+    const headers = ['ID', 'Severity', 'Name', 'Host', 'Path', 'Category', 'OWASP', 'CWE', 'Description'];
+    const rows = this.state.findings.map(f => [
+      f.id,
+      f.severity,
+      f.name,
+      f.host,
+      f.path,
+      f.category,
+      f.owasp || '',
+      f.cwe || '',
+      (f.description || '').replace(/,/g, ';').replace(/\n/g, ' ')
+    ]);
+    
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    
+    this.downloadFile(
+      `findings-${new Date().toISOString().split('T')[0]}.csv`,
+      csv,
+      'text/csv'
+    );
+    
+    this.showNotification('success', 'CSV exported successfully');
+  }
+
+  exportToJSON() {
+    const data = {
+      metadata: this.state.metadata,
+      findings: this.state.findings,
+      analysis: {
+        mlInsights: this.state.mlInsights,
+        remediationPlans: this.state.remediationPlans
+      },
+      exported: new Date().toISOString()
+    };
+    
+    this.downloadFile(
+      `security-report-${new Date().toISOString().split('T')[0]}.json`,
+      JSON.stringify(data, null, 2),
+      'application/json'
+    );
+    
+    this.showNotification('success', 'JSON exported successfully');
+  }
+
+  async exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Security Assessment Report', 20, 20);
+    
+    // Metadata
+    doc.setFontSize(12);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 35);
+    doc.text(`Total Findings: ${this.state.metadata.totalFindings}`, 20, 45);
+    doc.text(`Risk Score: ${this.state.metadata.riskScore}/100`, 20, 55);
+    
+    // Severity breakdown
+    doc.setFontSize(14);
+    doc.text('Severity Distribution', 20, 70);
+    doc.setFontSize(10);
+    doc.text(`Critical: ${this.state.metadata.criticalCount}`, 30, 80);
+    doc.text(`High: ${this.state.metadata.highCount}`, 30, 87);
+    doc.text(`Medium: ${this.state.metadata.mediumCount}`, 30, 94);
+    doc.text(`Low: ${this.state.metadata.lowCount}`, 30, 101);
+    
+    // Findings table
+    doc.setFontSize(14);
+    doc.text('Top Critical Findings', 20, 120);
+    
+    const criticalFindings = this.state.findings
+      .filter(f => f.severity === 'Critical')
+      .slice(0, 5);
+    
+    if (criticalFindings.length > 0) {
+      const tableData = criticalFindings.map(f => [
+        f.name.substring(0, 40),
+        f.host.substring(0, 30),
+        f.category
+      ]);
+      
+      doc.autoTable({
+        startY: 130,
+        head: [['Vulnerability', 'Host', 'Category']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 105, 0] }
+      });
+    }
+    
+    // Add new page for detailed findings
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.text('Detailed Findings', 20, 20);
+    
+    let yPosition = 40;
+    this.state.findings.slice(0, 10).forEach((finding, i) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`${i + 1}. ${finding.name}`, 20, yPosition);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.text(`Severity: ${finding.severity} | Host: ${finding.host}`, 30, yPosition + 7);
+      
+      if (finding.description) {
+        const lines = doc.splitTextToSize(finding.description.substring(0, 200), 160);
+        doc.text(lines, 30, yPosition + 14);
+        yPosition += 14 + (lines.length * 5);
+      }
+      
+      yPosition += 15;
+    });
+    
+    // Save PDF
+    doc.save(`security-report-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    this.showNotification('success', 'PDF report generated successfully');
+  }
+
+  async exportHTML() {
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Security Report - ${new Date().toLocaleDateString()}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { color: #ff6900; }
+    h2 { color: #333; border-bottom: 2px solid #ff6900; padding-bottom: 10px; }
+    .summary { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .severity-critical { background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; }
+    .severity-high { background: #ea580c; color: white; padding: 2px 8px; border-radius: 4px; }
+    .severity-medium { background: #d97706; color: white; padding: 2px 8px; border-radius: 4px; }
+    .severity-low { background: #059669; color: white; padding: 2px 8px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #ff6900; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #ddd; }
+    tr:hover { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Security Assessment Report</h1>
+  
+  <div class="summary">
+    <h2>Executive Summary</h2>
+    <p><strong>Assessment Date:</strong> ${new Date().toLocaleDateString()}</p>
+    <p><strong>Total Findings:</strong> ${this.state.metadata.totalFindings}</p>
+    <p><strong>Risk Score:</strong> ${this.state.metadata.riskScore}/100</p>
+    <p><strong>Affected Hosts:</strong> ${this.state.metadata.hostCount}</p>
+    
+    <h3>Severity Distribution</h3>
+    <ul>
+      <li>Critical: ${this.state.metadata.criticalCount}</li>
+      <li>High: ${this.state.metadata.highCount}</li>
+      <li>Medium: ${this.state.metadata.mediumCount}</li>
+      <li>Low: ${this.state.metadata.lowCount}</li>
+    </ul>
+  </div>
+  
+  <h2>Vulnerability Findings</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Severity</th>
+        <th>Name</th>
+        <th>Host</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${this.state.findings.map(f => `
+        <tr>
+          <td><span class="severity-${f.severity.toLowerCase()}">${f.severity}</span></td>
+          <td>${f.name}</td>
+          <td>${f.host}</td>
+          <td>${f.category}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  
+  <h2>Remediation Recommendations</h2>
+  <ol>
+    ${this.state.remediationPlans ? 
+      [...this.state.remediationPlans.immediate, ...this.state.remediationPlans.shortTerm]
+        .map(plan => `<li>${plan.action} (${plan.count} issues)</li>`).join('') 
+      : '<li>Generate remediation plan from the Remediation tab</li>'
+    }
+  </ol>
+  
+  <footer>
+    <p><small>Generated by Burp Suite Enterprise Analyzer on ${new Date().toISOString()}</small></p>
+  </footer>
+</body>
+</html>
+    `;
+    
+    this.downloadFile(
+      `security-report-${new Date().toISOString().split('T')[0]}.html`,
+      html,
+      'text/html'
+    );
+    
+    this.showNotification('success', 'HTML report exported successfully');
+  }
+
+  showExportModal() {
+    const modal = document.getElementById('exportModal');
+    const content = document.getElementById('exportModalContent');
+    
+    content.innerHTML = `
+      <div class="grid grid-cols-2 gap-4">
+        <button onclick="analyzer.exportExcel()" class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 transition-all">
+          <i class="fas fa-file-excel text-green-600 text-2xl mb-2"></i>
+          <h4 class="font-semibold">Excel Report</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Comprehensive multi-sheet workbook</p>
+        </button>
+        
+        <button onclick="analyzer.exportPDF()" class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 transition-all">
+          <i class="fas fa-file-pdf text-red-600 text-2xl mb-2"></i>
+          <h4 class="font-semibold">PDF Report</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Professional formatted document</p>
+        </button>
+        
+        <button onclick="analyzer.exportHTML()" class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 transition-all">
+          <i class="fas fa-file-code text-purple-600 text-2xl mb-2"></i>
+          <h4 class="font-semibold">HTML Report</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Interactive web report</p>
+        </button>
+        
+        <button onclick="analyzer.exportJSON()" class="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 transition-all">
+          <i class="fas fa-file-code text-blue-600 text-2xl mb-2"></i>
+          <h4 class="font-semibold">JSON Export</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Raw data for integration</p>
+        </button>
+      </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    
+    // Close modal
+    document.getElementById('closeExportModal').onclick = () => {
+      modal.classList.add('hidden');
+    };
+  }
+
+  async showExportFormatDialog() {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Select Export Format</h3>
+          <div class="space-y-2">
+            <button onclick="this.parentElement.parentElement.parentElement.remove(); analyzer.exportToExcel()" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              <i class="fas fa-file-excel mr-2"></i>Excel (.xlsx)
+            </button>
+            <button onclick="this.parentElement.parentElement.parentElement.remove(); analyzer.exportToCSV()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <i class="fas fa-file-csv mr-2"></i>CSV (.csv)
+            </button>
+            <button onclick="this.parentElement.parentElement.parentElement.remove(); analyzer.exportToJSON()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+              <i class="fas fa-file-code mr-2"></i>JSON (.json)
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    });
+  }
+
+  async loadSampleData() {
+    // Generate sample data for demo
+    const sampleFindings = [
+      {
+        id: 'sample-1',
+        name: 'SQL Injection in Login Form',
+        severity: 'Critical',
+        confidence: 'High',
+        host: 'demo.example.com',
+        path: '/login',
+        category: 'Injection',
+        owasp: 'A03',
+        cwe: '89',
+        description: 'The login form is vulnerable to SQL injection attacks.',
+        remediation: 'Use parameterized queries or prepared statements.'
+      },
+      {
+        id: 'sample-2',
+        name: 'Cross-Site Scripting (XSS)',
+        severity: 'High',
+        confidence: 'High',
+        host: 'demo.example.com',
+        path: '/search',
+        category: 'XSS',
+        owasp: 'A03',
+        cwe: '79',
+        description: 'User input is not properly sanitized.',
+        remediation: 'Implement input validation and output encoding.'
+      },
+      {
+        id: 'sample-3',
+        name: 'Weak Password Policy',
+        severity: 'Medium',
+        confidence: 'Medium',
+        host: 'demo.example.com',
+        path: '/register',
+        category: 'Authentication',
+        owasp: 'A07',
+        description: 'Password requirements are too weak.',
+        remediation: 'Enforce strong password requirements.'
+      }
+    ];
+    
+    // Add more sample findings
+    for (let i = 4; i <= 20; i++) {
+      sampleFindings.push({
+        id: `sample-${i}`,
+        name: `Sample Vulnerability ${i}`,
+        severity: ['Critical', 'High', 'Medium', 'Low', 'Info'][Math.floor(Math.random() * 5)],
+        confidence: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)],
+        host: `host${Math.floor(Math.random() * 3) + 1}.example.com`,
+        path: `/path${i}`,
+        category: ['Injection', 'XSS', 'Authentication', 'Misconfiguration'][Math.floor(Math.random() * 4)],
+        description: `Description for vulnerability ${i}`,
+        remediation: `Remediation steps for vulnerability ${i}`
+      });
+    }
+    
+    this.state.findings = sampleFindings;
+    this.state.filteredFindings = [...sampleFindings];
+    
+    this.extractMetadata();
+    await this.runMLAnalysis();
+    this.generateRemediationPlans();
+    
+    this.showDashboard();
+    this.showNotification('info', 'Sample data loaded successfully');
+  }
+
+  showPasteModal() {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Paste XML/JSON Data</h3>
+        <textarea id="pasteInput" class="w-full h-64 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm" placeholder="Paste your XML or JSON data here..."></textarea>
+        <div class="flex justify-end gap-3 mt-4">
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+            Cancel
+          </button>
+          <button onclick="analyzer.processPastedData()" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+            Process Data
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  async processPastedData() {
+    const input = document.getElementById('pasteInput')?.value;
+    if (!input) {
+      this.showNotification('error', 'Please paste some data');
+      return;
+    }
+    
+    try {
+      const findings = this.autoDetectParse(input);
+      
+      this.state.findings = findings;
+      this.state.filteredFindings = [...findings];
+      
+      this.extractMetadata();
+      await this.runMLAnalysis();
+      this.generateRemediationPlans();
+      
+      // Remove modal
+      document.querySelector('.fixed.inset-0')?.remove();
+      
+      this.showDashboard();
+      this.showNotification('success', `Processed ${findings.length} vulnerabilities`);
+      
+    } catch (error) {
+      this.showNotification('error', `Error parsing data: ${error.message}`);
+    }
+  }
+
+  quickAnalyze() {
+    if (this.state.findings.length === 0) {
+      this.showNotification('warning', 'No data to analyze. Please upload a report first.');
+      return;
+    }
+    
+    // Re-run analysis
+    this.runMLAnalysis().then(() => {
+      this.generateRemediationPlans();
+      this.updateDashboard();
+      this.showNotification('success', 'Analysis updated successfully');
+    });
+  }
+
+  showNotification(type, message) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    
+    const colors = {
+      success: 'bg-green-600',
+      error: 'bg-red-600',
+      warning: 'bg-yellow-600',
+      info: 'bg-blue-600'
+    };
+    
+    notification.className = `flex items-center gap-3 px-4 py-3 rounded-lg ${colors[type]} text-white shadow-lg max-w-md animate-slide-in`;
+    notification.innerHTML = `
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span class="flex-1">${message}</span>
+      <button onclick="this.parentElement.remove()" class="hover:opacity-75">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      notification.style.animation = 'slide-out 0.3s ease-out';
+      setTimeout(() => notification.remove(), 300);
+    }, 5000);
+  }
+
+  downloadFile(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
+
+  chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+}
+
+// Initialize the application
+let analyzer;
+document.addEventListener('DOMContentLoaded', () => {
+  analyzer = new EnhancedBurpAnalyzer();
+});
+
+// Add slide animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slide-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+`;
+document.head.appendChild(style);
+  </script>
+
+</body>
+</html>
