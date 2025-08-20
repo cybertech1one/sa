@@ -1,107 +1,1255 @@
 #!/usr/bin/env python3
 """
-Advanced Interactive Port Scanner v3.0
-Professional Network Security Assessment Tool
+WebHunter - Intelligent Web Discovery Tool v3.0
+Advanced Directory & File Enumeration with Smart Detection
 """
 
-import socket
 import sys
+import os
 import time
 import threading
 import json
-import csv
-import os
-import signal
-import ipaddress
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from enum import Enum
-import platform
-import subprocess
+import hashlib
 import re
+import socket
+import ssl
+import http.client
+from datetime import datetime
+from urllib.parse import urljoin, urlparse, quote
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict, Counter
+import statistics
+import random
+import string
 
 # ASCII Banner
 BANNER = """
-╔════════════════════════════════════════════════════════════════════════╗
-║                                                                        ║
-║     ██████╗  ██████╗ ██████╗ ████████╗    ███████╗ ██████╗ █████╗    ║
-║     ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗   ║
-║     ██████╔╝██║   ██║██████╔╝   ██║       ███████╗██║     ███████║   ║
-║     ██╔═══╝ ██║   ██║██╔══██╗   ██║       ╚════██║██║     ██╔══██║   ║
-║     ██║     ╚██████╔╝██║  ██║   ██║       ███████║╚██████╗██║  ██║   ║
-║     ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝       ╚══════╝ ╚═════╝╚═╝  ╚═╝   ║
-║                                                                        ║
-║                    ADVANCED NETWORK SCANNER v3.0                      ║
-║                  Professional Security Assessment Tool                ║
-╚════════════════════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║  ██╗    ██╗███████╗██████╗ ██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗║
+║  ██║    ██║██╔════╝██╔══██╗██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
+║  ██║ █╗ ██║█████╗  ██████╔╝███████║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
+║  ██║███╗██║██╔══╝  ██╔══██╗██╔══██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
+║  ╚███╔███╔╝███████╗██████╔╝██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
+║   ╚══╝╚══╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+║                                                                               ║
+║              INTELLIGENT WEB DISCOVERY TOOL - THINK LIKE A HUNTER            ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 """
 
-class Color:
-    """ANSI color codes for terminal output"""
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
+class Console:
+    """Enhanced console output with colors and formatting"""
+    
+    # Colors
+    PURPLE = '\\033[95m'
+    CYAN = '\\033[96m'
+    BLUE = '\\033[94m'
+    GREEN = '\\033[92m'
+    YELLOW = '\\033[93m'
+    RED = '\\033[91m'
+    WHITE = '\\033[97m'
+    GRAY = '\\033[90m'
+    BOLD = '\\033[1m'
+    UNDERLINE = '\\033[4m'
+    END = '\\033[0m'
+    
+    # Status symbols
+    SUCCESS = f"{GREEN}[+]{END}"
+    INFO = f"{CYAN}[*]{END}"
+    WARNING = f"{YELLOW}[!]{END}"
+    ERROR = f"{RED}[-]{END}"
+    QUESTION = f"{BLUE}[?]{END}"
+    FOUND = f"{GREEN}[FOUND]{END}"
     
     @staticmethod
-    def print_success(msg):
-        print(f"{Color.GREEN}✓ {msg}{Color.END}")
+    def clear():
+        os.system('cls' if os.name == 'nt' else 'clear')
     
     @staticmethod
-    def print_error(msg):
-        print(f"{Color.RED}✗ {msg}{Color.END}")
+    def print_banner():
+        Console.clear()
+        print(f"{Console.CYAN}{BANNER}{Console.END}")
+        time.sleep(0.5)
     
     @staticmethod
-    def print_warning(msg):
-        print(f"{Color.YELLOW}⚠ {msg}{Color.END}")
+    def section(title):
+        print(f"\\n{Console.BOLD}{Console.PURPLE}▶ {title.upper()}{Console.END}")
+        print("─" * 60)
     
     @staticmethod
-    def print_info(msg):
-        print(f"{Color.CYAN}ℹ {msg}{Color.END}")
-    
-    @staticmethod
-    def print_header(msg):
-        print(f"\n{Color.BOLD}{Color.PURPLE}{msg}{Color.END}")
-        print("═" * len(msg))
+    def progress_bar(current, total, width=50, extra=""):
+        percent = current / total if total > 0 else 0
+        filled = int(width * percent)
+        bar = "█" * filled + "░" * (width - filled)
+        
+        sys.stdout.write(f"\\r{Console.CYAN}Progress: [{bar}] {percent*100:.1f}% "
+                        f"({current}/{total}) {extra}{Console.END}")
+        sys.stdout.flush()
 
-class ScanProfile:
-    """Predefined scan profiles for different use cases"""
+class IntelligentDetector:
+    """Smart detection engine that learns and adapts"""
     
-    PROFILES = {
-        "1": {
-            "name": "Quick Scan",
-            "description": "Fast scan of most common ports (Top 20)",
-            "ports": [21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5900, 8080],
-            "threads": 50,
-            "timeout": 1.0,
-            "banner": False
-        },
-        "2": {
-            "name": "Standard Scan", 
-            "description": "Scan top 1000 most common ports",
-            "ports": "top1000",
-            "threads": 100,
-            "timeout": 1.5,
-            "banner": True
-        },
-        "3": {
-            "name": "Comprehensive Scan",
-            "description": "Scan ALL 65535 ports with service detection",
-            "ports": "all",
-            "threads": 500,
-            "timeout": 1.0,
-            "banner": True
-        },
-        "4": {
-            "name": "Web Services",
-            "description": "Focus on web-related ports",
-            "ports": [80, 443, 8080, 8443, 8000, 8888, 3000, 5000, 9000, 9090, 9200],
+    def __init__(self):
+        self.false_positive_signatures = []
+        self.custom_404_patterns = []
+        self.response_clusters = defaultdict(list)
+        self.baseline_responses = {}
+        self.wildcard_responses = {}
+        self.rate_limit_indicators = []
+        self.technology_signatures = {}
+        
+    def establish_baseline(self, http_client, base_url):
+        """Establish baseline for intelligent detection"""
+        Console.section("ESTABLISHING BASELINE")
+        print(f"{Console.INFO} Learning target behavior patterns...\\n")
+        
+        # Test 1: Random non-existent paths
+        random_paths = []
+        for i in range(3):
+            random_path = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+            random_paths.append(random_path)
+            
+        print(f"  Testing random paths for 404 detection...")
+        for path in random_paths:
+            response = http_client.request(urljoin(base_url, path))
+            if response:
+                self.analyze_404_response(response)
+                print(f"    • {path}: Status {response['status_code']} "
+                     f"(Size: {len(response['content'])} bytes)")
+        
+        # Test 2: Extension handling
+        print(f"\\n  Testing extension handling...")
+        test_extensions = ['.php', '.html', '.asp', '.jsp', '']
+        base_random = ''.join(random.choices(string.ascii_lowercase, k=8))
+        
+        for ext in test_extensions:
+            test_path = f"{base_random}{ext}"
+            response = http_client.request(urljoin(base_url, test_path))
+            if response:
+                print(f"    • {test_path}: Status {response['status_code']}")
+        
+        # Test 3: Wildcard detection
+        print(f"\\n  Testing wildcard responses...")
+        wildcard_test = f"{''.join(random.choices(string.ascii_lowercase, k=8))}/test"
+        response = http_client.request(urljoin(base_url, wildcard_test))
+        if response and response['status_code'] == 200:
+            print(f"    {Console.WARNING} Possible wildcard detected!")
+            self.wildcard_responses[base_url] = response
+        
+        # Test 4: Case sensitivity
+        print(f"\\n  Testing case sensitivity...")
+        for test in ['Admin', 'ADMIN', 'admin']:
+            response = http_client.request(urljoin(base_url, test))
+            if response:
+                print(f"    • {test}: Status {response['status_code']}")
+        
+        print(f"\\n{Console.SUCCESS} Baseline established successfully!")
+        time.sleep(1)
+    
+    def analyze_404_response(self, response):
+        """Analyze 404 responses to detect custom error pages"""
+        content = response['content']
+        
+        # Extract patterns from 404 pages
+        patterns = {
+            'content_length': len(content),
+            'content_hash': hashlib.md5(content).hexdigest(),
+            'title': self.extract_title(content),
+            'keywords': self.extract_keywords(content)
+        }
+        
+        self.custom_404_patterns.append(patterns)
+    
+    def extract_title(self, content):
+        """Extract HTML title"""
+        try:
+            text = content.decode('utf-8', errors='ignore')
+            match = re.search(r'<title>(.*?)</title>', text, re.IGNORECASE)
+            return match.group(1) if match else None
+        except:
+            return None
+    
+    def extract_keywords(self, content):
+        """Extract keywords for pattern matching"""
+        try:
+            text = content.decode('utf-8', errors='ignore')
+            # Common 404 indicators
+            keywords = ['not found', '404', 'error', 'does not exist', 'page not found']
+            found = [kw for kw in keywords if kw.lower() in text.lower()]
+            return found
+        except:
+            return []
+    
+    def is_false_positive(self, response, path):
+        """Intelligent false positive detection"""
+        
+        # Check against known 404 patterns
+        for pattern in self.custom_404_patterns:
+            # Check content length similarity
+            if abs(len(response['content']) - pattern['content_length']) < 50:
+                return True
+            
+            # Check content hash
+            if hashlib.md5(response['content']).hexdigest() == pattern['content_hash']:
+                return True
+            
+            # Check title match
+            current_title = self.extract_title(response['content'])
+            if current_title and pattern['title'] and current_title == pattern['title']:
+                if '404' in current_title or 'not found' in current_title.lower():
+                    return True
+        
+        # Check for generic error messages
+        content_text = response['content'].decode('utf-8', errors='ignore').lower()
+        error_indicators = [
+            'page not found',
+            'file not found', 
+            'path not found',
+            '404 not found',
+            'the requested url was not found',
+            'object not found',
+            'error 404'
+        ]
+        
+        for indicator in error_indicators:
+            if indicator in content_text:
+                return True
+        
+        # Check response clustering
+        return self.check_response_cluster(response)
+    
+    def check_response_cluster(self, response):
+        """Check if response belongs to a false positive cluster"""
+        content_length = len(response['content'])
+        
+        # Group responses by similar content length
+        for cluster_size, responses in self.response_clusters.items():
+            if abs(content_length - cluster_size) < 100:
+                # Check if this cluster is likely false positives
+                if len(responses) > 5:  # If many similar responses
+                    return True
+        
+        # Add to cluster
+        self.response_clusters[content_length].append(response)
+        return False
+    
+    def detect_rate_limiting(self, response):
+        """Detect rate limiting responses"""
+        if response['status_code'] == 429:
+            return True
+        
+        content_text = response['content'].decode('utf-8', errors='ignore').lower()
+        rate_limit_indicators = [
+            'rate limit',
+            'too many requests',
+            'slow down',
+            'throttled',
+            'exceeded quota'
+        ]
+        
+        return any(indicator in content_text for indicator in rate_limit_indicators)
+    
+    def detect_technology(self, response):
+        """Detect web technologies from response"""
+        technologies = []
+        headers = response.get('headers', {})
+        
+        # Server detection
+        server = headers.get('Server', '').lower()
+        if 'apache' in server:
+            technologies.append('Apache')
+        elif 'nginx' in server:
+            technologies.append('Nginx')
+        elif 'iis' in server:
+            technologies.append('IIS')
+        
+        # Framework detection
+        if 'X-Powered-By' in headers:
+            technologies.append(headers['X-Powered-By'])
+        
+        # CMS detection from content
+        content_text = response['content'].decode('utf-8', errors='ignore')
+        if 'wp-content' in content_text or 'wordpress' in content_text.lower():
+            technologies.append('WordPress')
+        elif 'joomla' in content_text.lower():
+            technologies.append('Joomla')
+        elif 'drupal' in content_text.lower():
+            technologies.append('Drupal')
+        
+        return technologies
+
+class SmartHTTPClient:
+    """Advanced HTTP client with intelligent features"""
+    
+    def __init__(self, timeout=10, delay=0, user_agent=None, cookies=None, 
+                 auth=None, proxy=None, custom_headers=None):
+        self.timeout = timeout
+        self.delay = delay
+        self.user_agent = user_agent or self.get_random_user_agent()
+        self.cookies = cookies
+        self.auth = auth
+        self.proxy = proxy
+        self.custom_headers = custom_headers or {}
+        self.request_count = 0
+        self.last_request_time = 0
+        
+    def get_random_user_agent(self):
+        """Get random user agent"""
+        agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+        ]
+        return random.choice(agents)
+    
+    def request(self, url, method="GET", follow_redirects=False, custom_headers=None):
+        """Make intelligent HTTP request"""
+        
+        # Rate limiting
+        if self.delay > 0:
+            current_time = time.time()
+            time_since_last = current_time - self.last_request_time
+            if time_since_last < self.delay:
+                time.sleep(self.delay - time_since_last)
+            self.last_request_time = time.time()
+        
+        parsed = urlparse(url)
+        
+        # Setup connection
+        if parsed.scheme == 'https':
+            if self.proxy:
+                # Proxy support for HTTPS
+                conn = http.client.HTTPSConnection(
+                    self.proxy.split(':')[0],
+                    int(self.proxy.split(':')[1]) if ':' in self.proxy else 8080,
+                    timeout=self.timeout,
+                    context=ssl._create_unverified_context()
+                )
+            else:
+                conn = http.client.HTTPSConnection(
+                    parsed.netloc,
+                    timeout=self.timeout,
+                    context=ssl._create_unverified_context()
+                )
+        else:
+            if self.proxy:
+                conn = http.client.HTTPConnection(
+                    self.proxy.split(':')[0],
+                    int(self.proxy.split(':')[1]) if ':' in self.proxy else 8080,
+                    timeout=self.timeout
+                )
+            else:
+                conn = http.client.HTTPConnection(parsed.netloc, timeout=self.timeout)
+        
+        # Build path
+        path = parsed.path or '/'
+        if parsed.query:
+            path += '?' + parsed.query
+        
+        # Build headers
+        headers = {
+            'User-Agent': self.user_agent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'close',
+            'Cache-Control': 'max-age=0'
+        }
+        
+        # Add custom headers
+        headers.update(self.custom_headers)
+        if custom_headers:
+            headers.update(custom_headers)
+        
+        # Add cookies
+        if self.cookies:
+            headers['Cookie'] = self.cookies
+        
+        # Add authentication
+        if self.auth:
+            import base64
+            auth_string = base64.b64encode(f"{self.auth[0]}:{self.auth[1]}".encode()).decode()
+            headers['Authorization'] = f"Basic {auth_string}"
+        
+        try:
+            # Make request
+            if self.proxy and parsed.scheme == 'https':
+                conn.set_tunnel(parsed.netloc)
+            
+            conn.request(method, path if not self.proxy else url, headers=headers)
+            response = conn.getresponse()
+            
+            # Read response
+            status_code = response.status
+            response_headers = dict(response.getheaders())
+            
+            # Handle encoding
+            content = response.read()
+            
+            # Decompress if needed
+            if response_headers.get('Content-Encoding') == 'gzip':
+                import gzip
+                content = gzip.decompress(content)
+            
+            conn.close()
+            
+            self.request_count += 1
+            
+            # Handle redirects
+            if follow_redirects and status_code in [301, 302, 303, 307, 308]:
+                location = response_headers.get('Location', '')
+                if location:
+                    if not location.startswith('http'):
+                        location = urljoin(url, location)
+                    return self.request(location, method, follow_redirects, custom_headers)
+            
+            return {
+                'status_code': status_code,
+                'headers': response_headers,
+                'content': content,
+                'url': url,
+                'method': method
+            }
+            
+        except socket.timeout:
+            return {'error': 'timeout', 'url': url}
+        except socket.error as e:
+            return {'error': str(e), 'url': url}
+        except Exception as e:
+            return {'error': str(e), 'url': url}
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+
+class WebHunter:
+    """Main scanning engine with intelligent discovery"""
+    
+    def __init__(self):
+        self.target_url = None
+        self.wordlist = []
+        self.extensions = []
+        self.threads = 50
+        self.timeout = 10
+        self.delay = 0
+        self.recursive = False
+        self.recursive_depth = 2
+        self.http_client = None
+        self.detector = IntelligentDetector()
+        
+        # Results
+        self.found_dirs = []
+        self.found_files = []
+        self.interesting_findings = []
+        self.technologies = set()
+        
+        # Statistics
+        self.start_time = None
+        self.total_requests = 0
+        self.successful = 0
+        self.failed = 0
+        self.errors = 0
+        
+        # Status tracking
+        self.status_codes = Counter()
+        self.response_times = []
+        self.scan_queue = []
+        self.scanned_paths = set()
+    
+    def interactive_setup(self):
+        """Interactive setup wizard"""
+        Console.print_banner()
+        
+        # Step 1: Target Configuration
+        Console.section("TARGET CONFIGURATION")
+        
+        while True:
+            target = input(f"{Console.QUESTION} Enter target URL (e.g., http://example.com): ").strip()
+            
+            if not target:
+                print(f"{Console.ERROR} Target URL cannot be empty!")
+                continue
+            
+            # Normalize URL
+            if not target.startswith(('http://', 'https://')):
+                target = 'http://' + target
+            
+            # Validate URL
+            try:
+                parsed = urlparse(target)
+                if not parsed.netloc:
+                    print(f"{Console.ERROR} Invalid URL format!")
+                    continue
+                
+                # Test connection
+                print(f"{Console.INFO} Testing connection to {target}...")
+                test_client = SmartHTTPClient(timeout=5)
+                response = test_client.request(target)
+                
+                if response and 'error' not in response:
+                    print(f"{Console.SUCCESS} Connection successful! Status: {response['status_code']}")
+                    self.target_url = target.rstrip('/')
+                    
+                    # Detect technologies
+                    techs = self.detector.detect_technology(response)
+                    if techs:
+                        print(f"{Console.INFO} Detected technologies: {', '.join(techs)}")
+                        self.technologies.update(techs)
+                    break
+                else:
+                    error = response.get('error', 'Connection failed')
+                    print(f"{Console.ERROR} Connection failed: {error}")
+                    retry = input(f"{Console.QUESTION} Try again? (y/n): ").lower()
+                    if retry != 'y':
+                        sys.exit(1)
+                        
+            except Exception as e:
+                print(f"{Console.ERROR} Error: {e}")
+                continue
+        
+        # Step 2: Wordlist Configuration
+        Console.section("WORDLIST CONFIGURATION")
+        
+        while True:
+            wordlist_path = input(f"{Console.QUESTION} Enter wordlist file path: ").strip()
+            
+            if not wordlist_path:
+                print(f"{Console.ERROR} Wordlist path cannot be empty!")
+                continue
+            
+            if not os.path.exists(wordlist_path):
+                print(f"{Console.ERROR} File not found: {wordlist_path}")
+                continue
+            
+            try:
+                with open(wordlist_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    self.wordlist = [line.strip() for line in f if line.strip()]
+                
+                print(f"{Console.SUCCESS} Loaded {len(self.wordlist)} words from wordlist")
+                
+                # Show sample
+                if len(self.wordlist) > 5:
+                    print(f"{Console.INFO} Sample entries: {', '.join(self.wordlist[:5])}...")
+                
+                break
+                
+            except Exception as e:
+                print(f"{Console.ERROR} Error loading wordlist: {e}")
+                continue
+        
+        # Step 3: Extension Configuration
+        Console.section("FILE EXTENSION CONFIGURATION")
+        
+        ext_input = input(f"{Console.QUESTION} Enter file extensions to test "
+                         f"(comma-separated, e.g., .php,.txt or press Enter for none): ").strip()
+        
+        if ext_input:
+            self.extensions = [ext.strip() for ext in ext_input.split(',')]
+            self.extensions = [ext if ext.startswith('.') else f'.{ext}' for ext in self.extensions]
+            print(f"{Console.SUCCESS} Will test {len(self.extensions)} extensions: {', '.join(self.extensions)}")
+        else:
+            print(f"{Console.INFO} No file extensions configured (directories only)")
+        
+        # Step 4: Recursion Configuration
+        Console.section("RECURSIVE SCANNING")
+        
+        recursive = input(f"{Console.QUESTION} Enable recursive scanning? (y/N): ").strip().lower()
+        
+        if recursive == 'y':
+            self.recursive = True
+            depth = input(f"{Console.QUESTION} Maximum recursion depth (default: 2): ").strip()
+            
+            try:
+                self.recursive_depth = int(depth) if depth else 2
+                print(f"{Console.SUCCESS} Recursive scanning enabled (depth: {self.recursive_depth})")
+            except:
+                self.recursive_depth = 2
+                print(f"{Console.WARNING} Using default depth: 2")
+        else:
+            print(f"{Console.INFO} Recursive scanning disabled")
+        
+        # Step 5: Advanced Configuration
+        Console.section("ADVANCED CONFIGURATION")
+        
+        # Threads
+        threads = input(f"{Console.QUESTION} Number of threads (default: 50): ").strip()
+        try:
+            self.threads = int(threads) if threads else 50
+            self.threads = max(1, min(200, self.threads))  # Limit between 1-200
+        except:
+            self.threads = 50
+        print(f"{Console.INFO} Using {self.threads} threads")
+        
+        # Timeout
+        timeout = input(f"{Console.QUESTION} Request timeout in seconds (default: 10): ").strip()
+        try:
+            self.timeout = float(timeout) if timeout else 10
+        except:
+            self.timeout = 10
+        print(f"{Console.INFO} Timeout: {self.timeout}s")
+        
+        # Delay between requests
+        delay = input(f"{Console.QUESTION} Delay between requests in seconds (default: 0): ").strip()
+        try:
+            self.delay = float(delay) if delay else 0
+        except:
+            self.delay = 0
+        
+        if self.delay > 0:
+            print(f"{Console.INFO} Delay: {self.delay}s between requests")
+        
+        # Authentication
+        Console.section("AUTHENTICATION (Optional)")
+        
+        auth_type = input(f"{Console.QUESTION} Authentication type (none/basic/cookie) [none]: ").strip().lower()
+        
+        auth = None
+        cookies = None
+        
+        if auth_type == 'basic':
+            username = input(f"{Console.QUESTION} Username: ").strip()
+            password = input(f"{Console.QUESTION} Password: ").strip()
+            if username and password:
+                auth = (username, password)
+                print(f"{Console.SUCCESS} Basic authentication configured")
+        
+        elif auth_type == 'cookie':
+            cookie_string = input(f"{Console.QUESTION} Cookie string: ").strip()
+            if cookie_string:
+                cookies = cookie_string
+                print(f"{Console.SUCCESS} Cookie authentication configured")
+        
+        # Custom headers
+        custom_headers = {}
+        add_headers = input(f"{Console.QUESTION} Add custom headers? (y/N): ").strip().lower()
+        
+        if add_headers == 'y':
+            print(f"{Console.INFO} Enter headers (format: Header: Value), empty line to finish:")
+            while True:
+                header = input(f"  > ").strip()
+                if not header:
+                    break
+                if ':' in header:
+                    key, value = header.split(':', 1)
+                    custom_headers[key.strip()] = value.strip()
+                    print(f"    Added: {key.strip()}")
+        
+        # Proxy
+        proxy = input(f"{Console.QUESTION} Proxy server (e.g., 127.0.0.1:8080) [none]: ").strip()
+        
+        # Create HTTP client with configuration
+        self.http_client = SmartHTTPClient(
+            timeout=self.timeout,
+            delay=self.delay,
+            cookies=cookies,
+            auth=auth,
+            proxy=proxy if proxy else None,
+            custom_headers=custom_headers
+        )
+        
+        # Step 6: Output Configuration
+        Console.section("OUTPUT CONFIGURATION")
+        
+        self.output_format = input(f"{Console.QUESTION} Output format (txt/json/html/all) [all]: ").strip().lower()
+        if not self.output_format:
+            self.output_format = 'all'
+        
+        print(f"{Console.SUCCESS} Configuration complete!")
+        
+        # Summary
+        Console.section("SCAN CONFIGURATION SUMMARY")
+        print(f"  Target:     {self.target_url}")
+        print(f"  Wordlist:   {len(self.wordlist)} entries")
+        print(f"  Extensions: {len(self.extensions)} extensions")
+        print(f"  Recursive:  {'Yes (depth: ' + str(self.recursive_depth) + ')' if self.recursive else 'No'}")
+        print(f"  Threads:    {self.threads}")
+        print(f"  Timeout:    {self.timeout}s")
+        print(f"  Delay:      {self.delay}s")
+        
+        total_requests = len(self.wordlist) * (1 + len(self.extensions))
+        print(f"\\n  Estimated requests: {total_requests}")
+        
+        confirm = input(f"\\n{Console.QUESTION} Start scanning? (Y/n): ").strip().lower()
+        
+        if confirm == 'n':
+            print(f"{Console.WARNING} Scan cancelled by user")
+            sys.exit(0)
+    
+    def scan(self):
+        """Main scanning function"""
+        self.start_time = datetime.now()
+        
+        # Establish baseline
+        self.detector.establish_baseline(self.http_client, self.target_url)
+        
+        # Build scan queue
+        Console.section("BUILDING SCAN QUEUE")
+        
+        for word in self.wordlist:
+            # Add directory
+            self.scan_queue.append((word, 'dir', 0))
+            
+            # Add with extensions
+            for ext in self.extensions:
+                self.scan_queue.append((f"{word}{ext}", 'file', 0))
+        
+        total_items = len(self.scan_queue)
+        print(f"{Console.SUCCESS} Queue built: {total_items} items to scan")
+        
+        # Start scanning
+        Console.section("SCANNING IN PROGRESS")
+        print(f"{Console.INFO} Press Ctrl+C to stop scanning\\n")
+        
+        try:
+            with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                futures = []
+                
+                while self.scan_queue or futures:
+                    # Submit new tasks
+                    while self.scan_queue and len(futures) < self.threads:
+                        item = self.scan_queue.pop(0)
+                        future = executor.submit(self.scan_path, *item)
+                        futures.append(future)
+                    
+                    # Process completed tasks
+                    done = []
+                    for future in futures[:]:
+                        if future.done():
+                            try:
+                                result = future.result(timeout=0.1)
+                                if result:
+                                    self.process_result(result)
+                            except:
+                                pass
+                            futures.remove(future)
+                            done.append(future)
+                    
+                    # Update progress
+                    scanned = self.total_requests
+                    Console.progress_bar(scanned, total_items, 
+                                        extra=f"Found: {len(self.found_dirs) + len(self.found_files)}")
+                    
+                    time.sleep(0.1)
+        
+        except KeyboardInterrupt:
+            print(f"\\n\\n{Console.WARNING} Scan interrupted by user")
+        
+        # Final results
+        self.show_results()
+        self.save_results()
+    
+    def scan_path(self, path, path_type, depth):
+        """Scan a single path"""
+        if depth > self.recursive_depth:
+            return None
+        
+        # Skip if already scanned
+        full_path = f"{self.target_url}/{path}".replace('//', '/')
+        if full_path in self.scanned_paths:
+            return None
+        
+        self.scanned_paths.add(full_path)
+        
+        # Make request
+        url = urljoin(self.target_url + '/', path)
+        response = self.http_client.request(url)
+        
+        self.total_requests += 1
+        
+        if not response or 'error' in response:
+            self.errors += 1
+            return None
+        
+        # Update statistics
+        self.status_codes[response['status_code']] += 1
+        
+        # Check if valid response
+        if response['status_code'] in [200, 201, 204, 301, 302, 307, 308, 401, 403, 405]:
+            # Check for false positives
+            if self.detector.is_false_positive(response, path):
+                self.failed += 1
+                return None
+            
+            # Valid finding
+            self.successful += 1
+            
+            result = {
+                'url': url,
+                'path': path,
+                'type': path_type,
+                'status': response['status_code'],
+                'size': len(response['content']),
+                'title': self.detector.extract_title(response['content']),
+                'server': response['headers'].get('Server', 'Unknown'),
+                'technologies': self.detector.detect_technology(response),
+                'depth': depth,
+                'timestamp': datetime.now()
+            }
+            
+            # Check if interesting
+            if self.is_interesting(path, response):
+                result['interesting'] = True
+                self.interesting_findings.append(result)
+            
+            # Add to results
+            if path_type == 'dir':
+                self.found_dirs.append(result)
+                
+                # Add to recursive queue if enabled
+                if self.recursive and depth < self.recursive_depth:
+                    # Add subdirectory items to queue
+                    for word in self.wordlist:
+                        new_path = f"{path}/{word}".replace('//', '/')
+                        self.scan_queue.append((new_path, 'dir', depth + 1))
+                        
+                        for ext in self.extensions:
+                            new_path_ext = f"{path}/{word}{ext}".replace('//', '/')
+                            self.scan_queue.append((new_path_ext, 'file', depth + 1))
+            else:
+                self.found_files.append(result)
+            
+            return result
+        
+        self.failed += 1
+        return None
+    
+    def process_result(self, result):
+        """Process and display found result"""
+        if not result:
+            return
+        
+        # Build status string
+        status_name, status_desc, _ = HTTPStatus.get_status_info(result['status'])
+        color = HTTPStatus.get_color(result['status'])
+        
+        # Build output
+        output = f"\\n{Console.FOUND} {result['url']}"
+        output += f"\\n  Status: {color}{result['status']} {status_name}{Console.END}"
+        output += f" | Size: {result['size']} bytes"
+        
+        if result['title']:
+            output += f"\\n  Title: {result['title']}"
+        
+        if result['technologies']:
+            output += f"\\n  Tech: {', '.join(result['technologies'])}"
+        
+        if result.get('interesting'):
+            output += f"\\n  {Console.WARNING} INTERESTING FINDING!"
+        
+        print(output)
+    
+    def is_interesting(self, path, response):
+        """Check if finding is interesting"""
+        interesting_patterns = [
+            # Sensitive files
+            r'\\.env', r'\\.git', r'\\.svn', r'\\.htaccess', r'\\.htpasswd',
+            r'config\\.', r'database\\.', r'db\\.', r'backup', r'\\.bak',
+            r'\\.old', r'\\.save', r'\\.swp', r'\\.key', r'\\.pem', r'\\.crt',
+            
+            # Admin/Auth
+            r'admin', r'login', r'auth', r'portal', r'dashboard',
+            r'cpanel', r'phpmyadmin', r'manager',
+            
+            # API/Services  
+            r'api', r'rest', r'graphql', r'swagger', r'wsdl',
+            
+            # Information disclosure
+            r'phpinfo', r'info\\.php', r'test\\.php', r'debug',
+            r'error', r'logs?', r'trace', r'stack'
+        ]
+        
+        path_lower = path.lower()
+        for pattern in interesting_patterns:
+            if re.search(pattern, path_lower):
+                return True
+        
+        # Check response content
+        content_text = response['content'].decode('utf-8', errors='ignore').lower()
+        
+        # Directory listing
+        if 'index of' in content_text or 'directory listing' in content_text:
+            return True
+        
+        # Error messages with paths
+        if 'fatal error' in content_text or 'warning:' in content_text:
+            return True
+        
+        # Config files
+        if 'password' in content_text or 'api_key' in content_text:
+            return True
+        
+        return False
+    
+    def show_results(self):
+        """Display final results"""
+        duration = datetime.now() - self.start_time
+        
+        Console.section("SCAN COMPLETE")
+        
+        print(f"\\n{Console.BOLD}Statistics:{Console.END}")
+        print(f"  Duration:        {duration}")
+        print(f"  Total Requests:  {self.total_requests}")
+        print(f"  Successful:      {self.successful}")
+        print(f"  Failed:          {self.failed}")
+        print(f"  Errors:          {self.errors}")
+        print(f"  Requests/sec:    {self.total_requests / duration.total_seconds():.2f}")
+        
+        print(f"\\n{Console.BOLD}Findings:{Console.END}")
+        print(f"  Directories:     {len(self.found_dirs)}")
+        print(f"  Files:           {len(self.found_files)}")
+        print(f"  Interesting:     {len(self.interesting_findings)}")
+        
+        print(f"\\n{Console.BOLD}Status Code Distribution:{Console.END}")
+        for code, count in sorted(self.status_codes.items()):
+            status_name, _, _ = HTTPStatus.get_status_info(code)
+            color = HTTPStatus.get_color(code)
+            print(f"  {color}{code} {status_name:{20}} {count:5} requests{Console.END}")
+        
+        if self.technologies:
+            print(f"\\n{Console.BOLD}Detected Technologies:{Console.END}")
+            for tech in self.technologies:
+                print(f"  • {tech}")
+        
+        if self.interesting_findings:
+            print(f"\\n{Console.BOLD}{Console.YELLOW}Interesting Findings:{Console.END}")
+            for finding in self.interesting_findings[:10]:  # Show top 10
+                print(f"  • {finding['url']}")
+    
+    def save_results(self):
+        """Save results to file"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        domain = urlparse(self.target_url).netloc.replace(':', '_')
+        
+        if self.output_format in ['txt', 'all']:
+            self.save_text_report(f"webhunter_{domain}_{timestamp}.txt")
+        
+        if self.output_format in ['json', 'all']:
+            self.save_json_report(f"webhunter_{domain}_{timestamp}.json")
+        
+        if self.output_format in ['html', 'all']:
+            self.save_html_report(f"webhunter_{domain}_{timestamp}.html")
+    
+    def save_text_report(self, filename):
+        """Save text report"""
+        try:
+            with open(filename, 'w') as f:
+                f.write("="*80 + "\\n")
+                f.write("WEBHUNTER SCAN REPORT\\n")
+                f.write("="*80 + "\\n\\n")
+                
+                f.write(f"Target: {self.target_url}\\n")
+                f.write(f"Date: {datetime.now()}\\n")
+                f.write(f"Duration: {datetime.now() - self.start_time}\\n")
+                f.write(f"Total Requests: {self.total_requests}\\n")
+                f.write(f"Found: {len(self.found_dirs) + len(self.found_files)} items\\n")
+                f.write("\\n" + "="*80 + "\\n\\n")
+                
+                if self.found_dirs:
+                    f.write("DIRECTORIES FOUND:\\n")
+                    f.write("-"*40 + "\\n")
+                    for item in sorted(self.found_dirs, key=lambda x: x['path']):
+                        f.write(f"[{item['status']}] {item['url']}\\n")
+                        if item.get('title'):
+                            f.write(f"     Title: {item['title']}\\n")
+                    f.write("\\n")
+                
+                if self.found_files:
+                    f.write("FILES FOUND:\\n")
+                    f.write("-"*40 + "\\n")
+                    for item in sorted(self.found_files, key=lambda x: x['path']):
+                        f.write(f"[{item['status']}] {item['url']}\\n")
+                        f.write(f"     Size: {item['size']} bytes\\n")
+                    f.write("\\n")
+                
+                if self.interesting_findings:
+                    f.write("INTERESTING FINDINGS:\\n")
+                    f.write("-"*40 + "\\n")
+                    for item in self.interesting_findings:
+                        f.write(f"[{item['status']}] {item['url']}\\n")
+                        if item.get('title'):
+                            f.write(f"     Title: {item['title']}\\n")
+                    f.write("\\n")
+            
+            print(f"{Console.SUCCESS} Text report saved: {filename}")
+            
+        except Exception as e:
+            print(f"{Console.ERROR} Failed to save text report: {e}")
+    
+    def save_json_report(self, filename):
+        """Save JSON report"""
+        try:
+            report = {
+                'scan_info': {
+                    'target': self.target_url,
+                    'start_time': str(self.start_time),
+                    'end_time': str(datetime.now()),
+                    'duration': str(datetime.now() - self.start_time),
+                    'total_requests': self.total_requests,
+                    'successful': self.successful,
+                    'failed': self.failed,
+                    'errors': self.errors
+                },
+                'technologies': list(self.technologies),
+                'directories': [
+                    {
+                        'url': d['url'],
+                        'path': d['path'],
+                        'status': d['status'],
+                        'size': d['size'],
+                        'title': d.get('title'),
+                        'depth': d['depth']
+                    } for d in self.found_dirs
+                ],
+                'files': [
+                    {
+                        'url': f['url'],
+                        'path': f['path'],
+                        'status': f['status'],
+                        'size': f['size'],
+                        'title': f.get('title')
+                    } for f in self.found_files
+                ],
+                'interesting': [
+                    {
+                        'url': i['url'],
+                        'path': i['path'],
+                        'status': i['status'],
+                        'type': i['type']
+                    } for i in self.interesting_findings
+                ]
+            }
+            
+            with open(filename, 'w') as f:
+                json.dump(report, f, indent=2, default=str)
+            
+            print(f"{Console.SUCCESS} JSON report saved: {filename}")
+            
+        except Exception as e:
+            print(f"{Console.ERROR} Failed to save JSON report: {e}")
+    
+    def save_html_report(self, filename):
+        """Save HTML report"""
+        try:
+            html = """<!DOCTYPE html>
+<html>
+<head>
+    <title>WebHunter Scan Report</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .status-200 { color: #28a745; font-weight: bold; }
+        .status-301, .status-302 { color: #17a2b8; }
+        .status-401, .status-403 { color: #ffc107; }
+        .status-404 { color: #dc3545; }
+        .interesting {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .tech-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 WebHunter Scan Report</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">""" + str(self.total_requests) + """</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">""" + str(len(self.found_dirs)) + """</div>
+                <div class="stat-label">Directories Found</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">""" + str(len(self.found_files)) + """</div>
+                <div class="stat-label">Files Found</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">""" + str(len(self.interesting_findings)) + """</div>
+                <div class="stat-label">Interesting Findings</div>
+            </div>
+        </div>
+        
+        <h2>Target Information</h2>
+        <p><strong>URL:</strong> """ + self.target_url + """</p>
+        <p><strong>Scan Date:</strong> """ + str(datetime.now()) + """</p>
+        <p><strong>Duration:</strong> """ + str(datetime.now() - self.start_time) + """</p>
+"""
+            
+            if self.technologies:
+                html += "<p><strong>Technologies:</strong> "
+                for tech in self.technologies:
+                    html += f'<span class="tech-badge">{tech}</span>'
+                html += "</p>"
+            
+            if self.interesting_findings:
+                html += """
+        <h2>⚠️ Interesting Findings</h2>
+        <div class="interesting">
+"""
+                for finding in self.interesting_findings[:20]:
+                    html += f"""
+            <div style="margin: 10px 0;">
+                <strong>{finding['url']}</strong><br>
+                Status: <span class="status-{finding['status']}">{finding['status']}</span> | 
+                Type: {finding['type']} | 
+                Size: {finding['size']} bytes
+            </div>
+"""
+                html += "        </div>"
+            
+            if self.found_dirs:
+                html += """
+        <h2>Directories Found</h2>
+        <table>
+            <tr>
+                <th>Path</th>
+                <th>Status</th>
+                <th>Size</th>
+                <th>Title</th>
+            </tr>
+"""
+                for d in sorted(self.found_dirs, key=lambda x: x['path']):
+                    html += f"""
+            <tr>
+                <td><a href="{d['url']}" target="_blank">{d['path']}</a></td>
+                <td class="status-{d['status']}">{d['status']}</td>
+                <td>{d['size']} bytes</td>
+                <td>{d.get('title', '-')}</td>
+            </tr>
+"""
+                html += "        </table>"
+            
+            if self.found_files:
+                html += """
+        <h2>Files Found</h2>
+        <table>
+            <tr>
+                <th>Path</th>
+                <th>Status</th>
+                <th>Size</th>
+                <th>Title</th>
+            </tr>
+"""
+                for f in sorted(self.found_files, key=lambda x: x['path']):
+                    html += f"""
+            <tr>
+                <td><a href="{f['url']}" target="_blank">{f['path']}</a></td>
+                <td class="status-{f['status']}">{f['status']}</td>
+                <td>{f['size']} bytes</td>
+                <td>{f.get('title', '-')}</td>
+            </tr>
+"""
+                html += "        </table>"
+            
+            html += """
+    </div>
+</body>
+</html>
+"""
+            
+            with open(filename, 'w') as f:
+                f.write(html)
+            
+            print(f"{Console.SUCCESS} HTML report saved: {filename}")
+            
+        except Exception as e:
+            print(f"{Console.ERROR} Failed to save HTML report: {e}")
+
+def main():
+    """Main entry point"""
+    try:
+        scanner = WebHunter()
+        scanner.interactive_setup()
+        scanner.scan()
+        
+    except KeyboardInterrupt:
+        print(f"\\n\\n{Console.WARNING} Scan interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\\n{Console.ERROR} Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main(            "ports": [80, 443, 8080, 8443, 8000, 8888, 3000, 5000, 9000, 9090, 9200],
             "threads": 50,
             "timeout": 2.0,
             "banner": True
