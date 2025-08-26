@@ -1,649 +1,677 @@
-#!/usr/bin/env python3
-"""
-DirHunter - Advanced Web Directory & File Discovery Tool v4.0
-Production-Ready Web Enumeration Scanner
-"""
+Option Explicit
 
-import sys
-import os
-import time
-import threading
-import json
-import hashlib
-import re
-import socket
-import ssl
-import http.client
-from datetime import datetime
-from urllib.parse import urljoin, urlparse, quote
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from collections import defaultdict, Counter
-import random
-import string
-import signal
+' ======================================================================
+' IIS SECURITY ANALYZER - WORKING VERSION
+' Simplified and tested for reliability
+' ======================================================================
 
-# Banner
-BANNER = """
-╔═══════════════════════════════════════════════════════════════════╗
-║     ██████╗ ██╗██████╗ ██╗  ██╗██╗   ██╗███╗   ██╗████████╗      ║
-║     ██╔══██╗██║██╔══██╗██║  ██║██║   ██║████╗  ██║╚══██╔══╝      ║
-║     ██║  ██║██║██████╔╝███████║██║   ██║██╔██╗ ██║   ██║         ║
-║     ██║  ██║██║██╔══██╗██╔══██║██║   ██║██║╚██╗██║   ██║         ║
-║     ██████╔╝██║██║  ██║██║  ██║╚██████╔╝██║ ╚████║   ██║         ║
-║     ╚═════╝ ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝         ║
-║                                                                    ║
-║         WEB DIRECTORY & FILE DISCOVERY TOOL v4.0                  ║
-║              Fast • Smart • Zero Dependencies                     ║
-╚═══════════════════════════════════════════════════════════════════╝
-"""
-
-class Colors:
-    """Terminal colors"""
-    HEADER = '\\033[95m'
-    BLUE = '\\033[94m'
-    CYAN = '\\033[96m'
-    GREEN = '\\033[92m'
-    WARNING = '\\033[93m'
-    FAIL = '\\033[91m'
-    ENDC = '\\033[0m'
-    BOLD = '\\033[1m'
-    UNDERLINE = '\\033[4m'
-
-def print_colored(text, color=Colors.ENDC):
-    """Print colored text"""
-    print(f"{color}{text}{Colors.ENDC}")
-
-def print_status(status_type, message):
-    """Print status message with icon"""
-    icons = {
-        'success': f"{Colors.GREEN}[+]{Colors.ENDC}",
-        'info': f"{Colors.CYAN}[*]{Colors.ENDC}",
-        'warning': f"{Colors.WARNING}[!]{Colors.ENDC}",
-        'error': f"{Colors.FAIL}[-]{Colors.ENDC}",
-        'question': f"{Colors.BLUE}[?]{Colors.ENDC}",
-        'found': f"{Colors.GREEN}[FOUND]{Colors.ENDC}"
-    }
-    print(f"{icons.get(status_type, '[*]')} {message}")
-
-class HTTPClient:
-    """Lightweight HTTP client without external dependencies"""
+Sub RunIISSecurityAnalysis()
     
-    def __init__(self, timeout=10, user_agent=None):
-        self.timeout = timeout
-        self.user_agent = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    On Error GoTo ErrorHandler
+    
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    ' Validate log data
+    If ws.Cells(1, 1).Value <> "date" Then
+        MsgBox "Please select the worksheet with IIS logs." & vbCrLf & _
+               "First row should contain headers: date, time, c-ip, cs-method, etc.", vbExclamation
+        Exit Sub
+    End If
+    
+    Dim startTime As Double
+    startTime = Timer
+    
+    Application.ScreenUpdating = False
+    Application.StatusBar = "Starting security analysis..."
+    
+    ' Get data range
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    
+    If lastRow < 2 Then
+        MsgBox "No data found in the log sheet", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Create collections for analysis
+    Dim IPStats As Object
+    Set IPStats = CreateObject("Scripting.Dictionary")
+    
+    Dim ThreatList As Object
+    Set ThreatList = CreateObject("Scripting.Dictionary")
+    
+    ' Process each log entry
+    Dim i As Long
+    Dim ip As String, method As String, uri As String, query As String
+    Dim status As String, userAgent As String, fullURL As String
+    Dim threats As String
+    
+    For i = 2 To lastRow
+        If i Mod 100 = 0 Then
+            Application.StatusBar = "Processing row " & i & " of " & lastRow & " (" & Format(i / lastRow, "0%") & ")"
+            DoEvents
+        End If
         
-    def request(self, url, method="GET", headers=None):
-        """Make HTTP request"""
-        try:
-            parsed = urlparse(url)
+        ' Read log fields
+        On Error Resume Next
+        ip = CStr(ws.Cells(i, 3).Value)
+        method = CStr(ws.Cells(i, 4).Value)
+        uri = CStr(ws.Cells(i, 5).Value)
+        query = CStr(ws.Cells(i, 6).Value)
+        status = CStr(ws.Cells(i, 7).Value)
+        userAgent = CStr(ws.Cells(i, 8).Value)
+        On Error GoTo ErrorHandler
+        
+        ' Build full URL
+        fullURL = uri
+        If Len(query) > 0 And query <> "-" Then
+            fullURL = fullURL & "?" & query
+        End If
+        
+        ' Initialize IP stats if needed
+        If Not IPStats.Exists(ip) Then
+            IPStats.Add ip, CreateNewIPRecord()
+        End If
+        
+        ' Update IP statistics
+        IPStats(ip)("count") = IPStats(ip)("count") + 1
+        
+        ' Track status codes
+        Select Case Left(status, 1)
+            Case "2": IPStats(ip)("status2xx") = IPStats(ip)("status2xx") + 1
+            Case "3": IPStats(ip)("status3xx") = IPStats(ip)("status3xx") + 1
+            Case "4": IPStats(ip)("status4xx") = IPStats(ip)("status4xx") + 1
+            Case "5": IPStats(ip)("status5xx") = IPStats(ip)("status5xx") + 1
+        End Select
+        
+        ' Specific status tracking
+        If status = "404" Then IPStats(ip)("status404") = IPStats(ip)("status404") + 1
+        If status = "401" Or status = "403" Then IPStats(ip)("authfails") = IPStats(ip)("authfails") + 1
+        If Left(status, 1) = "5" Then IPStats(ip)("errors") = IPStats(ip)("errors") + 1
+        
+        ' Detect threats
+        threats = DetectThreats(method & " " & fullURL & " " & userAgent)
+        
+        If Len(threats) > 0 Then
+            IPStats(ip)("threats") = IPStats(ip)("threats") + 1
+            IPStats(ip)("threatlist") = IPStats(ip)("threatlist") & threats & "; "
             
-            # Create connection
-            if parsed.scheme == 'https':
-                context = ssl._create_unverified_context()
-                conn = http.client.HTTPSConnection(
-                    parsed.netloc, timeout=self.timeout, context=context
-                )
-            else:
-                conn = http.client.HTTPConnection(parsed.netloc, timeout=self.timeout)
-            
-            # Prepare path
-            path = parsed.path or '/'
-            if parsed.query:
-                path += '?' + parsed.query
-            
-            # Prepare headers
-            req_headers = {
-                'User-Agent': self.user_agent,
-                'Accept': '*/*',
-                'Connection': 'close'
-            }
-            if headers:
-                req_headers.update(headers)
-            
-            # Make request
-            conn.request(method, path, headers=req_headers)
-            response = conn.getresponse()
-            
-            # Get response data
-            status = response.status
-            resp_headers = dict(response.getheaders())
-            content = response.read()
-            
-            conn.close()
-            
-            return {
-                'status': status,
-                'headers': resp_headers,
-                'content': content,
-                'url': url
-            }
-            
-        except socket.timeout:
-            return {'error': 'timeout'}
-        except Exception as e:
-            return {'error': str(e)}
+            ' Add to global threat list
+            Dim threatKey As String
+            threatKey = ip & "|" & i
+            ThreatList.Add threatKey, threats
+        End If
+    Next i
+    
+    Application.StatusBar = "Calculating risk scores..."
+    
+    ' Calculate risk scores
+    Dim ipKey As Variant
+    For Each ipKey In IPStats.Keys
+        IPStats(ipKey)("riskscore") = CalculateRiskScore(IPStats(ipKey))
+    Next ipKey
+    
+    ' Generate reports
+    Application.StatusBar = "Generating reports..."
+    CreateSecurityReport IPStats, ThreatList, lastRow - 1
+    CreateIPAnalysisReport IPStats
+    CreateThreatSummaryReport ThreatList
+    
+    ' Show summary
+    Dim criticalCount As Long, highCount As Long
+    For Each ipKey In IPStats.Keys
+        If IPStats(ipKey)("riskscore") >= 80 Then
+            criticalCount = criticalCount + 1
+        ElseIf IPStats(ipKey)("riskscore") >= 60 Then
+            highCount = highCount + 1
+        End If
+    Next ipKey
+    
+    Application.ScreenUpdating = True
+    Application.StatusBar = False
+    
+    Dim msg As String
+    msg = "Security Analysis Complete!" & vbCrLf & vbCrLf
+    msg = msg & "Processing Time: " & Format((Timer - startTime), "0.0") & " seconds" & vbCrLf
+    msg = msg & "Total IPs Analyzed: " & IPStats.Count & vbCrLf
+    msg = msg & "Total Threats Found: " & ThreatList.Count & vbCrLf
+    msg = msg & "Critical Risk IPs: " & criticalCount & vbCrLf
+    msg = msg & "High Risk IPs: " & highCount & vbCrLf & vbCrLf
+    msg = msg & "Check the generated report sheets for details."
+    
+    MsgBox msg, vbInformation, "Analysis Complete"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.ScreenUpdating = True
+    Application.StatusBar = False
+    MsgBox "Error occurred: " & Err.Description & vbCrLf & _
+           "Line: " & Erl & vbCrLf & _
+           "Please check your data format.", vbCritical
+End Sub
 
-class SmartDetector:
-    """Intelligent false positive detection"""
+Private Function CreateNewIPRecord() As Object
+    Dim record As Object
+    Set record = CreateObject("Scripting.Dictionary")
     
-    def __init__(self):
-        self.not_found_signatures = []
-        self.baseline_404_size = None
-        self.baseline_404_content = None
-        
-    def calibrate(self, client, base_url):
-        """Calibrate detector with random requests"""
-        print_status('info', "Calibrating detection engine...")
-        
-        # Test with random paths
-        for _ in range(3):
-            random_path = ''.join(random.choices(string.ascii_lowercase, k=12))
-            test_url = urljoin(base_url, random_path)
-            response = client.request(test_url)
-            
-            if response and 'error' not in response:
-                self.analyze_not_found(response)
-        
-        print_status('success', "Calibration complete")
+    record.Add "count", 0
+    record.Add "status2xx", 0
+    record.Add "status3xx", 0
+    record.Add "status4xx", 0
+    record.Add "status5xx", 0
+    record.Add "status404", 0
+    record.Add "authfails", 0
+    record.Add "errors", 0
+    record.Add "threats", 0
+    record.Add "threatlist", ""
+    record.Add "riskscore", 0
     
-    def analyze_not_found(self, response):
-        """Analyze 404/not found response"""
-        if 'content' in response:
-            self.not_found_signatures.append({
-                'size': len(response['content']),
-                'hash': hashlib.md5(response['content']).hexdigest()[:8],
-                'status': response.get('status', 0)
-            })
-    
-    def is_valid_finding(self, response):
-        """Check if response is a valid finding (not false positive)"""
-        if 'error' in response:
-            return False
-        
-        status = response.get('status', 0)
-        
-        # Valid status codes
-        if status in [200, 201, 204, 301, 302, 307, 308, 401, 403, 405]:
-            # Check against known 404 signatures
-            content_size = len(response.get('content', b''))
-            content_hash = hashlib.md5(response.get('content', b'')).hexdigest()[:8]
-            
-            for sig in self.not_found_signatures:
-                # Check if matches 404 signature
-                if abs(content_size - sig['size']) < 50:
-                    return False
-                if content_hash == sig['hash']:
-                    return False
-            
-            return True
-        
-        return False
+    Set CreateNewIPRecord = record
+End Function
 
-class Scanner:
-    """Main scanner engine"""
+Private Function DetectThreats(searchText As String) As String
+    Dim threats As String
+    threats = ""
     
-    def __init__(self):
-        self.base_url = None
-        self.wordlist = []
-        self.extensions = []
-        self.threads = 30
-        self.timeout = 10
-        self.delay = 0
-        self.recursive = False
-        self.max_depth = 2
-        
-        self.client = None
-        self.detector = SmartDetector()
-        
-        # Results
-        self.results = []
-        self.found_dirs = []
-        self.found_files = []
-        
-        # Stats
-        self.total_scanned = 0
-        self.total_found = 0
-        self.start_time = None
-        self.stop_scan = False
-        
-    def setup_interactive(self):
-        """Interactive setup wizard"""
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print_colored(BANNER, Colors.CYAN)
-        
-        # Step 1: Target URL
-        print_colored("\\n[STEP 1] TARGET CONFIGURATION", Colors.HEADER)
-        print("-" * 50)
-        
-        while True:
-            url = input(f"{Colors.CYAN}Enter target URL: {Colors.ENDC}").strip()
-            if not url:
-                print_status('error', "URL cannot be empty")
-                continue
+    Dim lowerText As String
+    lowerText = LCase(searchText)
+    
+    ' SQL Injection Detection
+    If InStr(lowerText, "' or ") > 0 Or _
+       InStr(lowerText, "'or'") > 0 Or _
+       InStr(lowerText, "union select") > 0 Or _
+       InStr(lowerText, "union all") > 0 Or _
+       InStr(lowerText, "drop table") > 0 Or _
+       InStr(lowerText, "exec(") > 0 Or _
+       InStr(lowerText, "execute(") > 0 Or _
+       InStr(lowerText, "xp_cmdshell") > 0 Or _
+       InStr(lowerText, "sp_executesql") > 0 Or _
+       InStr(lowerText, "waitfor delay") > 0 Or _
+       InStr(lowerText, "benchmark(") > 0 Or _
+       InStr(lowerText, "sleep(") > 0 Or _
+       InStr(lowerText, "';") > 0 Or _
+       InStr(lowerText, "1=1") > 0 Or _
+       InStr(lowerText, "1'='1") > 0 Then
+        threats = threats & "SQL_INJECTION "
+    End If
+    
+    ' XSS Detection
+    If InStr(lowerText, "<script") > 0 Or _
+       InStr(lowerText, "</script") > 0 Or _
+       InStr(lowerText, "javascript:") > 0 Or _
+       InStr(lowerText, "vbscript:") > 0 Or _
+       InStr(lowerText, "onload=") > 0 Or _
+       InStr(lowerText, "onerror=") > 0 Or _
+       InStr(lowerText, "onclick=") > 0 Or _
+       InStr(lowerText, "onmouseover=") > 0 Or _
+       InStr(lowerText, "<iframe") > 0 Or _
+       InStr(lowerText, "<embed") > 0 Or _
+       InStr(lowerText, "<object") > 0 Or _
+       InStr(lowerText, "alert(") > 0 Or _
+       InStr(lowerText, "prompt(") > 0 Or _
+       InStr(lowerText, "confirm(") > 0 Then
+        threats = threats & "XSS_ATTACK "
+    End If
+    
+    ' Command Injection Detection
+    If InStr(lowerText, "cmd.exe") > 0 Or _
+       InStr(lowerText, "powershell") > 0 Or _
+       InStr(lowerText, "/bin/bash") > 0 Or _
+       InStr(lowerText, "/bin/sh") > 0 Or _
+       InStr(lowerText, "wget ") > 0 Or _
+       InStr(lowerText, "curl ") > 0 Or _
+       InStr(lowerText, "; ls") > 0 Or _
+       InStr(lowerText, "; cat") > 0 Or _
+       InStr(lowerText, "| nc") > 0 Or _
+       InStr(lowerText, "netcat") > 0 Or _
+       InStr(lowerText, "chmod ") > 0 Or _
+       InStr(lowerText, "sudo ") > 0 Then
+        threats = threats & "COMMAND_INJECTION "
+    End If
+    
+    ' Path Traversal Detection
+    If InStr(lowerText, "../") > 0 Or _
+       InStr(lowerText, "..\") > 0 Or _
+       InStr(lowerText, "..\\") > 0 Or _
+       InStr(lowerText, "%2e%2e") > 0 Or _
+       InStr(lowerText, "%252e") > 0 Or _
+       InStr(lowerText, "..%00") > 0 Or _
+       InStr(lowerText, "..%01") > 0 Or _
+       InStr(lowerText, "/etc/passwd") > 0 Or _
+       InStr(lowerText, "/etc/shadow") > 0 Or _
+       InStr(lowerText, "windows\system32") > 0 Then
+        threats = threats & "PATH_TRAVERSAL "
+    End If
+    
+    ' File Inclusion Detection
+    If InStr(lowerText, "php://") > 0 Or _
+       InStr(lowerText, "data://") > 0 Or _
+       InStr(lowerText, "expect://") > 0 Or _
+       InStr(lowerText, "file://") > 0 Or _
+       InStr(lowerText, "phar://") > 0 Or _
+       InStr(lowerText, "zip://") > 0 Or _
+       InStr(lowerText, "ftp://") > 0 Then
+        threats = threats & "FILE_INCLUSION "
+    End If
+    
+    ' SSRF Detection
+    If InStr(lowerText, "127.0.0.1") > 0 Or _
+       InStr(lowerText, "localhost") > 0 Or _
+       InStr(lowerText, "169.254.169.254") > 0 Or _
+       InStr(lowerText, "metadata.google") > 0 Or _
+       InStr(lowerText, "metadata.azure") > 0 Or _
+       InStr(lowerText, "::1") > 0 Or _
+       InStr(lowerText, "0.0.0.0") > 0 Then
+        threats = threats & "SSRF_ATTEMPT "
+    End If
+    
+    ' CVE Detection
+    If InStr(lowerText, "${jndi:") > 0 Or _
+       InStr(lowerText, "${jndi:ldap") > 0 Or _
+       InStr(lowerText, "${jndi:rmi") > 0 Then
+        threats = threats & "LOG4SHELL_CVE-2021-44228 "
+    End If
+    
+    If InStr(lowerText, "class.module.classloader") > 0 Then
+        threats = threats & "SPRING4SHELL_CVE-2022-22965 "
+    End If
+    
+    ' Admin/Sensitive Access
+    If InStr(lowerText, "/admin") > 0 Or _
+       InStr(lowerText, "/manager") > 0 Or _
+       InStr(lowerText, "/wp-admin") > 0 Or _
+       InStr(lowerText, "/wp-login") > 0 Or _
+       InStr(lowerText, "/phpmyadmin") > 0 Or _
+       InStr(lowerText, "/adminer") > 0 Or _
+       InStr(lowerText, "/administrator") > 0 Then
+        threats = threats & "ADMIN_ACCESS "
+    End If
+    
+    ' Sensitive Files
+    If InStr(lowerText, ".git/") > 0 Or _
+       InStr(lowerText, ".env") > 0 Or _
+       InStr(lowerText, ".svn/") > 0 Or _
+       InStr(lowerText, "web.config") > 0 Or _
+       InStr(lowerText, ".htaccess") > 0 Or _
+       InStr(lowerText, ".htpasswd") > 0 Or _
+       InStr(lowerText, ".ssh/") > 0 Or _
+       InStr(lowerText, ".bak") > 0 Or _
+       InStr(lowerText, ".sql") > 0 Or _
+       InStr(lowerText, ".zip") > 0 Or _
+       InStr(lowerText, ".rar") > 0 Or _
+       InStr(lowerText, "wp-config.php") > 0 Or _
+       InStr(lowerText, "configuration.php") > 0 Then
+        threats = threats & "SENSITIVE_FILE "
+    End If
+    
+    ' Scanner Detection
+    If InStr(lowerText, "sqlmap") > 0 Or _
+       InStr(lowerText, "nikto") > 0 Or _
+       InStr(lowerText, "nmap") > 0 Or _
+       InStr(lowerText, "masscan") > 0 Or _
+       InStr(lowerText, "burp") > 0 Or _
+       InStr(lowerText, "acunetix") > 0 Or _
+       InStr(lowerText, "nessus") > 0 Or _
+       InStr(lowerText, "metasploit") > 0 Or _
+       InStr(lowerText, "nuclei") > 0 Or _
+       InStr(lowerText, "python-requests") > 0 Or _
+       InStr(lowerText, "curl/") > 0 Or _
+       InStr(lowerText, "wget/") > 0 Then
+        threats = threats & "SCANNER_DETECTED "
+    End If
+    
+    ' NoSQL Injection
+    If InStr(lowerText, "$ne") > 0 Or _
+       InStr(lowerText, "$gt") > 0 Or _
+       InStr(lowerText, "$lt") > 0 Or _
+       InStr(lowerText, "$regex") > 0 Or _
+       InStr(lowerText, "$where") > 0 Or _
+       InStr(lowerText, "$exists") > 0 Then
+        threats = threats & "NOSQL_INJECTION "
+    End If
+    
+    ' XXE Detection
+    If InStr(lowerText, "<!doctype") > 0 Or _
+       InStr(lowerText, "<!entity") > 0 Or _
+       InStr(lowerText, "system") > 0 And InStr(lowerText, "file:") > 0 Then
+        threats = threats & "XXE_ATTACK "
+    End If
+    
+    ' LDAP Injection
+    If InStr(lowerText, "*|") > 0 Or _
+       InStr(lowerText, "*(") > 0 Or _
+       InStr(lowerText, ")|") > 0 Or _
+       InStr(lowerText, ")&") > 0 Then
+        threats = threats & "LDAP_INJECTION "
+    End If
+    
+    ' Template Injection
+    If InStr(lowerText, "{{") > 0 Or _
+       InStr(lowerText, "{%") > 0 Or _
+       InStr(lowerText, "${") > 0 Or _
+       InStr(lowerText, "#{") > 0 Or _
+       InStr(lowerText, "<%=") > 0 Then
+        threats = threats & "TEMPLATE_INJECTION "
+    End If
+    
+    DetectThreats = Trim(threats)
+End Function
+
+Private Function CalculateRiskScore(ipRecord As Object) As Long
+    Dim score As Long
+    score = 0
+    
+    ' Base score on request count
+    If ipRecord("count") > 100 Then score = score + 10
+    If ipRecord("count") > 500 Then score = score + 15
+    If ipRecord("count") > 1000 Then score = score + 20
+    
+    ' Error rate scoring
+    Dim errorRate As Double
+    If ipRecord("count") > 0 Then
+        errorRate = (ipRecord("status4xx") + ipRecord("status5xx")) / ipRecord("count")
+        If errorRate > 0.3 Then score = score + 15
+        If errorRate > 0.5 Then score = score + 20
+        If errorRate > 0.7 Then score = score + 25
+    End If
+    
+    ' 404 errors (scanning indicator)
+    If ipRecord("status404") > 20 Then score = score + 15
+    If ipRecord("status404") > 50 Then score = score + 20
+    If ipRecord("status404") > 100 Then score = score + 25
+    
+    ' Authentication failures
+    If ipRecord("authfails") > 5 Then score = score + 15
+    If ipRecord("authfails") > 10 Then score = score + 20
+    If ipRecord("authfails") > 20 Then score = score + 30
+    
+    ' Server errors (possible exploitation)
+    If ipRecord("errors") > 5 Then score = score + 20
+    If ipRecord("errors") > 10 Then score = score + 30
+    
+    ' Threat detection
+    score = score + ipRecord("threats") * 15
+    
+    ' Specific threat weighting
+    If InStr(ipRecord("threatlist"), "SQL_INJECTION") > 0 Then score = score + 20
+    If InStr(ipRecord("threatlist"), "COMMAND_INJECTION") > 0 Then score = score + 25
+    If InStr(ipRecord("threatlist"), "LOG4SHELL") > 0 Then score = score + 40
+    If InStr(ipRecord("threatlist"), "SPRING4SHELL") > 0 Then score = score + 40
+    If InStr(ipRecord("threatlist"), "SCANNER_DETECTED") > 0 Then score = score + 15
+    
+    ' Cap at 100
+    If score > 100 Then score = 100
+    
+    CalculateRiskScore = score
+End Function
+
+Private Sub CreateSecurityReport(IPStats As Object, ThreatList As Object, totalLogs As Long)
+    
+    Dim ws As Worksheet
+    
+    ' Delete existing report if exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Worksheets("Security_Report").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    
+    ' Create new report sheet
+    Set ws = Worksheets.Add(Before:=Worksheets(1))
+    ws.Name = "Security_Report"
+    
+    ' Title
+    ws.Range("A1").Value = "IIS SECURITY ANALYSIS REPORT"
+    ws.Range("A1").Font.Bold = True
+    ws.Range("A1").Font.Size = 16
+    ws.Range("A1").Font.Color = RGB(0, 51, 102)
+    
+    ws.Range("A2").Value = "Generated: " & Now
+    ws.Range("A3").Value = "Total Log Entries: " & totalLogs
+    ws.Range("A4").Value = "Unique IPs: " & IPStats.Count
+    ws.Range("A5").Value = "Total Threats: " & ThreatList.Count
+    
+    ' Risk summary
+    ws.Range("A7").Value = "RISK SUMMARY"
+    ws.Range("A7").Font.Bold = True
+    ws.Range("A7").Font.Size = 12
+    
+    Dim critical As Long, high As Long, medium As Long, low As Long
+    Dim ipKey As Variant
+    
+    For Each ipKey In IPStats.Keys
+        Select Case IPStats(ipKey)("riskscore")
+            Case Is >= 80: critical = critical + 1
+            Case Is >= 60: high = high + 1
+            Case Is >= 40: medium = medium + 1
+            Case Is >= 20: low = low + 1
+        End Select
+    Next ipKey
+    
+    ws.Range("A8").Value = "Critical Risk IPs:"
+    ws.Range("B8").Value = critical
+    ws.Range("B8").Interior.Color = RGB(255, 0, 0)
+    ws.Range("B8").Font.Color = RGB(255, 255, 255)
+    ws.Range("B8").Font.Bold = True
+    
+    ws.Range("A9").Value = "High Risk IPs:"
+    ws.Range("B9").Value = high
+    ws.Range("B9").Interior.Color = RGB(255, 128, 0)
+    
+    ws.Range("A10").Value = "Medium Risk IPs:"
+    ws.Range("B10").Value = medium
+    ws.Range("B10").Interior.Color = RGB(255, 255, 0)
+    
+    ws.Range("A11").Value = "Low Risk IPs:"
+    ws.Range("B11").Value = low
+    ws.Range("B11").Interior.Color = RGB(146, 208, 80)
+    
+    ' Threat categories
+    ws.Range("D7").Value = "THREAT CATEGORIES FOUND"
+    ws.Range("D7").Font.Bold = True
+    ws.Range("D7").Font.Size = 12
+    
+    Dim threatTypes As Object
+    Set threatTypes = CreateObject("Scripting.Dictionary")
+    
+    Dim threat As Variant
+    For Each threat In ThreatList.Keys
+        Dim threats() As String
+        threats = Split(ThreatList(threat), " ")
+        Dim i As Long
+        For i = 0 To UBound(threats)
+            If Len(threats(i)) > 0 Then
+                If Not threatTypes.Exists(threats(i)) Then
+                    threatTypes.Add threats(i), 1
+                Else
+                    threatTypes(threats(i)) = threatTypes(threats(i)) + 1
+                End If
+            End If
+        Next i
+    Next threat
+    
+    Dim row As Long
+    row = 8
+    For Each threat In threatTypes.Keys
+        ws.Cells(row, 4).Value = threat
+        ws.Cells(row, 5).Value = threatTypes(threat)
+        row = row + 1
+    Next threat
+    
+    ' Recommendations
+    ws.Range("A13").Value = "RECOMMENDATIONS"
+    ws.Range("A13").Font.Bold = True
+    ws.Range("A13").Font.Size = 12
+    ws.Range("A13").Font.Color = RGB(255, 0, 0)
+    
+    ws.Range("A14").Value = "1. Immediately block all Critical risk IPs"
+    ws.Range("A15").Value = "2. Review and investigate High risk IPs"
+    ws.Range("A16").Value = "3. Implement Web Application Firewall rules"
+    ws.Range("A17").Value = "4. Enable rate limiting for suspicious IPs"
+    ws.Range("A18").Value = "5. Patch vulnerable applications"
+    ws.Range("A19").Value = "6. Review server error logs for exploitation attempts"
+    ws.Range("A20").Value = "7. Monitor authentication failure patterns"
+    
+    ws.Columns("A:E").AutoFit
+End Sub
+
+Private Sub CreateIPAnalysisReport(IPStats As Object)
+    
+    Dim ws As Worksheet
+    
+    ' Delete existing report if exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Worksheets("IP_Analysis").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    
+    ' Create new report sheet
+    Set ws = Worksheets.Add
+    ws.Name = "IP_Analysis"
+    
+    ' Headers
+    ws.Range("A1:K1").Value = Array("IP Address", "Risk Score", "Risk Level", _
+                                    "Total Requests", "2xx", "3xx", "4xx", "5xx", _
+                                    "404 Errors", "Auth Fails", "Threats")
+    ws.Range("A1:K1").Font.Bold = True
+    ws.Range("A1:K1").Interior.Color = RGB(0, 51, 102)
+    ws.Range("A1:K1").Font.Color = RGB(255, 255, 255)
+    
+    ' Sort IPs by risk score
+    Dim sortedIPs() As String
+    Dim scores() As Long
+    Dim ipCount As Long
+    ipCount = IPStats.Count
+    
+    If ipCount = 0 Then Exit Sub
+    
+    ReDim sortedIPs(1 To ipCount)
+    ReDim scores(1 To ipCount)
+    
+    Dim i As Long
+    i = 1
+    Dim ipKey As Variant
+    For Each ipKey In IPStats.Keys
+        sortedIPs(i) = ipKey
+        scores(i) = IPStats(ipKey)("riskscore")
+        i = i + 1
+    Next ipKey
+    
+    ' Simple bubble sort
+    Dim j As Long
+    Dim tempIP As String
+    Dim tempScore As Long
+    
+    For i = 1 To ipCount - 1
+        For j = i + 1 To ipCount
+            If scores(j) > scores(i) Then
+                tempScore = scores(i)
+                scores(i) = scores(j)
+                scores(j) = tempScore
                 
-            # Add protocol if missing
-            if not url.startswith(('http://', 'https://')):
-                url = 'http://' + url
-            
-            # Validate URL
-            try:
-                parsed = urlparse(url)
-                if not parsed.netloc:
-                    print_status('error', "Invalid URL format")
-                    continue
-                
-                # Test connection
-                print_status('info', f"Testing connection to {url}...")
-                test_client = HTTPClient(timeout=5)
-                response = test_client.request(url)
-                
-                if response and 'error' not in response:
-                    print_status('success', f"Connected! (Status: {response['status']})")
-                    self.base_url = url.rstrip('/')
-                    break
-                else:
-                    error = response.get('error', 'Unknown error')
-                    print_status('error', f"Connection failed: {error}")
-                    retry = input("Try again? (y/n): ").lower()
-                    if retry != 'y':
-                        sys.exit(1)
-                        
-            except Exception as e:
-                print_status('error', f"Error: {e}")
-        
-        # Step 2: Wordlist
-        print_colored("\\n[STEP 2] WORDLIST CONFIGURATION", Colors.HEADER)
-        print("-" * 50)
-        
-        while True:
-            print("\\nWordlist options:")
-            print("  1. Load from file")
-            print("  2. Use built-in common paths")
-            print("  3. Enter custom paths")
-            
-            choice = input(f"{Colors.CYAN}Select option [1-3]: {Colors.ENDC}").strip()
-            
-            if choice == '1':
-                filepath = input("Enter wordlist file path: ").strip()
-                if os.path.exists(filepath):
-                    try:
-                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                            self.wordlist = [line.strip() for line in f if line.strip()]
-                        print_status('success', f"Loaded {len(self.wordlist)} paths")
-                        break
-                    except Exception as e:
-                        print_status('error', f"Error loading file: {e}")
-                else:
-                    print_status('error', "File not found")
-                    
-            elif choice == '2':
-                self.wordlist = self.get_common_paths()
-                print_status('success', f"Using {len(self.wordlist)} common paths")
-                break
-                
-            elif choice == '3':
-                print("Enter paths (one per line, empty line to finish):")
-                custom_paths = []
-                while True:
-                    path = input("> ").strip()
-                    if not path:
-                        break
-                    custom_paths.append(path)
-                if custom_paths:
-                    self.wordlist = custom_paths
-                    print_status('success', f"Added {len(self.wordlist)} custom paths")
-                    break
-                else:
-                    print_status('error', "No paths entered")
-        
-        # Step 3: Extensions
-        print_colored("\\n[STEP 3] FILE EXTENSIONS", Colors.HEADER)
-        print("-" * 50)
-        
-        print("\\nExtension options:")
-        print("  1. No extensions (directories only)")
-        print("  2. Common web files (.php, .html, .asp, .txt)")
-        print("  3. Backup files (.bak, .old, .backup)")
-        print("  4. Custom extensions")
-        
-        ext_choice = input(f"{Colors.CYAN}Select option [1-4]: {Colors.ENDC}").strip()
-        
-        if ext_choice == '2':
-            self.extensions = ['.php', '.html', '.htm', '.asp', '.aspx', '.txt', '.xml']
-        elif ext_choice == '3':
-            self.extensions = ['.bak', '.backup', '.old', '.orig', '.save', '.swp', '~']
-        elif ext_choice == '4':
-            custom = input("Enter extensions (comma-separated): ").strip()
-            self.extensions = [e.strip() if e.startswith('.') else f'.{e.strip()}' 
-                             for e in custom.split(',') if e.strip()]
-        
-        if self.extensions:
-            print_status('success', f"Will test {len(self.extensions)} extensions")
-        
-        # Step 4: Advanced options
-        print_colored("\\n[STEP 4] ADVANCED OPTIONS", Colors.HEADER)
-        print("-" * 50)
-        
-        # Threads
-        threads_input = input(f"Number of threads (default 30): ").strip()
-        if threads_input.isdigit():
-            self.threads = min(100, max(1, int(threads_input)))
-        print_status('info', f"Using {self.threads} threads")
-        
-        # Timeout
-        timeout_input = input(f"Request timeout in seconds (default 10): ").strip()
-        try:
-            self.timeout = float(timeout_input) if timeout_input else 10
-        except:
-            self.timeout = 10
-        print_status('info', f"Timeout: {self.timeout}s")
-        
-        # Delay
-        delay_input = input(f"Delay between requests in seconds (default 0): ").strip()
-        try:
-            self.delay = float(delay_input) if delay_input else 0
-        except:
-            self.delay = 0
-        
-        # Recursive
-        recursive = input(f"Enable recursive scanning? (y/N): ").strip().lower()
-        if recursive == 'y':
-            self.recursive = True
-            depth = input(f"Max recursion depth (default 2): ").strip()
-            try:
-                self.max_depth = int(depth) if depth else 2
-            except:
-                self.max_depth = 2
-            print_status('info', f"Recursive scanning enabled (depth: {self.max_depth})")
-        
-        # Summary
-        print_colored("\\n[SUMMARY]", Colors.HEADER)
-        print("-" * 50)
-        print(f"Target:     {self.base_url}")
-        print(f"Wordlist:   {len(self.wordlist)} paths")
-        print(f"Extensions: {len(self.extensions)} extensions")
-        print(f"Threads:    {self.threads}")
-        print(f"Recursive:  {'Yes' if self.recursive else 'No'}")
-        
-        total_requests = len(self.wordlist) * (1 + len(self.extensions))
-        print(f"\\nEstimated requests: {total_requests}")
-        
-        confirm = input(f"\\n{Colors.CYAN}Start scan? (Y/n): {Colors.ENDC}").strip().lower()
-        if confirm == 'n':
-            print_status('warning', "Scan cancelled")
-            sys.exit(0)
+                tempIP = sortedIPs(i)
+                sortedIPs(i) = sortedIPs(j)
+                sortedIPs(j) = tempIP
+            End If
+        Next j
+    Next i
     
-    def get_common_paths(self):
-        """Return common web paths"""
-        return [
-            # Directories
-            "admin", "administrator", "api", "app", "application", "assets",
-            "backup", "bin", "cgi-bin", "config", "css", "data", "database",
-            "db", "debug", "demo", "dev", "dist", "doc", "docs", "download",
-            "files", "fonts", "help", "images", "img", "include", "includes",
-            "js", "lib", "log", "logs", "login", "media", "old", "private",
-            "public", "resources", "scripts", "server", "src", "static",
-            "storage", "system", "temp", "test", "tmp", "tools", "upload",
-            "uploads", "user", "users", "vendor", "wp-admin", "wp-content",
-            
-            # Files
-            "index", "home", "default", "test", "phpinfo", "info",
-            "robots.txt", "sitemap.xml", ".htaccess", ".env", "web.config",
-            "config.php", "configuration.php", "wp-config.php", "settings.php",
-            "database.php", "db.php", "connect.php", "readme", "README",
-            "LICENSE", "CHANGELOG", "TODO", ".git/HEAD", ".gitignore",
-            "composer.json", "package.json", "bower.json", ".DS_Store"
-        ]
+    ' Output sorted data
+    Dim row As Long
+    row = 2
     
-    def scan_path(self, path, depth=0):
-        """Scan a single path"""
-        if self.stop_scan:
-            return None
+    For i = 1 To ipCount
+        Dim ip As String
+        ip = sortedIPs(i)
         
-        url = urljoin(self.base_url + '/', path)
+        Dim riskLevel As String
+        Select Case IPStats(ip)("riskscore")
+            Case Is >= 80: riskLevel = "CRITICAL"
+            Case Is >= 60: riskLevel = "HIGH"
+            Case Is >= 40: riskLevel = "MEDIUM"
+            Case Is >= 20: riskLevel = "LOW"
+            Case Else: riskLevel = "INFO"
+        End Select
         
-        # Add delay if configured
-        if self.delay > 0:
-            time.sleep(self.delay)
+        ws.Cells(row, 1).Value = ip
+        ws.Cells(row, 2).Value = IPStats(ip)("riskscore")
+        ws.Cells(row, 3).Value = riskLevel
+        ws.Cells(row, 4).Value = IPStats(ip)("count")
+        ws.Cells(row, 5).Value = IPStats(ip)("status2xx")
+        ws.Cells(row, 6).Value = IPStats(ip)("status3xx")
+        ws.Cells(row, 7).Value = IPStats(ip)("status4xx")
+        ws.Cells(row, 8).Value = IPStats(ip)("status5xx")
+        ws.Cells(row, 9).Value = IPStats(ip)("status404")
+        ws.Cells(row, 10).Value = IPStats(ip)("authfails")
+        ws.Cells(row, 11).Value = IPStats(ip)("threats")
         
-        # Make request
-        response = self.client.request(url)
-        self.total_scanned += 1
+        ' Color coding
+        Select Case riskLevel
+            Case "CRITICAL"
+                ws.Range("A" & row & ":K" & row).Interior.Color = RGB(255, 200, 200)
+            Case "HIGH"
+                ws.Range("A" & row & ":K" & row).Interior.Color = RGB(255, 230, 200)
+            Case "MEDIUM"
+                ws.Range("A" & row & ":K" & row).Interior.Color = RGB(255, 255, 200)
+            Case "LOW"
+                ws.Range("A" & row & ":K" & row).Interior.Color = RGB(220, 255, 220)
+        End Select
         
-        # Check if valid finding
-        if self.detector.is_valid_finding(response):
-            self.total_found += 1
-            
-            result = {
-                'url': url,
-                'path': path,
-                'status': response['status'],
-                'size': len(response.get('content', b'')),
-                'depth': depth,
-                'type': 'dir' if path.endswith('/') or '.' not in path.split('/')[-1] else 'file'
-            }
-            
-            # Extract title if HTML
-            content = response.get('content', b'')
-            try:
-                text = content.decode('utf-8', errors='ignore')
-                title_match = re.search(r'<title>(.*?)</title>', text, re.IGNORECASE)
-                if title_match:
-                    result['title'] = title_match.group(1)[:100]
-            except:
-                pass
-            
-            self.results.append(result)
-            
-            # Categorize
-            if result['type'] == 'dir':
-                self.found_dirs.append(result)
-            else:
-                self.found_files.append(result)
-            
-            # Display finding
-            self.display_finding(result)
-            
-            # Add to recursive queue if directory and recursive enabled
-            if self.recursive and result['type'] == 'dir' and depth < self.max_depth:
-                return {'recursive': True, 'base_path': path, 'depth': depth + 1}
-            
-            return result
-        
-        return None
+        row = row + 1
+    Next i
     
-    def display_finding(self, result):
-        """Display found item"""
-        status = result['status']
-        
-        # Color based on status
-        if status == 200:
-            color = Colors.GREEN
-        elif status in [301, 302]:
-            color = Colors.BLUE
-        elif status in [401, 403]:
-            color = Colors.WARNING
-        else:
-            color = Colors.CYAN
-        
-        output = f"{Colors.GREEN}[FOUND]{Colors.ENDC} "
-        output += f"{color}[{status}]{Colors.ENDC} "
-        output += f"{result['url']}"
-        
-        if result.get('title'):
-            output += f" - {result['title']}"
-        
-        print(output)
+    ' Format
+    ws.Columns("A:K").AutoFit
+    ws.Range("A1:K" & row - 1).Borders.LineStyle = xlContinuous
     
-    def run_scan(self):
-        """Run the scan"""
-        print_colored("\\n[SCANNING]", Colors.HEADER)
-        print("-" * 50)
-        
-        # Initialize client
-        self.client = HTTPClient(timeout=self.timeout)
-        
-        # Calibrate detector
-        self.detector.calibrate(self.client, self.base_url)
-        
-        # Build scan queue
-        scan_queue = []
-        for word in self.wordlist:
-            scan_queue.append((word, 0))
-            for ext in self.extensions:
-                scan_queue.append((word + ext, 0))
-        
-        total_items = len(scan_queue)
-        print_status('info', f"Starting scan with {total_items} items")
-        
-        self.start_time = datetime.now()
-        
-        # Progress tracking
-        def show_progress():
-            while not self.stop_scan:
-                elapsed = (datetime.now() - self.start_time).total_seconds()
-                rate = self.total_scanned / elapsed if elapsed > 0 else 0
-                
-                sys.stdout.write(f"\\r{Colors.CYAN}Progress: {self.total_scanned}/{total_items} "
-                               f"| Found: {self.total_found} | Rate: {rate:.1f}/s{Colors.ENDC}  ")
-                sys.stdout.flush()
-                time.sleep(0.5)
-        
-        # Start progress thread
-        progress_thread = threading.Thread(target=show_progress)
-        progress_thread.daemon = True
-        progress_thread.start()
-        
-        try:
-            # Scan with thread pool
-            with ThreadPoolExecutor(max_workers=self.threads) as executor:
-                # Initial scan
-                futures = []
-                for path, depth in scan_queue:
-                    future = executor.submit(self.scan_path, path, depth)
-                    futures.append(future)
-                
-                # Process results and handle recursive scanning
-                recursive_items = []
-                for future in as_completed(futures):
-                    try:
-                        result = future.result(timeout=self.timeout + 5)
-                        if result and isinstance(result, dict) and result.get('recursive'):
-                            # Add recursive items
-                            base = result['base_path']
-                            new_depth = result['depth']
-                            for word in self.wordlist:
-                                recursive_items.append((f"{base}/{word}", new_depth))
-                                for ext in self.extensions:
-                                    recursive_items.append((f"{base}/{word}{ext}", new_depth))
-                    except:
-                        pass
-                
-                # Scan recursive items if any
-                if recursive_items:
-                    print_status('info', f"\\nScanning {len(recursive_items)} recursive items...")
-                    recursive_futures = []
-                    for path, depth in recursive_items:
-                        future = executor.submit(self.scan_path, path, depth)
-                        recursive_futures.append(future)
-                    
-                    for future in as_completed(recursive_futures):
-                        try:
-                            future.result(timeout=self.timeout + 5)
-                        except:
-                            pass
-        
-        except KeyboardInterrupt:
-            print_status('warning', "\\n\\nScan interrupted by user")
-            self.stop_scan = True
-        
-        # Show results
-        self.show_results()
-    
-    def show_results(self):
-        """Display scan results"""
-        duration = datetime.now() - self.start_time
-        
-        print_colored("\\n\\n[RESULTS]", Colors.HEADER)
-        print("-" * 50)
-        
-        print(f"Scan Duration:  {duration}")
-        print(f"Total Requests: {self.total_scanned}")
-        print(f"Total Found:    {self.total_found}")
-        
-        if self.total_scanned > 0:
-            print(f"Success Rate:   {(self.total_found/self.total_scanned)*100:.1f}%")
-        
-        if self.found_dirs:
-            print_colored(f"\\n[DIRECTORIES: {len(self.found_dirs)}]", Colors.HEADER)
-            for d in sorted(self.found_dirs, key=lambda x: x['path'])[:20]:
-                print(f"  [{d['status']}] {d['path']}")
-        
-        if self.found_files:
-            print_colored(f"\\n[FILES: {len(self.found_files)}]", Colors.HEADER)
-            for f in sorted(self.found_files, key=lambda x: x['path'])[:20]:
-                print(f"  [{f['status']}] {f['path']} ({f['size']} bytes)")
-        
-        # Save results
-        self.save_results()
-    
-    def save_results(self):
-        """Save results to files"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        domain = urlparse(self.base_url).netloc.replace(':', '_')
-        
-        # Save TXT report
-        txt_file = f"dirhunter_{domain}_{timestamp}.txt"
-        try:
-            with open(txt_file, 'w') as f:
-                f.write(f"DirHunter Scan Report\\n")
-                f.write(f"{'='*50}\\n")
-                f.write(f"Target: {self.base_url}\\n")
-                f.write(f"Date: {datetime.now()}\\n")
-                f.write(f"Total Found: {self.total_found}\\n\\n")
-                
-                for result in self.results:
-                    f.write(f"[{result['status']}] {result['url']}\\n")
-            
-            print_status('success', f"Report saved: {txt_file}")
-        except Exception as e:
-            print_status('error', f"Failed to save report: {e}")
-        
-        # Save JSON report
-        json_file = f"dirhunter_{domain}_{timestamp}.json"
-        try:
-            with open(json_file, 'w') as f:
-                json.dump({
-                    'target': self.base_url,
-                    'scan_date': str(datetime.now()),
-                    'total_found': self.total_found,
-                    'results': self.results
-                }, f, indent=2, default=str)
-            
-            print_status('success', f"JSON saved: {json_file}")
-        except Exception as e:
-            print_status('error', f"Failed to save JSON: {e}")
+    ' Add autofilter
+    ws.Range("A1:K" & row - 1).AutoFilter
+End Sub
 
-def signal_handler(sig, frame):
-    """Handle Ctrl+C gracefully"""
-    print_status('warning', "\\n\\nScan interrupted by user")
-    sys.exit(0)
-
-def main():
-    """Main entry point"""
-    # Set up signal handler
-    signal.signal(signal.SIGINT, signal_handler)
+Private Sub CreateThreatSummaryReport(ThreatList As Object)
     
-    try:
-        scanner = Scanner()
-        scanner.setup_interactive()
-        scanner.run_scan()
+    If ThreatList.Count = 0 Then Exit Sub
+    
+    Dim ws As Worksheet
+    
+    ' Delete existing report if exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Worksheets("Threat_Details").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    
+    ' Create new report sheet
+    Set ws = Worksheets.Add
+    ws.Name = "Threat_Details"
+    
+    ' Headers
+    ws.Range("A1:C1").Value = Array("IP Address", "Log Row", "Threats Detected")
+    ws.Range("A1:C1").Font.Bold = True
+    ws.Range("A1:C1").Interior.Color = RGB(139, 0, 0)
+    ws.Range("A1:C1").Font.Color = RGB(255, 255, 255)
+    
+    ' Output threats
+    Dim row As Long
+    row = 2
+    
+    Dim threat As Variant
+    For Each threat In ThreatList.Keys
+        Dim parts() As String
+        parts = Split(threat, "|")
         
-    except Exception as e:
-        print_status('error', f"Fatal error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        If UBound(parts) >= 1 Then
+            ws.Cells(row, 1).Value = parts(0) ' IP
+            ws.Cells(row, 2).Value = parts(1) ' Row
+            ws.Cells(row, 3).Value = ThreatList(threat) ' Threats
+            row = row + 1
+        End If
+    Next threat
+    
+    ' Format
+    ws.Columns("A:C").AutoFit
+    ws.Range("A1:C" & row - 1).Borders.LineStyle = xlContinuous
+End Sub
